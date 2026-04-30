@@ -1,0 +1,225 @@
+﻿.rota-duzenle-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10020;
+    background: rgba(15, 23, 42, 0.32);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: flex-end;
+    padding: 22px;
+}
+
+.rota-duzenle-panel {
+    width: 460px;
+    max-width: calc(100vw - 44px);
+    height: 100%;
+    border-radius: 24px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: rotaPanelIn 0.2s ease;
+}
+
+.rota-duzenle-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 22px 16px;
+    border-bottom: 1px solid #eef2f7;
+    background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.14), transparent 36%), linear-gradient(180deg, #f8fbff, #ffffff);
+}
+
+.rota-duzenle-eyebrow {
+    margin-bottom: 5px;
+    color: #10b981;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.rota-duzenle-head h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 21px;
+    font-weight: 900;
+}
+
+.rota-duzenle-head p {
+    margin: 7px 0 0;
+    color: #64748b;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.rota-duzenle-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 14px;
+    background: #ecfdf5;
+    color: #047857;
+    cursor: pointer;
+    font-size: 25px;
+}
+
+.rota-duzenle-body {
+    flex: 1;
+    overflow: auto;
+}
+
+.rota-duzenle-section {
+    padding: 14px 18px 4px;
+}
+
+.rota-duzenle-title {
+    margin-bottom: 10px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.rota-duzenle-item {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    align-items: center;
+    gap: 10px;
+    min-height: 58px;
+    margin-bottom: 9px;
+    padding: 10px;
+    border-radius: 17px;
+    border: 1px solid #e6ebf3;
+    background: #ffffff;
+}
+
+    .rota-duzenle-item.is-load {
+        background: #fffbeb;
+        border-color: #fde68a;
+    }
+
+    .rota-duzenle-item.is-delivery {
+        grid-template-columns: 26px 34px 1fr;
+        cursor: grab;
+        transition: 0.15s;
+    }
+
+        .rota-duzenle-item.is-delivery:hover {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            box-shadow: 0 10px 22px rgba(16, 185, 129, 0.12);
+            transform: translateY(-1px);
+        }
+
+    .rota-duzenle-item.is-dragging {
+        opacity: 0.38;
+        transform: scale(0.98);
+    }
+
+    .rota-duzenle-item.is-over {
+        border-color: #10b981;
+        background: #ecfdf5;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+    }
+
+.rota-duzenle-grip {
+    width: 24px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+    .rota-duzenle-grip svg {
+        width: 17px;
+        height: 17px;
+    }
+
+.rota-duzenle-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rota-duzenle-item.is-load .rota-duzenle-number {
+    background: #f59e0b;
+}
+
+.rota-duzenle-item.is-delivery .rota-duzenle-number {
+    background: #10b981;
+}
+
+.rota-duzenle-info {
+    min-width: 0;
+}
+
+    .rota-duzenle-info strong {
+        display: block;
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .rota-duzenle-info span {
+        display: block;
+        margin-top: 3px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+.rota-duzenle-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 22px 22px;
+    border-top: 1px solid #eef2f7;
+}
+
+.rota-duzenle-cancel,
+.rota-duzenle-save {
+    flex: 1;
+    height: 42px;
+    border: none;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.rota-duzenle-cancel {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.rota-duzenle-save {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 9px 20px rgba(16, 185, 129, 0.25);
+}
+
+@keyframes rotaPanelIn {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
