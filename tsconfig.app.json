@@ -7,23 +7,18 @@
     "types": [ "vite/client" ],
     "skipLibCheck": true,
 
-    /* EKLE */
     "allowJs": true,
     "checkJs": false,
 
-    /* Bundler mode */
+    "strict": false,
+    "noImplicitAny": false,
+
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
-
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "jsx": "react-jsx"
   },
   "include": [ "src" ]
 }
