@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import "./KullaniciKPI.css";
+import "./kullanicikpi.css";
 
 function fmtDate(value) {
     if (!value) return "—";
