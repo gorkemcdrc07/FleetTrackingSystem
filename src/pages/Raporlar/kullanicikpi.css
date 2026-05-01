@@ -1,0 +1,269 @@
+﻿.kpi-page {
+    padding: 24px;
+    background: #f5f7fb;
+    min-height: 100vh;
+    color: #172033;
+}
+
+.kpi-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+    .kpi-header span {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .kpi-header h1 {
+        margin: 4px 0;
+        font-size: 28px;
+    }
+
+    .kpi-header p {
+        margin: 0;
+        color: #64748b;
+    }
+
+.kpi-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+    .kpi-filters select,
+    .kpi-filters button {
+        border: 1px solid #d8deea;
+        background: white;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 700;
+    }
+
+    .kpi-filters button {
+        background: #2563eb;
+        color: white;
+        cursor: pointer;
+    }
+
+.kpi-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.kpi-card,
+.kpi-panel {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.kpi-card {
+    padding: 18px;
+}
+
+    .kpi-card span {
+        display: block;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .kpi-card strong {
+        font-size: 30px;
+    }
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 0.85fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.kpi-panel {
+    padding: 16px;
+}
+
+    .kpi-panel.full {
+        margin-bottom: 24px;
+    }
+
+.panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+    .panel-head h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .panel-head span {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+.kpi-table-wrap {
+    overflow: auto;
+}
+
+.kpi-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .kpi-table th,
+    .kpi-table td {
+        padding: 11px 10px;
+        border-bottom: 1px solid #eef2f7;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .kpi-table th {
+        color: #64748b;
+        font-size: 12px;
+    }
+
+.type-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.type-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+}
+
+    .type-row strong {
+        display: block;
+        font-size: 14px;
+    }
+
+    .type-row span {
+        display: block;
+        color: #64748b;
+        font-size: 11px;
+        margin-top: 3px;
+    }
+
+    .type-row b {
+        font-size: 20px;
+    }
+
+.activity-list {
+    display: grid;
+    gap: 10px;
+}
+
+.activity-item {
+    padding: 14px;
+    border: 1px solid #edf2f7;
+    background: #fbfdff;
+    border-radius: 16px;
+}
+
+.activity-top,
+.activity-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+    .activity-top span,
+    .activity-meta span {
+        color: #64748b;
+        font-size: 12px;
+    }
+
+.activity-main {
+    margin: 8px 0;
+}
+
+    .activity-main b {
+        display: block;
+        font-size: 15px;
+    }
+
+    .activity-main p {
+        margin: 3px 0 0;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+.change-box {
+    margin-top: 10px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    gap: 6px;
+}
+
+    .change-box div {
+        display: grid;
+        gap: 2px;
+    }
+
+    .change-box strong {
+        font-size: 13px;
+    }
+
+    .change-box span {
+        color: #475569;
+        font-size: 12px;
+    }
+
+    .change-box.order {
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+    }
+
+.empty-box {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 14px;
+}
+
+@media (max-width: 1000px) {
+    .kpi-header,
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .kpi-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .kpi-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-page {
+        padding: 14px;
+    }
+}

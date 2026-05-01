@@ -1,8 +1,11 @@
 ﻿import { useState } from "react";
 import "./Home.css";
-import AktifSeferler from "./AktifSeferler"; // ✅ DOĞRU IMPORT
+import AktifSeferler from "./AktifSeferler";
 import TamamlananSeferler from "./TamamlananSeferler";
 import AracDurumlari from "./AracDurumları";
+import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
+import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
+import KullaniciKPI from "./Raporlar/kullanicikpi";
 
 type HomeProps = {
     onLogout: () => void;
@@ -28,16 +31,7 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Raporlar",
         icon: "📊",
-        items: [
-            "Kullanıcı KPİ",
-            "Eta Uyumsuzlukları",
-            "Yüklemede Bekleme",
-            "Teslimde Bekleme",
-            "Boş Araçlar",
-            "Sefer Süreleri",
-            "Sefer Tamamlayanlar",
-            "Bölgesel Analiz",
-        ],
+        items: ["Kullanıcı KPİ", "Yüklemede Bekleme", "Teslimde Bekleme"],
     },
     {
         title: "Hakedişler",
@@ -65,24 +59,43 @@ const menuGroups: MenuGroup[] = [
     },
 ];
 
+function getAktifKullanici() {
+    try {
+        return (
+            JSON.parse(localStorage.getItem("fts_user") || "null") ||
+            JSON.parse(localStorage.getItem("kullanici") || "null") ||
+            JSON.parse(localStorage.getItem("aktifKullanici") || "null") ||
+            JSON.parse(localStorage.getItem("user") || "null") ||
+            null
+        );
+    } catch {
+        return null;
+    }
+}
+
 function Home({ onLogout }: HomeProps) {
     const [activePage, setActivePage] = useState("Dashboard");
 
+    const aktifKullanici = getAktifKullanici();
+
+    const kullaniciAdi =
+        aktifKullanici?.ad ||
+        aktifKullanici?.kullanici ||
+        aktifKullanici?.kullanici_adi ||
+        aktifKullanici?.email ||
+        "Kullanıcı";
+
+    const kullaniciRol = aktifKullanici?.rol || "Kullanıcı";
+
+    const avatarLetter = String(kullaniciAdi || "K").charAt(0).toUpperCase();
+
     const renderPage = () => {
-
-        // 🔥 AKTİF SEFERLER AÇILIYOR
-        if (activePage === "Aktif Seferler") {
-            return <AktifSeferler />;
-        }
-
-        if (activePage === "Tamamlanan Seferler") {
-            return <TamamlananSeferler />;
-        }
-
-        if (activePage === "Araç Durumları") {
-            return <AracDurumlari />;
-        }
-
+        if (activePage === "Aktif Seferler") return <AktifSeferler />;
+        if (activePage === "Tamamlanan Seferler") return <TamamlananSeferler />;
+        if (activePage === "Araç Durumları") return <AracDurumlari />;
+        if (activePage === "Yüklemede Bekleme") return <YuklemedeBekleme />;
+        if (activePage === "Teslimde Bekleme") return <TeslimdeBekleme />;
+        if (activePage === "Kullanıcı KPİ") return <KullaniciKPI />;
 
         return (
             <section className="hero-panel">
@@ -157,11 +170,11 @@ function Home({ onLogout }: HomeProps) {
                     </button>
 
                     <div className="profile">
-                        <div className="avatar">G</div>
+                        <div className="avatar">{avatarLetter}</div>
 
                         <div>
-                            <strong>Görkem</strong>
-                            <span>Admin</span>
+                            <strong>{kullaniciAdi}</strong>
+                            <span>{kullaniciRol}</span>
                         </div>
                     </div>
 

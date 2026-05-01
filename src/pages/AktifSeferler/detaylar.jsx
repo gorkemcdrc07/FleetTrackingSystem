@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./detaylar.css";
 import RotaDuzenleme from "./RotaDuzenleme/RotaDuzenleme";
+import { islemLogla } from "../../utils/islemLogla";
 
 const DRIVE_BLOCK_MIN = 270;
 const SHORT_BREAK_MIN = 45;
@@ -449,7 +450,125 @@ function buildSegments(route, legs, baseDate) {
         };
     });
 }
+function getAracStatuFromRoute(route) {
+    if (!Array.isArray(route) || !route.length) return null;
 
+    const normalized = route.map((item, index) => ({
+        ...item,
+        sira: item.sira || index + 1,
+        type: item.type || (item.tip === "yukleme" ? "Yükleme" : "Teslim"),
+    }));
+
+    const hasAnyTime = normalized.some((x) => x.varis || x.cikis);
+    if (!hasAnyTime) return null;
+
+    const totalLoadCount = normalized.filter((x) => x.type === "Yükleme").length;
+    const totalDeliveryCount = normalized.filter((x) => x.type === "Teslim").length;
+
+    for (let i = normalized.length - 1; i >= 0; i--) {
+        const current = normalized[i];
+        const next = normalized[i + 1];
+
+        const currentLoadIndex = normalized
+            .slice(0, i + 1)
+            .filter((x) => x.type === "Yükleme").length;
+
+        const currentDeliveryIndex = normalized
+            .slice(0, i + 1)
+            .filter((x) => x.type === "Teslim").length;
+
+        const nextLoadIndex = next
+            ? normalized
+                .slice(0, i + 2)
+                .filter((x) => x.type === "Yükleme").length
+            : null;
+
+        const nextDeliveryIndex = next
+            ? normalized
+                .slice(0, i + 2)
+                .filter((x) => x.type === "Teslim").length
+            : null;
+
+        if (current.cikis) {
+            if (!next) {
+                if (current.type === "Teslim") return "Teslim Tamamlandı";
+                if (current.type === "Yükleme") return "Yükleme Tamamlandı";
+                return null;
+            }
+
+            if (next.type === "Yükleme") {
+                return totalLoadCount > 1
+                    ? `${nextLoadIndex}. Yükleme Noktasına Gidiyor`
+                    : "Yükleme Noktasına Gidiyor";
+            }
+
+            if (next.type === "Teslim") {
+                return totalDeliveryCount > 1
+                    ? `${nextDeliveryIndex}. Teslim Noktasına Gidiyor`
+                    : "Teslim Noktasına Gidiyor";
+            }
+        }
+
+        if (current.varis) {
+            if (current.type === "Yükleme") {
+                return totalLoadCount > 1
+                    ? `${currentLoadIndex}. Yükleme Noktasında`
+                    : "Yüklemede";
+            }
+
+            if (current.type === "Teslim") {
+                return totalDeliveryCount > 1
+                    ? `${currentDeliveryIndex}. Teslim Noktasında Boşaltmada`
+                    : "Teslim Noktasında Boşaltmada";
+            }
+        }
+    }
+
+    return null;
+}
+
+function getRouteLabel(item, index) {
+    return `${index + 1}. ${item.type} - ${item.nokta || ""} ${item.il || ""} ${item.ilce || ""}`.trim();
+}
+
+function getRouteChanges(oldRoute = [], newRoute = []) {
+    const changes = [];
+
+    newRoute.forEach((next, index) => {
+        const prev = oldRoute[index] || {};
+        const label = getRouteLabel(next, index);
+
+        ["varis", "cikis"].forEach((field) => {
+            const oldValue = prev[field] || null;
+            const newValue = next[field] || null;
+
+            if (oldValue !== newValue) {
+                changes.push({
+                    nokta: label,
+                    alan: field === "varis" ? "Varış Tarihi" : "Çıkış Tarihi",
+                    eski_deger: oldValue,
+                    yeni_deger: newValue,
+                });
+            }
+        });
+    });
+
+    return changes;
+}
+
+function getRouteOrderChanges(oldRoute = [], newRoute = []) {
+    const oldOrder = oldRoute.map((item, index) => getRouteLabel(item, index));
+    const newOrder = newRoute.map((item, index) => getRouteLabel(item, index));
+
+    if (JSON.stringify(oldOrder) === JSON.stringify(newOrder)) {
+        return null;
+    }
+
+    return {
+        eski_sira: oldOrder,
+        yeni_sira: newOrder,
+    };
+}
 function isRouteFullyCompleted(route) {
     return route.length > 0 && route.every((item) => item.varis && item.cikis);
 }
@@ -622,7 +741,7 @@ function RoutePoint({ item, index, total, showDriveDetail, onChangeStopDateTime 
     );
 }
 
-function Detaylar({ row, onClose, onTripReadyToComplete }) {
+function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
     const [mapRoute, setMapRoute] = useState(null);
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState("");
@@ -722,10 +841,13 @@ function Detaylar({ row, onClose, onTripReadyToComplete }) {
                 cikisInput: item.cikisInput || "",
             }));
 
+            const aracStatu = getAracStatuFromRoute(rotaDetaylari);
+
             let query = supabase
                 .from("aktif_seferler")
                 .update({
                     rota_detaylari: rotaDetaylari,
+                    arac_statu: aracStatu,
                     updated_at: new Date().toISOString(),
                 });
 
@@ -739,14 +861,51 @@ function Detaylar({ row, onClose, onTripReadyToComplete }) {
 
             if (error) throw error;
 
-            showToast("success", "Rota detayları kaydedildi.");
+            const eskiRota = buildRoute(row);
+            const degisenAlanlar = getRouteChanges(eskiRota, rotaDetaylari);
+            const siraDegisikligi = getRouteOrderChanges(eskiRota, rotaDetaylari);
+
+            await islemLogla({
+                islem_tipi: siraDegisikligi
+                    ? "ROTA_SIRASI_VE_DETAY_GUNCELLEME"
+                    : "SEFER_DETAY_GUNCELLEME",
+
+                islem_aciklama: siraDegisikligi
+                    ? "Rota sırası ve rota detayları güncellendi"
+                    : "Rota detayları ve araç statüsü güncellendi",
+
+                tablo_adi: "aktif_seferler",
+                kayit_id: row.id || null,
+                sefer_no: row.sefer_no || null,
+                plaka: row.plaka || null,
+
+                eski_deger: {
+                    arac_statu: row.arac_statu || null,
+                    rota_sirasi: siraDegisikligi?.eski_sira || null,
+                },
+
+                yeni_deger: {
+                    arac_statu: aracStatu,
+                    rota_sirasi: siraDegisikligi?.yeni_sira || null,
+                },
+
+                detay: {
+                    degisen_alanlar: degisenAlanlar,
+                    sira_degisikligi: siraDegisikligi,
+                },
+            });
+            showToast("success", "Rota detayları ve araç statüsü kaydedildi.");
+            const updatedRow = {
+                ...row,
+                rota_detaylari: rotaDetaylari,
+                arac_statu: aracStatu,
+            };
+
+            onRouteSaved?.(updatedRow);
 
             if (isRouteFullyCompleted(rotaDetaylari)) {
                 setTimeout(() => {
-                    onTripReadyToComplete?.({
-                        ...row,
-                        rota_detaylari: rotaDetaylari,
-                    });
+                    onTripReadyToComplete?.(updatedRow);
                 }, 350);
             }
         } catch (err) {
@@ -756,7 +915,6 @@ function Detaylar({ row, onClose, onTripReadyToComplete }) {
             setSaving(false);
         }
     }
-
     useEffect(() => {
         if (!row || editableRoute.length < 2) {
             setMapRoute(null);

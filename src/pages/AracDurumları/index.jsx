@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import "./AracDurumlari.css";
+import { islemLogla } from "../../utils/islemLogla";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin"];
@@ -39,6 +40,25 @@ function getActiveLeave(row) { return (Array.isArray(row.izinler) ? row.izinler 
 function getDisplayStatus(row) { if (row.isten_cikarildi) return "Çıkartıldı"; const leave = getActiveLeave(row); return leave ? (leave.statu || "İzinde") : (row.durum || "Müsait"); }
 function formatKesinti(item) { if (!item) return "—"; return item.tip === "gun" ? `${value(item.deger)} gün` : `${value(item.deger)} ₺`; }
 function exitHasWarning(row) { return Boolean(row.isten_cikarildi && (!row.iade_gps || !row.iade_evraklar)); }
+
+function getChangedFields(oldObj = {}, newObj = {}) {
+    const changes = [];
+
+    Object.keys(newObj || {}).forEach((key) => {
+        const oldValue = oldObj?.[key] ?? null;
+        const newValue = newObj?.[key] ?? null;
+
+        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+                alan: key,
+                eski_deger: oldValue,
+                yeni_deger: newValue,
+            });
+        }
+    });
+
+    return changes;
+}
 
 function cssKey(text) {
     return normalize(text).replaceAll(" ", "-").replaceAll("ı", "i").replaceAll("ğ", "g").replaceAll("ü", "u").replaceAll("ş", "s").replaceAll("ö", "o").replaceAll("ç", "c");
@@ -113,6 +133,20 @@ export default function AracDurumlari() {
             : supabase.from("arac_durumlari").insert(payload).select().single();
         const { data, error } = await query;
         if (error) { console.error("Araç kaydedilemedi:", error); alert("Araç kaydedilemedi."); return; }
+
+        islemLogla({
+            islem_tipi: editingRow ? "ARAC_DUZENLEME" : "ARAC_EKLEME",
+            islem_aciklama: editingRow ? "Araç bilgileri güncellendi" : "Yeni araç eklendi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: data.id,
+            plaka: data.plaka,
+            eski_deger: editingRow || null,
+            yeni_deger: data,
+            detay: {
+                degisen_alanlar: editingRow ? getChangedFields(editingRow, data) : [],
+            },
+        });
+
         setRows((p) => editingRow ? p.map((x) => x.id === editingRow.id ? data : x) : [...p, data].sort((a, b) => String(a.plaka).localeCompare(String(b.plaka), "tr")));
         setSelectedRow(data); closeForm();
     }
@@ -125,6 +159,24 @@ export default function AracDurumlari() {
         const nextList = [...(Array.isArray(izinModalRow.izinler) ? izinModalRow.izinler : []), { id: createId(), baslangic: formatInputDate(izinForm.baslangic), bitis: formatInputDate(izinForm.bitis), gun, statu: izinForm.yeniStatu.trim() || izinForm.statu || "Yıllık İzin", aciklama: izinForm.aciklama, created_at: new Date().toISOString() }];
         const { data, error } = await supabase.from("arac_durumlari").update({ izinler: nextList }).eq("id", izinModalRow.id).select().single();
         if (error) { console.error("İzin kaydedilemedi:", error); alert("İzin kaydedilemedi."); return; }
+
+        islemLogla({
+            islem_tipi: "ARAC_IZIN_EKLEME",
+            islem_aciklama: "Araç için izin kaydı eklendi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: izinModalRow.id,
+            plaka: izinModalRow.plaka,
+            eski_deger: {
+                izinler: izinModalRow.izinler || [],
+            },
+            yeni_deger: {
+                izinler: nextList,
+            },
+            detay: {
+                eklenen_izin: nextList.at(-1),
+            },
+        });
+
         updateLocalRow(data); setIzinForm(emptyIzinForm);
     }
 
@@ -134,6 +186,24 @@ export default function AracDurumlari() {
         const nextList = [...(Array.isArray(kesintiModalRow.kesintiler) ? kesintiModalRow.kesintiler : []), { id: createId(), tarih: kesintiForm.tarih, tip: kesintiForm.tip || "para", deger: kesintiForm.deger, aciklama: kesintiForm.aciklama, created_at: new Date().toISOString() }];
         const { data, error } = await supabase.from("arac_durumlari").update({ kesintiler: nextList }).eq("id", kesintiModalRow.id).select().single();
         if (error) { console.error("Kesinti kaydedilemedi:", error); alert("Kesinti kaydedilemedi."); return; }
+
+        islemLogla({
+            islem_tipi: "ARAC_KESINTI_EKLEME",
+            islem_aciklama: "Araç için kesinti kaydı eklendi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: kesintiModalRow.id,
+            plaka: kesintiModalRow.plaka,
+            eski_deger: {
+                kesintiler: kesintiModalRow.kesintiler || [],
+            },
+            yeni_deger: {
+                kesintiler: nextList,
+            },
+            detay: {
+                eklenen_kesinti: nextList.at(-1),
+            },
+        });
+
         updateLocalRow(data); setKesintiForm(emptyKesintiForm);
     }
 
@@ -143,6 +213,21 @@ export default function AracDurumlari() {
         const payload = { ...cikisForm, durum: "Çıkartıldı", isten_cikarildi: true };
         const { data, error } = await supabase.from("arac_durumlari").update(payload).eq("id", cikisModalRow.id).select().single();
         if (error) { console.error("İşten çıkartma kaydedilemedi:", error); alert("İşten çıkartma kaydedilemedi."); return; }
+
+        islemLogla({
+            islem_tipi: "ARAC_ISTEN_CIKARTMA",
+            islem_aciklama: "Araç işten çıkartıldı",
+            tablo_adi: "arac_durumlari",
+            kayit_id: cikisModalRow.id,
+            plaka: cikisModalRow.plaka,
+            eski_deger: cikisModalRow,
+            yeni_deger: data,
+            detay: {
+                cikis_bilgileri: payload,
+                degisen_alanlar: getChangedFields(cikisModalRow, data),
+            },
+        });
+
         updateLocalRow(data); setCikisModalRow(null); setCikisForm(emptyCikisForm); setSelectedRow(null);
     }
 
@@ -150,11 +235,88 @@ export default function AracDurumlari() {
         if (!window.confirm(`${row.plaka || "Araç"} tekrar ana listeye alınsın mı?`)) return;
         const { data, error } = await supabase.from("arac_durumlari").update({ isten_cikarildi: false, durum: "Müsait" }).eq("id", row.id).select().single();
         if (error) { console.error("Araç geri alınamadı:", error); alert("Araç geri alınamadı."); return; }
+
+        islemLogla({
+            islem_tipi: "ARAC_ANA_LISTEYE_ALMA",
+            islem_aciklama: "Araç tekrar ana listeye alındı",
+            tablo_adi: "arac_durumlari",
+            kayit_id: row.id,
+            plaka: row.plaka,
+            eski_deger: row,
+            yeni_deger: data,
+            detay: {
+                degisen_alanlar: getChangedFields(row, data),
+            },
+        });
+
         updateLocalRow(data);
     }
 
-    async function removeIzin(row, id) { const next = (row.izinler || []).filter((x) => x.id !== id); const { data, error } = await supabase.from("arac_durumlari").update({ izinler: next }).eq("id", row.id).select().single(); if (error) return alert("İzin silinemedi."); updateLocalRow(data); }
-    async function removeKesinti(row, id) { const next = (row.kesintiler || []).filter((x) => x.id !== id); const { data, error } = await supabase.from("arac_durumlari").update({ kesintiler: next }).eq("id", row.id).select().single(); if (error) return alert("Kesinti silinemedi."); updateLocalRow(data); }
+    async function removeIzin(row, id) {
+        const removed = (row.izinler || []).find((x) => x.id === id);
+        const next = (row.izinler || []).filter((x) => x.id !== id);
+
+        const { data, error } = await supabase
+            .from("arac_durumlari")
+            .update({ izinler: next })
+            .eq("id", row.id)
+            .select()
+            .single();
+
+        if (error) return alert("İzin silinemedi.");
+
+        islemLogla({
+            islem_tipi: "ARAC_IZIN_SILME",
+            islem_aciklama: "Araç izin kaydı silindi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: row.id,
+            plaka: row.plaka,
+            eski_deger: {
+                izinler: row.izinler || [],
+            },
+            yeni_deger: {
+                izinler: next,
+            },
+            detay: {
+                silinen_izin: removed || null,
+            },
+        });
+
+        updateLocalRow(data);
+    }
+
+    async function removeKesinti(row, id) {
+        const removed = (row.kesintiler || []).find((x) => x.id === id);
+        const next = (row.kesintiler || []).filter((x) => x.id !== id);
+
+        const { data, error } = await supabase
+            .from("arac_durumlari")
+            .update({ kesintiler: next })
+            .eq("id", row.id)
+            .select()
+            .single();
+
+        if (error) return alert("Kesinti silinemedi.");
+
+        islemLogla({
+            islem_tipi: "ARAC_KESINTI_SILME",
+            islem_aciklama: "Araç kesinti kaydı silindi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: row.id,
+            plaka: row.plaka,
+            eski_deger: {
+                kesintiler: row.kesintiler || [],
+            },
+            yeni_deger: {
+                kesintiler: next,
+            },
+            detay: {
+                silinen_kesinti: removed || null,
+            },
+        });
+
+        updateLocalRow(data);
+    }
 
     const enrichedRows = useMemo(() => rows.map((row) => ({ ...row, documentRisk: getDocumentRisk(row), durum: getDisplayStatus(row), rawDurum: row.durum || "Müsait", izinler: Array.isArray(row.izinler) ? row.izinler : [], kesintiler: Array.isArray(row.kesintiler) ? row.kesintiler : [] })), [rows]);
     const activeRows = useMemo(() => enrichedRows.filter((r) => !r.isten_cikarildi), [enrichedRows]);

@@ -5,6 +5,8 @@ import "./AktifSeferler.css";
 import Detaylar from "./detaylar";
 import SutunDuzeni from "./Gorunum/SutunDuzeni";
 import ETA from "./ETA/ETA";
+import * as XLSX from "xlsx";
+import { islemLogla } from "../../utils/islemLogla";
 
 function split(val) {
     return String(val || "")
@@ -439,12 +441,18 @@ function getFilterText(row, col) {
     if (!col || col.key?.startsWith("_")) return "";
 
     const raw = row?.[col.key];
-    if (col.type === "date") return formatDate(raw) || String(raw || "");
 
-    const parts = split(raw);
-    return parts.length ? parts.join(" ") : String(raw || "");
+    if (col.type === "date") {
+        return formatDate(raw) || String(raw || "");
+    }
+
+    if (col.type === "multi") {
+        const parts = split(raw);
+        return parts.length ? parts.join(" ") : String(raw || "");
+    }
+
+    return String(raw || "");
 }
-
 function getColumnFilterOptions(rows, col) {
     if (!col || col.key?.startsWith("_")) return [];
 
@@ -452,8 +460,9 @@ function getColumnFilterOptions(rows, col) {
 
     rows.forEach((row) => {
         const raw = row?.[col.key];
-        const parts = col.type === "multi" ? split(raw) : [getFilterText(row, col)].filter(Boolean);
-
+        const parts = col.type === "multi"
+            ? split(raw)
+            : [getFilterText(row, col)].filter(Boolean);
         parts.forEach((part) => {
             const label = String(part || "").trim();
             if (!label) return;
@@ -481,19 +490,33 @@ function rowMatchesColumnFilter(row, col, filter) {
     if (search && !text.includes(search)) return false;
 
     if (Array.isArray(filter.values) && filter.values.length) {
-        const selected = filter.values.map(normalizeTR);
+        const selected = filter.values
+            .map(normalizeTR)
+            .filter(Boolean);
+
         const rowValues = col.type === "multi"
-            ? split(row?.[col.key]).map(normalizeTR)
-            : [normalizeTR(getFilterText(row, col))];
+            ? split(row?.[col.key]).map(normalizeTR).filter(Boolean)
+            : [normalizeTR(getFilterText(row, col))].filter(Boolean);
+
+        if (!rowValues.length) return false;
+
+        if (col.key === "arac_statu") {
+            return selected.some((value) =>
+                rowValues.some((rowValue) => rowValue === value)
+            );
+        }
 
         return selected.some((value) =>
-            rowValues.some((rowValue) => rowValue.includes(value) || value.includes(rowValue))
+            rowValues.some((rowValue) =>
+                rowValue === value ||
+                rowValue.includes(value) ||
+                value.includes(rowValue)
+            )
         );
     }
 
     return true;
 }
-
 
 
 function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
@@ -505,8 +528,22 @@ function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
             <button
                 className="op-btn op-btn-detail"
                 title="Sefer Detayı"
-                onClick={(e) => {
+                onClick={async (e) => {
                     e.stopPropagation();
+
+                    await islemLogla({
+                        islem_tipi: "SEFER_DETAY_ACMA",
+                        islem_aciklama: "Detay ekranı açıldı",
+                        tablo_adi: "aktif_seferler",
+                        kayit_id: row.id || null,
+                        sefer_no: row.sefer_no || null,
+                        plaka: row.plaka || null,
+                        detay: {
+                            buton: "Detay",
+                            ekran: "Aktif Seferler",
+                        },
+                    });
+
                     onDetail(row);
                 }}
             >
@@ -516,8 +553,22 @@ function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
             <button
                 className={`op-btn op-btn-eta ${etaDelayed ? "is-delayed" : ""}`}
                 title={etaDelayed ? "ETA Gecikti" : "ETA"}
-                onClick={(e) => {
+                onClick={async (e) => {
                     e.stopPropagation();
+
+                    await islemLogla({
+                        islem_tipi: "ETA_ACMA",
+                        islem_aciklama: "ETA ekranı açıldı",
+                        tablo_adi: "aktif_seferler",
+                        kayit_id: row.id || null,
+                        sefer_no: row.sefer_no || null,
+                        plaka: row.plaka || null,
+                        detay: {
+                            buton: "ETA",
+                            ekran: "Aktif Seferler",
+                        },
+                    });
+
                     onETA(row);
                 }}
             >
@@ -527,8 +578,23 @@ function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
             <button
                 className={`op-btn op-btn-tonaj ${tonajli ? "is-active" : ""}`}
                 title="Tonaj"
-                onClick={(e) => {
+                onClick={async (e) => {
                     e.stopPropagation();
+
+                    await islemLogla({
+                        islem_tipi: "TONAJ_BUTON",
+                        islem_aciklama: "Tonaj işlemi tetiklendi",
+                        tablo_adi: "aktif_seferler",
+                        kayit_id: row.id || null,
+                        sefer_no: row.sefer_no || null,
+                        plaka: row.plaka || null,
+                        detay: {
+                            buton: "Tonaj",
+                            ekran: "Aktif Seferler",
+                            onceki_durum: row.tonaj_durumu || null,
+                        },
+                    });
+
                     onTonaj(row);
                 }}
             >
@@ -539,8 +605,22 @@ function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
             <button
                 className={`op-btn op-btn-ikaz ${ikazli ? "is-active" : ""}`}
                 title="İkaz"
-                onClick={(e) => {
+                onClick={async (e) => {
                     e.stopPropagation();
+
+                    await islemLogla({
+                        islem_tipi: "IKAZ_BUTON",
+                        islem_aciklama: "İkaz işlemi tetiklendi",
+                        tablo_adi: "aktif_seferler",
+                        kayit_id: row.id || null,
+                        sefer_no: row.sefer_no || null,
+                        plaka: row.plaka || null,
+                        detay: {
+                            buton: "İkaz",
+                            ekran: "Aktif Seferler",
+                        },
+                    });
+
                     onIkaz(row);
                 }}
             >
@@ -1330,6 +1410,56 @@ function AktifSeferler() {
         setCompletionCandidate(candidate);
     }, [visibleRows, completionCandidate, isAllRouteDatesFilled]);
 
+    const etaUyumsuzRows = useMemo(() => {
+        return visibleRows.filter((row) => delayedEtaMap[row.id || row.sefer_no]);
+    }, [visibleRows, delayedEtaMap]);
+
+    const exportEtaUyumsuzExcel = useCallback(() => {
+        if (!etaUyumsuzRows.length) {
+            setToast({
+                type: "error",
+                message: "Excel'e aktarılacak ETA uyumsuzluğu bulunamadı.",
+            });
+            setTimeout(() => setToast(null), 2600);
+            return;
+        }
+
+        const excelRows = etaUyumsuzRows.map((row) => {
+            const rowKey = row.id || row.sefer_no;
+            const eta = delayedEtaMap[rowKey] || {};
+
+            return {
+                "Sefer No": row.sefer_no || "",
+                "Sefer Tarihi": formatDate(row.sefer_tarihi) || "",
+                "Plaka": row.plaka || "",
+                "Sürücü": row.surucu_ad_soyad || "",
+                "Müşteri": row.musteri_adi || "",
+                "Yükleme İl": row.yukleme_ili || "",
+                "Teslim İl": row.teslim_ili || "",
+                "Gerçekleşen Gün": eta.actualDays ?? "",
+                "Referans ETA Gün": eta.gun ?? eta.etaDays ?? "",
+                "Gecikme Gün": eta.actualDays && eta.etaDays ? eta.actualDays - eta.etaDays : "",
+                "KM": eta.km || "",
+            };
+        });
+
+        const headers = Object.keys(excelRows[0]);
+        const worksheet = XLSX.utils.json_to_sheet(excelRows);
+
+        const workbook = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            "ETA Uyumsuzlukları"
+        );
+
+        XLSX.writeFile(
+            workbook,
+            `eta_uyumsuzluklari_${new Date().toISOString().slice(0, 10)}.xlsx`
+        );
+    }, [etaUyumsuzRows, delayedEtaMap]);
+
     const canExpand = (row) =>
         (Array.isArray(row.rota_detaylari) && row.rota_detaylari.length > 0) ||
         split(row.yukleme_noktasi).length > 0 ||
@@ -1346,6 +1476,17 @@ function AktifSeferler() {
 
                 <div className="aktif-header-actions">
                     <div className="aktif-count-badge">{visibleRows.length}/{baseRows.length} sefer</div>
+
+                    <button
+                        className="eta-export-btn"
+                        type="button"
+                        onClick={exportEtaUyumsuzExcel}
+                        disabled={!etaUyumsuzRows.length}
+                        title="ETA uyumsuz satırları Excel'e aktar"
+                    >
+                        ETA Uyumsuz Excel
+                        <span>{etaUyumsuzRows.length}</span>
+                    </button>
 
                     <button
                         className="columns-icon-btn"
@@ -1578,7 +1719,19 @@ function AktifSeferler() {
                 row={detailRow}
                 onClose={() => {
                     setDetailRow(null);
-                    supabasedenListele();
+                }}
+                onRouteSaved={(updatedRow) => {
+                    const rowKey = updatedRow.id || updatedRow.sefer_no;
+
+                    setRows((prev) =>
+                        prev.map((item) =>
+                            (item.id || item.sefer_no) === rowKey
+                                ? { ...item, ...updatedRow }
+                                : item
+                        )
+                    );
+
+                    setDetailRow(updatedRow);
                 }}
                 onTripReadyToComplete={(updatedRow) => {
                     setDetailRow(null);

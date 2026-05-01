@@ -1485,6 +1485,47 @@ body.is-column-resizing {
     border: 1px dashed var(--border);
 }
 
+.eta-export-btn {
+    height: 38px;
+    padding: 0 13px;
+    border-radius: 12px;
+    border: 1px solid #fecaca;
+    background: #fff;
+    color: #b91c1c;
+    font-size: 12px;
+    font-weight: 900;
+    font-family: var(--font);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+    .eta-export-btn:hover:not(:disabled) {
+        background: var(--red-light);
+        border-color: var(--red);
+    }
+
+    .eta-export-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .eta-export-btn span {
+        min-width: 22px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 999px;
+        background: #dc2626;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+        font-size: 11px;
+    }
+
 @media (max-width: 1100px) {
     .column-filter-body {
         grid-template-columns: 1fr;
