@@ -8,9 +8,10 @@ app.use(express.json());
 
 app.post("/api/proxy/tmsdespatches", async (req, res) => {
     try {
-        console.log("LOCAL PROXY BODY:", req.body);
+        console.log("PROXY BODY:", req.body);
 
-        const response = await fetch("https://filo-backend-57wx.onrender.com/api/proxy/tmsdespatches", {
+        // BURAYA GERÇEK TMS API URL'İNİ YAZ
+        const response = await fetch("GERCEK_TMS_URL", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -21,16 +22,17 @@ app.post("/api/proxy/tmsdespatches", async (req, res) => {
 
         const text = await response.text();
 
-        console.log("BACKEND STATUS:", response.status);
-        console.log("BACKEND RESPONSE:", text);
+        console.log("TMS STATUS:", response.status);
 
         res.status(response.status).send(text);
     } catch (err) {
-        console.error("LOCAL PROXY ERROR:", err);
-        res.status(500).send(err.message);
+        console.error(err);
+        res.status(500).json({
+            error: err.message,
+        });
     }
 });
 
-app.listen(4000, () => {
-    console.log("Local proxy calisiyor: http://localhost:4000");
+app.listen(process.env.PORT || 4000, () => {
+    console.log("Proxy server running");
 });

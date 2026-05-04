@@ -6,6 +6,20 @@ import { islemLogla } from "../../utils/islemLogla";
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin"];
 
+const DOCUMENT_TYPES = [
+    "Ruhsat",
+    "Ehliyet",
+    "Kimlik",
+    "SRC",
+    "Psikoteknik",
+    "Çekici Muayene",
+    "Dorse Muayene",
+    "Taşıt Belgesi 1",
+    "Taşıt Belgesi 2",
+];
+
+const STORAGE_BUCKET = "arac-evraklari";
+
 const emptyForm = {
     plaka: "", surucu_isim: "", tel_no: "", tc_kimlik_no: "", ikamet_adresi: "",
     tedarikci_isim: "", kira_yakit: "", yakit: "", yakit_2: "", bolge: "",
@@ -13,6 +27,7 @@ const emptyForm = {
     cekici_ruhsat_no: "", dorse_ruhsat_no: "", cekici_muayene: "", dorse_muayene: "",
     trafik_sigorta: "", tasit_karti: "", izin_gun_sayisi: "", is_basi_tarih: "",
     liftmaster: "", gps_no: "", gsm_no: "",
+    evrak_fotograflari: {},
 };
 
 const emptyIzinForm = { baslangic: "", bitis: "", statu: "Yıllık İzin", yeniStatu: "", aciklama: "" };
@@ -34,29 +49,46 @@ function parseDate(dateText) { if (!dateText) return null; const p = String(date
 function calculateLeaveDaysFromInput(s, e) { if (!s || !e) return ""; const a = new Date(s); const b = new Date(e); if (isNaN(a) || isNaN(b) || b < a) return ""; return String(Math.floor((b - a) / (1000 * 60 * 60 * 24)) + 1); }
 function isExpiringSoon(t) { const d = parseDate(t); if (!d) return false; const n = new Date(); n.setHours(0, 0, 0, 0); const days = (d - n) / (1000 * 60 * 60 * 24); return days >= 0 && days <= 30; }
 function isExpired(t) { const d = parseDate(t); if (!d) return false; const n = new Date(); n.setHours(0, 0, 0, 0); return d < n; }
-function getDocumentRisk(row) { const dates = [row.cekici_muayene, row.dorse_muayene, row.trafik_sigorta]; if (dates.some(isExpired)) return "expired"; if (dates.some(isExpiringSoon)) return "soon"; return "ok"; }
+
+function getDocumentRisk(row) {
+    const dates = [row.cekici_muayene, row.dorse_muayene, row.trafik_sigorta];
+    const docs = normalizeDocuments(row.evrak_fotograflari);
+    const missingDocs = DOCUMENT_TYPES.some((type) => !docs[type]?.length);
+    if (dates.some(isExpired)) return "expired";
+    if (dates.some(isExpiringSoon) || missingDocs) return "soon";
+    return "ok";
+}
+
 function isTodayBetween(s, e) { const a = parseDate(s); const b = parseDate(e); if (!a || !b) return false; const n = new Date(); n.setHours(0, 0, 0, 0); return n >= a && n <= b; }
 function getActiveLeave(row) { return (Array.isArray(row.izinler) ? row.izinler : []).find((x) => isTodayBetween(x.baslangic, x.bitis)) || null; }
 function getDisplayStatus(row) { if (row.isten_cikarildi) return "Çıkartıldı"; const leave = getActiveLeave(row); return leave ? (leave.statu || "İzinde") : (row.durum || "Müsait"); }
 function formatKesinti(item) { if (!item) return "—"; return item.tip === "gun" ? `${value(item.deger)} gün` : `${value(item.deger)} ₺`; }
 function exitHasWarning(row) { return Boolean(row.isten_cikarildi && (!row.iade_gps || !row.iade_evraklar)); }
 
+function normalizeDocuments(docs) {
+    if (!docs || typeof docs !== "object" || Array.isArray(docs)) return {};
+    return docs;
+}
+
+function countDocuments(docs) {
+    const normalized = normalizeDocuments(docs);
+    return DOCUMENT_TYPES.reduce((total, type) => total + (Array.isArray(normalized[type]) ? normalized[type].length : 0), 0);
+}
+
+function missingDocumentCount(docs) {
+    const normalized = normalizeDocuments(docs);
+    return DOCUMENT_TYPES.filter((type) => !Array.isArray(normalized[type]) || normalized[type].length === 0).length;
+}
+
 function getChangedFields(oldObj = {}, newObj = {}) {
     const changes = [];
-
     Object.keys(newObj || {}).forEach((key) => {
         const oldValue = oldObj?.[key] ?? null;
         const newValue = newObj?.[key] ?? null;
-
         if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-            changes.push({
-                alan: key,
-                eski_deger: oldValue,
-                yeni_deger: newValue,
-            });
+            changes.push({ alan: key, eski_deger: oldValue, yeni_deger: newValue });
         }
     });
-
     return changes;
 }
 
@@ -64,8 +96,20 @@ function cssKey(text) {
     return normalize(text).replaceAll(" ", "-").replaceAll("ı", "i").replaceAll("ğ", "g").replaceAll("ü", "u").replaceAll("ş", "s").replaceAll("ö", "o").replaceAll("ç", "c");
 }
 
+function safePath(text) {
+    return normalize(text)
+        .replaceAll(" ", "_")
+        .replaceAll("ı", "i")
+        .replaceAll("ğ", "g")
+        .replaceAll("ü", "u")
+        .replaceAll("ş", "s")
+        .replaceAll("ö", "o")
+        .replaceAll("ç", "c")
+        .replace(/[^a-z0-9_.-]/g, "_");
+}
+
 function StatusBadge({ status }) { return <span className={`status-badge ${cssKey(status || "Müsait")}`}>{status || "Müsait"}</span>; }
-function RiskBadge({ risk }) { if (risk === "expired") return <span className="risk-badge danger">Süresi Geçmiş</span>; if (risk === "soon") return <span className="risk-badge warning">Yaklaşıyor</span>; return <span className="risk-badge success">Uygun</span>; }
+function RiskBadge({ risk }) { if (risk === "expired") return <span className="risk-badge danger">Süresi Geçmiş</span>; if (risk === "soon") return <span className="risk-badge warning">Eksik / Yaklaşıyor</span>; return <span className="risk-badge success">Uygun</span>; }
 function ExitWarningBadge({ row }) { return exitHasWarning(row) ? <span className="risk-badge danger">İade Eksik</span> : <span className="risk-badge success">İade Tamam</span>; }
 
 export default function AracDurumlari() {
@@ -106,12 +150,13 @@ export default function AracDurumlari() {
         setCikisModalRow((p) => p?.id === updatedRow.id ? updatedRow : p);
     }
 
-    function openAddForm() { setEditingRow(null); setForm(emptyForm); setFormOpen(true); }
-    function openEditForm(row) { setEditingRow(row); setForm({ ...emptyForm, ...row }); setFormOpen(true); }
-    function closeForm() { setFormOpen(false); setEditingRow(null); setForm(emptyForm); }
+    function openAddForm() { setEditingRow(null); setForm({ ...emptyForm, evrak_fotograflari: {} }); setFormOpen(true); }
+    function openEditForm(row) { setEditingRow(row); setForm({ ...emptyForm, ...row, evrak_fotograflari: normalizeDocuments(row.evrak_fotograflari) }); setFormOpen(true); }
+    function closeForm() { setFormOpen(false); setEditingRow(null); setForm({ ...emptyForm, evrak_fotograflari: {} }); }
     function updateForm(field, val) { setForm((p) => ({ ...p, [field]: val })); }
     function openIzinModal(row) { setIzinModalRow(row); setIzinForm(emptyIzinForm); }
     function openKesintiModal(row) { setKesintiModalRow(row); setKesintiForm(emptyKesintiForm); }
+
     function openCikisModal(row) {
         setCikisModalRow(row);
         setCikisForm({
@@ -127,12 +172,32 @@ export default function AracDurumlari() {
 
     async function saveVehicle(e) {
         e.preventDefault();
-        const payload = { ...form, durum: form.durum || "Müsait" };
+
+        const {
+            documentRisk,
+            documentCount,
+            missingDocumentCount,
+            rawDurum,
+            ...cleanForm
+        } = form;
+
+        const payload = {
+            ...cleanForm,
+            durum: cleanForm.durum || "Müsait",
+            evrak_fotograflari: normalizeDocuments(cleanForm.evrak_fotograflari),
+        };
+
         const query = editingRow
             ? supabase.from("arac_durumlari").update(payload).eq("id", editingRow.id).select().single()
             : supabase.from("arac_durumlari").insert(payload).select().single();
+
         const { data, error } = await query;
-        if (error) { console.error("Araç kaydedilemedi:", error); alert("Araç kaydedilemedi."); return; }
+
+        if (error) {
+            console.error("Araç kaydedilemedi:", error);
+            alert("Araç kaydedilemedi.");
+            return;
+        }
 
         islemLogla({
             islem_tipi: editingRow ? "ARAC_DUZENLEME" : "ARAC_EKLEME",
@@ -147,8 +212,14 @@ export default function AracDurumlari() {
             },
         });
 
-        setRows((p) => editingRow ? p.map((x) => x.id === editingRow.id ? data : x) : [...p, data].sort((a, b) => String(a.plaka).localeCompare(String(b.plaka), "tr")));
-        setSelectedRow(data); closeForm();
+        setRows((p) =>
+            editingRow
+                ? p.map((x) => x.id === editingRow.id ? data : x)
+                : [...p, data].sort((a, b) => String(a.plaka).localeCompare(String(b.plaka), "tr"))
+        );
+
+        setSelectedRow(data);
+        closeForm();
     }
 
     async function addIzin(e) {
@@ -156,7 +227,17 @@ export default function AracDurumlari() {
         const gun = calculateLeaveDaysFromInput(izinForm.baslangic, izinForm.bitis);
         if (!izinForm.baslangic && !izinForm.bitis && !izinForm.aciklama) return;
         if (izinForm.baslangic && izinForm.bitis && !gun) { alert("Bitiş tarihi başlangıç tarihinden önce olamaz."); return; }
-        const nextList = [...(Array.isArray(izinModalRow.izinler) ? izinModalRow.izinler : []), { id: createId(), baslangic: formatInputDate(izinForm.baslangic), bitis: formatInputDate(izinForm.bitis), gun, statu: izinForm.yeniStatu.trim() || izinForm.statu || "Yıllık İzin", aciklama: izinForm.aciklama, created_at: new Date().toISOString() }];
+
+        const nextList = [...(Array.isArray(izinModalRow.izinler) ? izinModalRow.izinler : []), {
+            id: createId(),
+            baslangic: formatInputDate(izinForm.baslangic),
+            bitis: formatInputDate(izinForm.bitis),
+            gun,
+            statu: izinForm.yeniStatu.trim() || izinForm.statu || "Yıllık İzin",
+            aciklama: izinForm.aciklama,
+            created_at: new Date().toISOString(),
+        }];
+
         const { data, error } = await supabase.from("arac_durumlari").update({ izinler: nextList }).eq("id", izinModalRow.id).select().single();
         if (error) { console.error("İzin kaydedilemedi:", error); alert("İzin kaydedilemedi."); return; }
 
@@ -166,24 +247,28 @@ export default function AracDurumlari() {
             tablo_adi: "arac_durumlari",
             kayit_id: izinModalRow.id,
             plaka: izinModalRow.plaka,
-            eski_deger: {
-                izinler: izinModalRow.izinler || [],
-            },
-            yeni_deger: {
-                izinler: nextList,
-            },
-            detay: {
-                eklenen_izin: nextList.at(-1),
-            },
+            eski_deger: { izinler: izinModalRow.izinler || [] },
+            yeni_deger: { izinler: nextList },
+            detay: { eklenen_izin: nextList.at(-1) },
         });
 
-        updateLocalRow(data); setIzinForm(emptyIzinForm);
+        updateLocalRow(data);
+        setIzinForm(emptyIzinForm);
     }
 
     async function addKesinti(e) {
         e.preventDefault(); if (!kesintiModalRow) return;
         if (!kesintiForm.tarih && !kesintiForm.deger && !kesintiForm.aciklama) return;
-        const nextList = [...(Array.isArray(kesintiModalRow.kesintiler) ? kesintiModalRow.kesintiler : []), { id: createId(), tarih: kesintiForm.tarih, tip: kesintiForm.tip || "para", deger: kesintiForm.deger, aciklama: kesintiForm.aciklama, created_at: new Date().toISOString() }];
+
+        const nextList = [...(Array.isArray(kesintiModalRow.kesintiler) ? kesintiModalRow.kesintiler : []), {
+            id: createId(),
+            tarih: kesintiForm.tarih,
+            tip: kesintiForm.tip || "para",
+            deger: kesintiForm.deger,
+            aciklama: kesintiForm.aciklama,
+            created_at: new Date().toISOString(),
+        }];
+
         const { data, error } = await supabase.from("arac_durumlari").update({ kesintiler: nextList }).eq("id", kesintiModalRow.id).select().single();
         if (error) { console.error("Kesinti kaydedilemedi:", error); alert("Kesinti kaydedilemedi."); return; }
 
@@ -193,23 +278,19 @@ export default function AracDurumlari() {
             tablo_adi: "arac_durumlari",
             kayit_id: kesintiModalRow.id,
             plaka: kesintiModalRow.plaka,
-            eski_deger: {
-                kesintiler: kesintiModalRow.kesintiler || [],
-            },
-            yeni_deger: {
-                kesintiler: nextList,
-            },
-            detay: {
-                eklenen_kesinti: nextList.at(-1),
-            },
+            eski_deger: { kesintiler: kesintiModalRow.kesintiler || [] },
+            yeni_deger: { kesintiler: nextList },
+            detay: { eklenen_kesinti: nextList.at(-1) },
         });
 
-        updateLocalRow(data); setKesintiForm(emptyKesintiForm);
+        updateLocalRow(data);
+        setKesintiForm(emptyKesintiForm);
     }
 
     async function saveCikis(e) {
         e.preventDefault(); if (!cikisModalRow) return;
         if (!cikisForm.cikartilan_tarih || !cikisForm.cikartilma_nedeni.trim()) { alert("Çıkartılan tarih ve çıkarılma nedeni zorunludur."); return; }
+
         const payload = { ...cikisForm, durum: "Çıkartıldı", isten_cikarildi: true };
         const { data, error } = await supabase.from("arac_durumlari").update(payload).eq("id", cikisModalRow.id).select().single();
         if (error) { console.error("İşten çıkartma kaydedilemedi:", error); alert("İşten çıkartma kaydedilemedi."); return; }
@@ -222,13 +303,13 @@ export default function AracDurumlari() {
             plaka: cikisModalRow.plaka,
             eski_deger: cikisModalRow,
             yeni_deger: data,
-            detay: {
-                cikis_bilgileri: payload,
-                degisen_alanlar: getChangedFields(cikisModalRow, data),
-            },
+            detay: { cikis_bilgileri: payload, degisen_alanlar: getChangedFields(cikisModalRow, data) },
         });
 
-        updateLocalRow(data); setCikisModalRow(null); setCikisForm(emptyCikisForm); setSelectedRow(null);
+        updateLocalRow(data);
+        setCikisModalRow(null);
+        setCikisForm(emptyCikisForm);
+        setSelectedRow(null);
     }
 
     async function undoCikis(row) {
@@ -244,9 +325,7 @@ export default function AracDurumlari() {
             plaka: row.plaka,
             eski_deger: row,
             yeni_deger: data,
-            detay: {
-                degisen_alanlar: getChangedFields(row, data),
-            },
+            detay: { degisen_alanlar: getChangedFields(row, data) },
         });
 
         updateLocalRow(data);
@@ -255,14 +334,7 @@ export default function AracDurumlari() {
     async function removeIzin(row, id) {
         const removed = (row.izinler || []).find((x) => x.id === id);
         const next = (row.izinler || []).filter((x) => x.id !== id);
-
-        const { data, error } = await supabase
-            .from("arac_durumlari")
-            .update({ izinler: next })
-            .eq("id", row.id)
-            .select()
-            .single();
-
+        const { data, error } = await supabase.from("arac_durumlari").update({ izinler: next }).eq("id", row.id).select().single();
         if (error) return alert("İzin silinemedi.");
 
         islemLogla({
@@ -271,15 +343,9 @@ export default function AracDurumlari() {
             tablo_adi: "arac_durumlari",
             kayit_id: row.id,
             plaka: row.plaka,
-            eski_deger: {
-                izinler: row.izinler || [],
-            },
-            yeni_deger: {
-                izinler: next,
-            },
-            detay: {
-                silinen_izin: removed || null,
-            },
+            eski_deger: { izinler: row.izinler || [] },
+            yeni_deger: { izinler: next },
+            detay: { silinen_izin: removed || null },
         });
 
         updateLocalRow(data);
@@ -288,14 +354,7 @@ export default function AracDurumlari() {
     async function removeKesinti(row, id) {
         const removed = (row.kesintiler || []).find((x) => x.id === id);
         const next = (row.kesintiler || []).filter((x) => x.id !== id);
-
-        const { data, error } = await supabase
-            .from("arac_durumlari")
-            .update({ kesintiler: next })
-            .eq("id", row.id)
-            .select()
-            .single();
-
+        const { data, error } = await supabase.from("arac_durumlari").update({ kesintiler: next }).eq("id", row.id).select().single();
         if (error) return alert("Kesinti silinemedi.");
 
         islemLogla({
@@ -304,21 +363,26 @@ export default function AracDurumlari() {
             tablo_adi: "arac_durumlari",
             kayit_id: row.id,
             plaka: row.plaka,
-            eski_deger: {
-                kesintiler: row.kesintiler || [],
-            },
-            yeni_deger: {
-                kesintiler: next,
-            },
-            detay: {
-                silinen_kesinti: removed || null,
-            },
+            eski_deger: { kesintiler: row.kesintiler || [] },
+            yeni_deger: { kesintiler: next },
+            detay: { silinen_kesinti: removed || null },
         });
 
         updateLocalRow(data);
     }
 
-    const enrichedRows = useMemo(() => rows.map((row) => ({ ...row, documentRisk: getDocumentRisk(row), durum: getDisplayStatus(row), rawDurum: row.durum || "Müsait", izinler: Array.isArray(row.izinler) ? row.izinler : [], kesintiler: Array.isArray(row.kesintiler) ? row.kesintiler : [] })), [rows]);
+    const enrichedRows = useMemo(() => rows.map((row) => ({
+        ...row,
+        documentRisk: getDocumentRisk(row),
+        documentCount: countDocuments(row.evrak_fotograflari),
+        missingDocumentCount: missingDocumentCount(row.evrak_fotograflari),
+        durum: getDisplayStatus(row),
+        rawDurum: row.durum || "Müsait",
+        izinler: Array.isArray(row.izinler) ? row.izinler : [],
+        kesintiler: Array.isArray(row.kesintiler) ? row.kesintiler : [],
+        evrak_fotograflari: normalizeDocuments(row.evrak_fotograflari),
+    })), [rows]);
+
     const activeRows = useMemo(() => enrichedRows.filter((r) => !r.isten_cikarildi), [enrichedRows]);
     const exitedRows = useMemo(() => enrichedRows.filter((r) => r.isten_cikarildi), [enrichedRows]);
     const bolgeOptions = useMemo(() => ["Tümü", ...Array.from(new Set(activeRows.map((x) => x.bolge).filter(Boolean)))], [activeRows]);
@@ -341,7 +405,11 @@ export default function AracDurumlari() {
 
     return <div className="arac-page">
         <div className="arac-hero">
-            <div><span className="arac-eyebrow">Filo Yönetimi</span><h1>Araç Durumları</h1><p>Araç, sürücü, evrak, izin, kesinti ve işten çıkartma takibi.</p></div>
+            <div>
+                <span className="arac-eyebrow">Filo Yönetimi</span>
+                <h1>Araç Durumları</h1>
+                <p>Araç, sürücü, evrak fotoğrafları, izin, kesinti ve işten çıkartma takibi.</p>
+            </div>
             <div className="hero-actions">
                 <button className="add-btn" onClick={openAddForm}>+ Araç Ekle</button>
                 <button className={`problem-btn ${onlyProblematic ? "active" : ""}`} onClick={() => setOnlyProblematic((p) => !p)}>Problemli Araçlar</button>
@@ -361,14 +429,33 @@ export default function AracDurumlari() {
         <div className="content-grid">
             <div className="table-card">
                 <div className="table-top"><div><h2>Araç Listesi</h2><span>{filteredRows.length} aktif kayıt gösteriliyor</span></div></div>
-                <div className="fleet-table-wrap"><table className="fleet-table"><thead><tr><th>İşlem</th><th>Plaka</th><th>Sürücü</th><th>Tel No</th><th>Tedarikçi</th><th>Kira / Yakıt</th><th>Yakıt</th><th>Bölge</th><th>Araç Tip</th><th>Durum</th><th>Evrak</th></tr></thead><tbody>
-                    {loading && <tr><td colSpan="11" className="empty-cell">Yükleniyor...</td></tr>}
-                    {!loading && filteredRows.length === 0 && <tr><td colSpan="11" className="empty-cell">Araç bulunamadı.</td></tr>}
-                    {!loading && filteredRows.map((row) => <tr key={row.id} onClick={() => setSelectedRow(row)} className={selectedRow?.id === row.id ? "selected" : ""}>
-                        <td><div className="row-actions"><button className="edit-btn" onClick={(e) => { e.stopPropagation(); openEditForm(row); }}>Düzenle</button><button className="permit-btn" onClick={(e) => { e.stopPropagation(); openIzinModal(row); }}>İzin</button><button className="deduction-btn" onClick={(e) => { e.stopPropagation(); openKesintiModal(row); }}>Kesinti</button><button className="exit-btn" onClick={(e) => { e.stopPropagation(); openCikisModal(row); }}>İşten Çıkart</button></div></td>
-                        <td><span className="plate">{value(row.plaka)}</span></td><td>{value(row.surucu_isim)}</td><td>{value(row.tel_no)}</td><td>{value(row.tedarikci_isim)}</td><td>{value(row.kira_yakit)}</td><td>{value(row.yakit_2 || row.yakit)}</td><td>{value(row.bolge)}</td><td>{value(row.arac_tip)}</td><td><StatusBadge status={row.durum} /></td><td><RiskBadge risk={row.documentRisk} /></td>
-                    </tr>)}
-                </tbody></table></div>
+                <div className="fleet-table-wrap">
+                    <table className="fleet-table">
+                        <thead>
+                            <tr>
+                                <th>İşlem</th><th>Plaka</th><th>Sürücü</th><th>Tel No</th><th>Tedarikçi</th><th>Kira / Yakıt</th><th>Yakıt</th><th>Bölge</th><th>Araç Tip</th><th>Durum</th><th>Evrak</th><th>Fotoğraf</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading && <tr><td colSpan="12" className="empty-cell">Yükleniyor...</td></tr>}
+                            {!loading && filteredRows.length === 0 && <tr><td colSpan="12" className="empty-cell">Araç bulunamadı.</td></tr>}
+                            {!loading && filteredRows.map((row) => <tr key={row.id} onClick={() => setSelectedRow(row)} className={selectedRow?.id === row.id ? "selected" : ""}>
+                                <td><div className="row-actions"><button className="edit-btn" onClick={(e) => { e.stopPropagation(); openEditForm(row); }}>Düzenle</button><button className="permit-btn" onClick={(e) => { e.stopPropagation(); openIzinModal(row); }}>İzin</button><button className="deduction-btn" onClick={(e) => { e.stopPropagation(); openKesintiModal(row); }}>Kesinti</button><button className="exit-btn" onClick={(e) => { e.stopPropagation(); openCikisModal(row); }}>İşten Çıkart</button></div></td>
+                                <td><span className="plate">{value(row.plaka)}</span></td>
+                                <td>{value(row.surucu_isim)}</td>
+                                <td>{value(row.tel_no)}</td>
+                                <td>{value(row.tedarikci_isim)}</td>
+                                <td>{value(row.kira_yakit)}</td>
+                                <td>{value(row.yakit_2 || row.yakit)}</td>
+                                <td>{value(row.bolge)}</td>
+                                <td>{value(row.arac_tip)}</td>
+                                <td><StatusBadge status={row.durum} /></td>
+                                <td><RiskBadge risk={row.documentRisk} /></td>
+                                <td><span className={row.missingDocumentCount > 0 ? "mini-count warning" : "mini-count success"}>{row.documentCount} foto</span></td>
+                            </tr>)}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <aside className="detail-panel">
@@ -378,6 +465,7 @@ export default function AracDurumlari() {
                     <div className="detail-section"><h3>Sürücü Bilgileri</h3><Info label="Sürücü" value={selectedRow.surucu_isim} /><Info label="Telefon" value={selectedRow.tel_no} /><Info label="TC Kimlik No" value={selectedRow.tc_kimlik_no} /><Info label="İkamet Adresi" value={selectedRow.ikamet_adresi} /></div>
                     <div className="detail-section"><h3>Araç Bilgileri</h3><Info label="Araç Tip" value={selectedRow.arac_tip} /><Info label="Araç Yıl" value={selectedRow.arac_yil} /><Info label="Dorse Tip" value={selectedRow.dorse_tip} /><Info label="Dorse Yıl" value={selectedRow.dorse_yil} /><Info label="Bölge" value={selectedRow.bolge} /><Info label="Tedarikçi" value={selectedRow.tedarikci_isim} /></div>
                     <div className="detail-section"><h3>Evrak & Takip</h3><Info label="Çekici Muayene" value={selectedRow.cekici_muayene} /><Info label="Dorse Muayene" value={selectedRow.dorse_muayene} /><Info label="Trafik Sigorta" value={selectedRow.trafik_sigorta} /><Info label="GPS No" value={selectedRow.gps_no} /><Info label="Taşıt Kartı" value={selectedRow.tasit_karti} /></div>
+                    <DocumentSummary documents={selectedRow.evrak_fotograflari} />
                     <RecordPreview title="İzinler" records={selectedRow.izinler || []} type="izin" row={selectedRow} onRemove={removeIzin} />
                     <RecordPreview title="Kesintiler" records={selectedRow.kesintiler || []} type="kesinti" row={selectedRow} onRemove={removeKesinti} />
                 </>}
@@ -397,44 +485,262 @@ function FormInput({ label, value, onChange, placeholder, type = "text" }) { ret
 function CheckboxField({ label, checked, onChange }) { return <label className="checkbox-field"><input type="checkbox" checked={Boolean(checked)} onChange={(e) => onChange(e.target.checked)} /><span>{label}</span></label>; }
 
 function VehicleForm({ editingRow, form, updateForm, onSubmit, onClose }) {
-    return <div className="vehicle-modal"><form className="vehicle-form" onSubmit={onSubmit}><div className="vehicle-form-head"><div><span>{editingRow ? "Kayıt Güncelle" : "Yeni Kayıt"}</span><h2>{editingRow ? "Araç Düzenle" : "Araç Ekle"}</h2></div><button type="button" onClick={onClose}>×</button></div><div className="vehicle-form-grid">
-        <FormInput label="Plaka" value={form.plaka} onChange={(v) => updateForm("plaka", v)} /><FormInput label="Sürücü" value={form.surucu_isim} onChange={(v) => updateForm("surucu_isim", v)} /><FormInput label="Telefon" value={form.tel_no} onChange={(v) => updateForm("tel_no", v)} /><FormInput label="TC Kimlik No" value={form.tc_kimlik_no} onChange={(v) => updateForm("tc_kimlik_no", v)} /><FormInput label="İkamet Adresi" value={form.ikamet_adresi} onChange={(v) => updateForm("ikamet_adresi", v)} /><FormInput label="Tedarikçi" value={form.tedarikci_isim} onChange={(v) => updateForm("tedarikci_isim", v)} />
-        <FormInput label="Kira / Yakıt" value={form.kira_yakit} onChange={(v) => updateForm("kira_yakit", v)} /><FormInput label="Yakıt" value={form.yakit} onChange={(v) => updateForm("yakit", v)} /><FormInput label="Yakıt 2" value={form.yakit_2} onChange={(v) => updateForm("yakit_2", v)} /><FormInput label="Bölge" value={form.bolge} onChange={(v) => updateForm("bolge", v)} /><FormInput label="Araç Tip" value={form.arac_tip} onChange={(v) => updateForm("arac_tip", v)} /><FormInput label="Araç Yıl" value={form.arac_yil} onChange={(v) => updateForm("arac_yil", v)} /><FormInput label="Dorse Tip" value={form.dorse_tip} onChange={(v) => updateForm("dorse_tip", v)} /><FormInput label="Dorse Yıl" value={form.dorse_yil} onChange={(v) => updateForm("dorse_yil", v)} />
-        <label>Durum<select value={form.durum} onChange={(e) => updateForm("durum", e.target.value)}>{STATUS_OPTIONS.filter((x) => x !== "Tümü" && x !== "İzinde" && x !== "Çıkartıldı").map((x) => <option key={x}>{x}</option>)}</select></label>
-        <FormInput label="Çekici Ruhsat No" value={form.cekici_ruhsat_no} onChange={(v) => updateForm("cekici_ruhsat_no", v)} /><FormInput label="Dorse Ruhsat No" value={form.dorse_ruhsat_no} onChange={(v) => updateForm("dorse_ruhsat_no", v)} /><FormInput label="Çekici Muayene" value={form.cekici_muayene} onChange={(v) => updateForm("cekici_muayene", v)} placeholder="gg.aa.yyyy" /><FormInput label="Dorse Muayene" value={form.dorse_muayene} onChange={(v) => updateForm("dorse_muayene", v)} placeholder="gg.aa.yyyy" /><FormInput label="Trafik Sigorta" value={form.trafik_sigorta} onChange={(v) => updateForm("trafik_sigorta", v)} placeholder="gg.aa.yyyy" /><FormInput label="Yetki Belgesi" value={form.tasit_karti} onChange={(v) => updateForm("tasit_karti", v)} /><FormInput label="İzin Gün Sayısı" value={form.izin_gun_sayisi} onChange={(v) => updateForm("izin_gun_sayisi", v)} /><FormInput label="İş Başı Tarih" value={form.is_basi_tarih} onChange={(v) => updateForm("is_basi_tarih", v)} placeholder="gg.aa.yyyy" /><FormInput label="Liftmaster" value={form.liftmaster} onChange={(v) => updateForm("liftmaster", v)} /><FormInput label="GPS No" value={form.gps_no} onChange={(v) => updateForm("gps_no", v)} /><FormInput label="GSM No" value={form.gsm_no} onChange={(v) => updateForm("gsm_no", v)} />
-    </div><div className="vehicle-form-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn">Kaydet</button></div></form></div>;
+    return <div className="vehicle-modal">
+        <form className="vehicle-form" onSubmit={onSubmit}>
+            <div className="vehicle-form-head">
+                <div><span>{editingRow ? "Kayıt Güncelle" : "Yeni Kayıt"}</span><h2>{editingRow ? "Araç Düzenle" : "Araç Ekle"}</h2></div>
+                <button type="button" onClick={onClose}>×</button>
+            </div>
+            <div className="vehicle-form-grid">
+                <FormInput label="Plaka" value={form.plaka} onChange={(v) => updateForm("plaka", v)} />
+                <FormInput label="Sürücü" value={form.surucu_isim} onChange={(v) => updateForm("surucu_isim", v)} />
+                <FormInput label="Telefon" value={form.tel_no} onChange={(v) => updateForm("tel_no", v)} />
+                <FormInput label="TC Kimlik No" value={form.tc_kimlik_no} onChange={(v) => updateForm("tc_kimlik_no", v)} />
+                <FormInput label="İkamet Adresi" value={form.ikamet_adresi} onChange={(v) => updateForm("ikamet_adresi", v)} />
+                <FormInput label="Tedarikçi" value={form.tedarikci_isim} onChange={(v) => updateForm("tedarikci_isim", v)} />
+                <FormInput label="Kira / Yakıt" value={form.kira_yakit} onChange={(v) => updateForm("kira_yakit", v)} />
+                <FormInput label="Yakıt" value={form.yakit} onChange={(v) => updateForm("yakit", v)} />
+                <FormInput label="Yakıt 2" value={form.yakit_2} onChange={(v) => updateForm("yakit_2", v)} />
+                <FormInput label="Bölge" value={form.bolge} onChange={(v) => updateForm("bolge", v)} />
+                <FormInput label="Araç Tip" value={form.arac_tip} onChange={(v) => updateForm("arac_tip", v)} />
+                <FormInput label="Araç Yıl" value={form.arac_yil} onChange={(v) => updateForm("arac_yil", v)} />
+                <FormInput label="Dorse Tip" value={form.dorse_tip} onChange={(v) => updateForm("dorse_tip", v)} />
+                <FormInput label="Dorse Yıl" value={form.dorse_yil} onChange={(v) => updateForm("dorse_yil", v)} />
+                <label>Durum<select value={form.durum} onChange={(e) => updateForm("durum", e.target.value)}>{STATUS_OPTIONS.filter((x) => x !== "Tümü" && x !== "İzinde" && x !== "Çıkartıldı").map((x) => <option key={x}>{x}</option>)}</select></label>
+                <FormInput label="Çekici Ruhsat No" value={form.cekici_ruhsat_no} onChange={(v) => updateForm("cekici_ruhsat_no", v)} />
+                <FormInput label="Dorse Ruhsat No" value={form.dorse_ruhsat_no} onChange={(v) => updateForm("dorse_ruhsat_no", v)} />
+                <FormInput label="Çekici Muayene" value={form.cekici_muayene} onChange={(v) => updateForm("cekici_muayene", v)} placeholder="gg.aa.yyyy" />
+                <FormInput label="Dorse Muayene" value={form.dorse_muayene} onChange={(v) => updateForm("dorse_muayene", v)} placeholder="gg.aa.yyyy" />
+                <FormInput label="Trafik Sigorta" value={form.trafik_sigorta} onChange={(v) => updateForm("trafik_sigorta", v)} placeholder="gg.aa.yyyy" />
+                <FormInput label="Yetki Belgesi" value={form.tasit_karti} onChange={(v) => updateForm("tasit_karti", v)} />
+                <FormInput label="İzin Gün Sayısı" value={form.izin_gun_sayisi} onChange={(v) => updateForm("izin_gun_sayisi", v)} />
+                <FormInput label="İş Başı Tarih" value={form.is_basi_tarih} onChange={(v) => updateForm("is_basi_tarih", v)} placeholder="gg.aa.yyyy" />
+                <FormInput label="Liftmaster" value={form.liftmaster} onChange={(v) => updateForm("liftmaster", v)} />
+                <FormInput label="GPS No" value={form.gps_no} onChange={(v) => updateForm("gps_no", v)} />
+                <FormInput label="GSM No" value={form.gsm_no} onChange={(v) => updateForm("gsm_no", v)} />
+
+                <DocumentUploadGrid
+                    plaka={form.plaka}
+                    documents={normalizeDocuments(form.evrak_fotograflari)}
+                    onChange={(docs) => updateForm("evrak_fotograflari", docs)}
+                />
+            </div>
+            <div className="vehicle-form-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn">Kaydet</button></div>
+        </form>
+    </div>;
+}
+
+function DocumentUploadGrid({ plaka, documents, onChange }) {
+    const [uploading, setUploading] = useState("");
+
+    async function uploadFile(type, file) {
+        if (!plaka?.trim()) {
+            alert("Fotoğraf yüklemek için önce plaka giriniz.");
+            return;
+        }
+
+        setUploading(type);
+        const fileExt = file.name.split(".").pop();
+        const path = `${safePath(plaka)}/${safePath(type)}/${Date.now()}-${createId()}.${fileExt}`;
+
+        const { error } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(path, file, {
+                cacheControl: "3600",
+                upsert: true,
+            });
+        if (error) {
+            console.error("Evrak yüklenemedi:", error);
+            alert("Evrak fotoğrafı yüklenemedi. Storage bucket ve yetkileri kontrol edin.");
+            setUploading("");
+            return;
+        }
+
+        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        const next = {
+            ...normalizeDocuments(documents),
+            [type]: [...(normalizeDocuments(documents)[type] || []), { id: createId(), url: data.publicUrl, path, name: file.name, uploaded_at: new Date().toISOString() }],
+        };
+
+        onChange(next);
+        setUploading("");
+    }
+
+    async function removePhoto(type, item) {
+        const ok = window.confirm(`${type} evrakı silinsin mi?`);
+        if (!ok) return;
+
+        if (item?.path) {
+            await supabase.storage.from(STORAGE_BUCKET).remove([item.path]);
+        }
+
+        const next = {
+            ...normalizeDocuments(documents),
+            [type]: (normalizeDocuments(documents)[type] || []).filter((x) => x.id !== item.id),
+        };
+
+        onChange(next);
+    }
+
+    return <div className="document-upload-section">
+        <div className="document-section-head">
+            <div>
+                <span>Evrak Arşivi</span>
+                <h3>Plaka Bazlı Evrak Fotoğrafları</h3>
+            </div>
+            <strong>{countDocuments(documents)} fotoğraf</strong>
+        </div>
+
+        <div className="document-upload-grid">
+            {DOCUMENT_TYPES.map((type) => {
+                const files = normalizeDocuments(documents)[type] || [];
+                return <div className={`document-card ${files.length ? "filled" : ""}`} key={type}>
+                    <div className="document-card-head">
+                        <strong>{type}</strong>
+                        <span>{files.length ? `${files.length} dosya` : "Eksik"}</span>
+                    </div>
+
+                    <label className="document-upload-btn">
+                        {uploading === type ? "Yükleniyor..." : "+ Fotoğraf / PDF Ekle"}
+                        <input type="file" accept="image/*,.pdf" hidden disabled={Boolean(uploading)} onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadFile(type, file);
+                            e.target.value = "";
+                        }} />
+                    </label>
+
+                    <div className="document-preview-grid">
+                        {files.map((item) => <div className="document-preview" key={item.id}>
+                            <a href={item.url} target="_blank" rel="noreferrer">{item.name || "Görüntüle"}</a>
+                            <button type="button" onClick={() => removePhoto(type, item)}>Sil</button>
+                        </div>)}
+                    </div>
+                </div>;
+            })}
+        </div>
+    </div>;
+}
+
+function DocumentSummary({ documents }) {
+    const docs = normalizeDocuments(documents);
+    return <div className="detail-section document-summary">
+        <div className="record-preview-head"><h3>Evrak Fotoğrafları</h3><span>{countDocuments(docs)} fotoğraf</span></div>
+        <div className="document-summary-list">
+            {DOCUMENT_TYPES.map((type) => {
+                const files = docs[type] || [];
+                return <div className="document-summary-row" key={type}>
+                    <span>{type}</span>
+                    {files.length === 0 ? <strong className="missing">Eksik</strong> : <strong>{files.length} dosya</strong>}
+                    {files.length > 0 && <div className="document-summary-links">{files.slice(0, 3).map((item, index) => <a key={item.id || item.url} href={item.url} target="_blank" rel="noreferrer">{index + 1}</a>)}</div>}
+                </div>;
+            })}
+        </div>
+    </div>;
 }
 
 function SmallRecordModal({ title, subtitle, type, form, setForm, records = [], row, onRemove, onSubmit, onClose, leaveStatusOptions = LEAVE_STATUS_OPTIONS }) {
-    const isIzin = type === "izin"; const previewDays = calculateLeaveDaysFromInput(form.baslangic, form.bitis);
-    return <div className="vehicle-modal"><form className="small-record-modal" onSubmit={onSubmit}><div className="small-modal-head"><div><span>{subtitle}</span><h2>{title}</h2></div><button type="button" onClick={onClose}>×</button></div><div className="small-modal-body">
-        {isIzin ? <><FormInput label="Başlangıç Tarihi" type="date" value={form.baslangic} onChange={(v) => setForm((p) => ({ ...p, baslangic: v }))} /><FormInput label="Bitiş Tarihi" type="date" value={form.bitis} onChange={(v) => setForm((p) => ({ ...p, bitis: v }))} /><label>İzin Statüsü<select value={form.statu} onChange={(e) => setForm((p) => ({ ...p, statu: e.target.value, yeniStatu: "" }))}>{leaveStatusOptions.map((x) => <option key={x}>{x}</option>)}</select></label><FormInput label="Yeni Statü Ekle" value={form.yeniStatu} placeholder="Örn: Doğum İzni" onChange={(v) => setForm((p) => ({ ...p, yeniStatu: v }))} /><div className="auto-day-box"><span>Gün Sayısı</span><strong>{previewDays || "—"}</strong></div><FormInput label="Açıklama" value={form.aciklama} placeholder="İzin açıklaması" onChange={(v) => setForm((p) => ({ ...p, aciklama: v }))} /></> : <><FormInput label="Tarih" value={form.tarih} placeholder="gg.aa.yyyy" onChange={(v) => setForm((p) => ({ ...p, tarih: v }))} /><label>Kesinti Tipi<select value={form.tip} onChange={(e) => setForm((p) => ({ ...p, tip: e.target.value, deger: "" }))}><option value="para">Para</option><option value="gun">Gün</option></select></label><FormInput label={form.tip === "gun" ? "Gün Sayısı" : "Tutar"} value={form.deger} placeholder={form.tip === "gun" ? "Örn: 2" : "Örn: 1500"} onChange={(v) => setForm((p) => ({ ...p, deger: v }))} /><FormInput label="Açıklama" value={form.aciklama} placeholder="Kesinti açıklaması" onChange={(v) => setForm((p) => ({ ...p, aciklama: v }))} /></>}
-    </div><RecordMiniList type={type} records={records} row={row} onRemove={onRemove} /><div className="small-modal-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn">Kaydet</button></div></form></div>;
+    const isIzin = type === "izin";
+    const previewDays = calculateLeaveDaysFromInput(form.baslangic, form.bitis);
+
+    return <div className="vehicle-modal">
+        <form className="small-record-modal" onSubmit={onSubmit}>
+            <div className="small-modal-head"><div><span>{subtitle}</span><h2>{title}</h2></div><button type="button" onClick={onClose}>×</button></div>
+            <div className="small-modal-body">
+                {isIzin ? <>
+                    <FormInput label="Başlangıç Tarihi" type="date" value={form.baslangic} onChange={(v) => setForm((p) => ({ ...p, baslangic: v }))} />
+                    <FormInput label="Bitiş Tarihi" type="date" value={form.bitis} onChange={(v) => setForm((p) => ({ ...p, bitis: v }))} />
+                    <label>İzin Statüsü<select value={form.statu} onChange={(e) => setForm((p) => ({ ...p, statu: e.target.value, yeniStatu: "" }))}>{leaveStatusOptions.map((x) => <option key={x}>{x}</option>)}</select></label>
+                    <FormInput label="Yeni Statü Ekle" value={form.yeniStatu} placeholder="Örn: Doğum İzni" onChange={(v) => setForm((p) => ({ ...p, yeniStatu: v }))} />
+                    <div className="auto-day-box"><span>Gün Sayısı</span><strong>{previewDays || "—"}</strong></div>
+                    <FormInput label="Açıklama" value={form.aciklama} placeholder="İzin açıklaması" onChange={(v) => setForm((p) => ({ ...p, aciklama: v }))} />
+                </> : <>
+                    <FormInput label="Tarih" value={form.tarih} placeholder="gg.aa.yyyy" onChange={(v) => setForm((p) => ({ ...p, tarih: v }))} />
+                    <label>Kesinti Tipi<select value={form.tip} onChange={(e) => setForm((p) => ({ ...p, tip: e.target.value, deger: "" }))}><option value="para">Para</option><option value="gun">Gün</option></select></label>
+                    <FormInput label={form.tip === "gun" ? "Gün Sayısı" : "Tutar"} value={form.deger} placeholder={form.tip === "gun" ? "Örn: 2" : "Örn: 1500"} onChange={(v) => setForm((p) => ({ ...p, deger: v }))} />
+                    <FormInput label="Açıklama" value={form.aciklama} placeholder="Kesinti açıklaması" onChange={(v) => setForm((p) => ({ ...p, aciklama: v }))} />
+                </>}
+            </div>
+            <RecordMiniList type={type} records={records} row={row} onRemove={onRemove} />
+            <div className="small-modal-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn">Kaydet</button></div>
+        </form>
+    </div>;
 }
 
 function CikisModal({ row, form, setForm, onSubmit, onClose }) {
-    return <div className="vehicle-modal"><form className="small-record-modal exit-modal" onSubmit={onSubmit}><div className="small-modal-head"><div><span>{row.plaka}</span><h2>İşten Çıkart</h2></div><button type="button" onClick={onClose}>×</button></div><div className="small-modal-body exit-body">
-        <FormInput label="Çıkartılan Tarih" type="date" value={form.cikartilan_tarih} onChange={(v) => setForm((p) => ({ ...p, cikartilan_tarih: v }))} />
-        <label className="textarea-label">Çıkarılma Nedeni<textarea value={form.cikartilma_nedeni || ""} placeholder="Çıkarılma nedenini yazın" onChange={(e) => setForm((p) => ({ ...p, cikartilma_nedeni: e.target.value }))} /></label>
-        <div className="exit-checks"><h3>İptal / İade Kontrolü</h3><CheckboxField label="GPS iptal/iade edildi" checked={form.iade_gps} onChange={(v) => setForm((p) => ({ ...p, iade_gps: v }))} /><CheckboxField label="Evraklar teslim alındı" checked={form.iade_evraklar} onChange={(v) => setForm((p) => ({ ...p, iade_evraklar: v }))} /><CheckboxField label="UTTS iptal edildi" checked={form.iade_utts} onChange={(v) => setForm((p) => ({ ...p, iade_utts: v }))} /><CheckboxField label="Gestaş / Negmar iptal edildi" checked={form.iade_gestas_negmar} onChange={(v) => setForm((p) => ({ ...p, iade_gestas_negmar: v }))} /></div>
-        {(!form.iade_gps || !form.iade_evraklar) && <div className="exit-warning">GPS veya evrak teslimi eksik. Araç çıkarılan araçlar panelinde sürekli uyarı verecek.</div>}
-    </div><div className="small-modal-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn danger-save">İşten Çıkart</button></div></form></div>;
+    return <div className="vehicle-modal">
+        <form className="small-record-modal exit-modal" onSubmit={onSubmit}>
+            <div className="small-modal-head"><div><span>{row.plaka}</span><h2>İşten Çıkart</h2></div><button type="button" onClick={onClose}>×</button></div>
+            <div className="small-modal-body exit-body">
+                <FormInput label="Çıkartılan Tarih" type="date" value={form.cikartilan_tarih} onChange={(v) => setForm((p) => ({ ...p, cikartilan_tarih: v }))} />
+                <label className="textarea-label">Çıkarılma Nedeni<textarea value={form.cikartilma_nedeni || ""} placeholder="Çıkarılma nedenini yazın" onChange={(e) => setForm((p) => ({ ...p, cikartilma_nedeni: e.target.value }))} /></label>
+                <div className="exit-checks"><h3>İptal / İade Kontrolü</h3>
+                    <CheckboxField label="GPS iptal/iade edildi" checked={form.iade_gps} onChange={(v) => setForm((p) => ({ ...p, iade_gps: v }))} />
+                    <CheckboxField label="Evraklar teslim alındı" checked={form.iade_evraklar} onChange={(v) => setForm((p) => ({ ...p, iade_evraklar: v }))} />
+                    <CheckboxField label="UTTS iptal edildi" checked={form.iade_utts} onChange={(v) => setForm((p) => ({ ...p, iade_utts: v }))} />
+                    <CheckboxField label="Gestaş / Negmar iptal edildi" checked={form.iade_gestas_negmar} onChange={(v) => setForm((p) => ({ ...p, iade_gestas_negmar: v }))} />
+                </div>
+                {(!form.iade_gps || !form.iade_evraklar) && <div className="exit-warning">GPS veya evrak teslimi eksik. Araç çıkarılan araçlar panelinde uyarı verecek.</div>}
+            </div>
+            <div className="small-modal-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn danger-save">İşten Çıkart</button></div>
+        </form>
+    </div>;
 }
 
 function RecordMiniList({ type, records, row, onRemove }) {
     const isIzin = type === "izin";
-    return <div className={`modal-record-list ${type}`}><div className="modal-record-list-head"><strong>Mevcut Kayıtlar</strong><span>{records.length} kayıt</span></div>{records.length === 0 ? <div className="modal-record-empty">Henüz kayıt yok.</div> : records.map((item) => <div className="modal-record-item" key={item.id}><div><strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${value(item.tarih)} / ${formatKesinti(item)}`}</strong><span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)} • ${value(item.aciklama)}` : value(item.aciklama)}</span></div><button type="button" onClick={() => onRemove(row, item.id)}>Sil</button></div>)}</div>;
+    return <div className={`modal-record-list ${type}`}>
+        <div className="modal-record-list-head"><strong>Mevcut Kayıtlar</strong><span>{records.length} kayıt</span></div>
+        {records.length === 0 ? <div className="modal-record-empty">Henüz kayıt yok.</div> : records.map((item) => <div className="modal-record-item" key={item.id}>
+            <div><strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${value(item.tarih)} / ${formatKesinti(item)}`}</strong><span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)} • ${value(item.aciklama)}` : value(item.aciklama)}</span></div>
+            <button type="button" onClick={() => onRemove(row, item.id)}>Sil</button>
+        </div>)}
+    </div>;
 }
 
 function RecordPreview({ title, records, type, row, onRemove }) {
     const isIzin = type === "izin";
-    return <div className={`detail-section record-preview ${type}`}><div className="record-preview-head"><h3>{title}</h3><span>{records.length} kayıt</span></div>{records.length === 0 ? <p className="preview-empty">Kayıt yok.</p> : records.map((item) => <div className="preview-item" key={item.id}><div className="preview-main"><strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${value(item.tarih)} / ${formatKesinti(item)}`}</strong><span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)}` : item.tip === "gun" ? "Gün kesintisi" : "Para kesintisi"}</span>{item.aciklama && <p>{item.aciklama}</p>}</div><button type="button" className="preview-delete" onClick={() => onRemove(row, item.id)}>Sil</button></div>)}</div>;
+    return <div className={`detail-section record-preview ${type}`}>
+        <div className="record-preview-head"><h3>{title}</h3><span>{records.length} kayıt</span></div>
+        {records.length === 0 ? <p className="preview-empty">Kayıt yok.</p> : records.map((item) => <div className="preview-item" key={item.id}>
+            <div className="preview-main">
+                <strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${value(item.tarih)} / ${formatKesinti(item)}`}</strong>
+                <span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)}` : item.tip === "gun" ? "Gün kesintisi" : "Para kesintisi"}</span>
+                {item.aciklama && <p>{item.aciklama}</p>}
+            </div>
+            <button type="button" className="preview-delete" onClick={() => onRemove(row, item.id)}>Sil</button>
+        </div>)}
+    </div>;
 }
 
 function RecordListPanel({ type, records, onRemove, onEditExit, onUndoExit, onClose }) {
     const isIzin = type === "izin", isKesinti = type === "kesinti", isCikis = type === "cikis";
     const title = isIzin ? "Tüm Araçların İzin Listesi" : isKesinti ? "Tüm Araçların Kesinti Listesi" : "Çıkarılan Araçlar";
-    return <div className="side-panel-backdrop" onClick={onClose}><aside className={`record-side-panel ${type}`} onClick={(e) => e.stopPropagation()}><div className="side-panel-head"><div><span>Genel liste</span><h2>{title}</h2></div><button type="button" onClick={onClose}>×</button></div><div className="side-panel-summary"><strong>{records.length}</strong><span>toplam kayıt</span></div><div className="side-panel-list">
-        {records.length === 0 ? <div className="modal-record-empty">Henüz kayıt yok.</div> : records.map((item) => isCikis ? <div className="side-panel-item exit-item" key={item.id}><div className="side-panel-item-top"><strong>{value(item.plaka)}</strong><ExitWarningBadge row={item} /></div><div className="side-panel-meta"><span>{value(item.surucu_isim)}</span><span>{value(item.bolge)}</span></div><div className="side-panel-date-line">Çıkış: {value(item.cikartilan_tarih)}</div><p><b>Neden:</b> {value(item.cikartilma_nedeni)}</p><div className="exit-status-grid"><span className={item.iade_gps ? "ok" : "bad"}>GPS</span><span className={item.iade_evraklar ? "ok" : "bad"}>Evraklar</span><span className={item.iade_utts ? "ok" : "bad"}>UTTS</span><span className={item.iade_gestas_negmar ? "ok" : "bad"}>Gestaş/Negmar</span></div><div className="side-panel-actions"><button className="edit-btn" onClick={() => onEditExit(item)}>Düzenle</button><button className="permit-btn" onClick={() => onUndoExit(item)}>Ana Listeye Al</button></div></div> : <div className="side-panel-item" key={`${item.row?.id || item.plaka}-${item.id}`}><div className="side-panel-item-top"><strong>{value(item.plaka)}</strong>{isIzin && <StatusBadge status={item.statu || "İzin"} />}</div><div className="side-panel-meta"><span>{value(item.surucu_isim)}</span><span>{value(item.bolge)}</span></div><div className="side-panel-date-line">{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)} • ${value(item.gun)} gün` : `${value(item.tarih)} • ${formatKesinti(item)} • ${item.tip === "gun" ? "Gün kesintisi" : "Para kesintisi"}`}</div>{item.aciklama && <p>{item.aciklama}</p>}<button type="button" className="preview-delete" onClick={() => onRemove(item.row, item.id)}>Sil</button></div>)}
-    </div></aside></div>;
+
+    return <div className="side-panel-backdrop" onClick={onClose}>
+        <aside className={`record-side-panel ${type}`} onClick={(e) => e.stopPropagation()}>
+            <div className="side-panel-head"><div><span>Genel liste</span><h2>{title}</h2></div><button type="button" onClick={onClose}>×</button></div>
+            <div className="side-panel-summary"><strong>{records.length}</strong><span>toplam kayıt</span></div>
+            <div className="side-panel-list">
+                {records.length === 0 ? <div className="modal-record-empty">Henüz kayıt yok.</div> : records.map((item) => isCikis ? <div className="side-panel-item exit-item" key={item.id}>
+                    <div className="side-panel-item-top"><strong>{value(item.plaka)}</strong><ExitWarningBadge row={item} /></div>
+                    <div className="side-panel-meta"><span>{value(item.surucu_isim)}</span><span>{value(item.bolge)}</span></div>
+                    <div className="side-panel-date-line">Çıkış: {value(item.cikartilan_tarih)}</div>
+                    <p><b>Neden:</b> {value(item.cikartilma_nedeni)}</p>
+                    <div className="exit-status-grid">
+                        <span className={item.iade_gps ? "ok" : "bad"}>GPS</span>
+                        <span className={item.iade_evraklar ? "ok" : "bad"}>Evrak</span>
+                        <span className={item.iade_utts ? "ok" : "bad"}>UTTS</span>
+                        <span className={item.iade_gestas_negmar ? "ok" : "bad"}>Gestaş/Negmar</span>
+                    </div>
+                    <div className="side-panel-actions"><button type="button" onClick={() => onEditExit(item)}>Düzenle</button><button type="button" onClick={() => onUndoExit(item)}>Ana Listeye Al</button></div>
+                </div> : <div className="side-panel-item" key={item.id}>
+                    <div className="side-panel-item-top"><strong>{value(item.plaka)}</strong><span>{value(item.surucu_isim)}</span></div>
+                    <div className="side-panel-meta"><span>{value(item.bolge)}</span><span>{isIzin ? value(item.statu) : formatKesinti(item)}</span></div>
+                    <div className="side-panel-date-line">{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)} • ${value(item.gun)} gün` : value(item.tarih)}</div>
+                    {item.aciklama && <p>{item.aciklama}</p>}
+                    <div className="side-panel-actions"><button type="button" onClick={() => onRemove(item.row, item.id)}>Sil</button></div>
+                </div>)}
+            </div>
+        </aside>
+    </div>;
 }

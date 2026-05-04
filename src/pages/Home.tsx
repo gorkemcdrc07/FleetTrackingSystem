@@ -6,6 +6,9 @@ import AracDurumlari from "./AracDurumları";
 import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
 import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
 import KullaniciKPI from "./Raporlar/kullanicikpi";
+import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
+import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
+import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
 
 type HomeProps = {
     onLogout: () => void;
@@ -91,11 +94,22 @@ function Home({ onLogout }: HomeProps) {
 
     const renderPage = () => {
         if (activePage === "Aktif Seferler") return <AktifSeferler />;
+
         if (activePage === "Tamamlanan Seferler") return <TamamlananSeferler />;
+
         if (activePage === "Araç Durumları") return <AracDurumlari />;
+
         if (activePage === "Yüklemede Bekleme") return <YuklemedeBekleme />;
+
         if (activePage === "Teslimde Bekleme") return <TeslimdeBekleme />;
+
         if (activePage === "Kullanıcı KPİ") return <KullaniciKPI />;
+
+        if (activePage === "Plaka Kira & Sürücü Tutarları") return <AracFiyatYonetimi />;
+
+        if (activePage === "Hayat Kimya YHH") return <HayatKimyaYakitHakedis />;
+
+        if (activePage === "Pepsi YHH") return <PepsiYakitHakedis />;
 
         return (
             <section className="hero-panel">
@@ -149,8 +163,7 @@ function Home({ onLogout }: HomeProps) {
                                         <button
                                             key={item}
                                             type="button"
-                                            className={`mega-item ${activePage === item ? "active" : ""
-                                                }`}
+                                            className={`mega-item ${activePage === item ? "active" : ""}`}
                                             onClick={() => setActivePage(item)}
                                         >
                                             <span>{item}</span>

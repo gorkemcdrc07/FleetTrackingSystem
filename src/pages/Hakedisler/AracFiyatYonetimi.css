@@ -1,0 +1,498 @@
+﻿.afy-page {
+    min-height: 100vh;
+    padding: 18px;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    color: #172033;
+}
+
+.afy-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.afy-eyebrow {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.afy-top h1 {
+    margin: 4px 0;
+    font-size: 22px;
+    letter-spacing: -0.03em;
+}
+
+.afy-top p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.primary {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.afy-action-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.afy-action-card {
+    position: relative;
+    min-height: 128px;
+    border: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, .92);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    transition: .2s ease;
+}
+
+    .afy-action-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(37, 99, 235, .14), transparent 42%);
+        opacity: .9;
+        pointer-events: none;
+    }
+
+    .afy-action-card:hover {
+        transform: translateY(-3px);
+        border-color: #bfdbfe;
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.10);
+    }
+
+.afy-action-main {
+    position: relative;
+    width: 100%;
+    min-height: 128px;
+    border: none;
+    background: transparent;
+    padding: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.afy-action-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #eef2ff;
+    color: #2563eb;
+    font-size: 18px;
+    font-weight: 900;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .08);
+}
+
+.afy-action-content {
+    display: grid;
+    gap: 5px;
+}
+
+    .afy-action-content strong {
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 950;
+        letter-spacing: -0.01em;
+    }
+
+    .afy-action-content small {
+        color: #64748b;
+        font-size: 11px;
+        line-height: 1.35;
+        font-weight: 700;
+    }
+
+    .afy-action-content em {
+        width: fit-content;
+        margin-top: 3px;
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-style: normal;
+        font-size: 10px;
+        font-weight: 900;
+    }
+
+.afy-action-mini {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 2;
+    border: 1px solid #dbe3ef;
+    background: white;
+    color: #334155;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+    .afy-action-mini:hover {
+        background: #f8fafc;
+    }
+
+.tone-blue .afy-action-icon {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.tone-green .afy-action-icon {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.tone-orange .afy-action-icon {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.tone-purple .afy-action-icon {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.tone-slate .afy-action-icon {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.tone-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: #2563eb;
+}
+
+    .tone-primary::before {
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, .28), transparent 45%);
+    }
+
+    .tone-primary .afy-action-content strong,
+    .tone-primary .afy-action-content small,
+    .tone-primary .afy-action-content em {
+        color: white;
+    }
+
+    .tone-primary .afy-action-content em {
+        background: rgba(255, 255, 255, .16);
+    }
+
+    .tone-primary .afy-action-icon {
+        background: rgba(255, 255, 255, .18);
+        color: white;
+    }
+
+.afy-top button,
+.afy-toolbar button,
+.afy-actions button,
+.afy-modal-actions button {
+    border: 1px solid #dbe3ef;
+    background: #ffffff;
+    color: #334155;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+    .afy-top button:hover,
+    .afy-toolbar button:hover,
+    .afy-actions button:hover,
+    .afy-modal-actions button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .afy-top button.primary,
+    .afy-modal-actions button.primary {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+
+.afy-toolbar {
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(12px);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+    .afy-toolbar input {
+        flex: 1;
+        border: 1px solid #dbe3ef;
+        border-radius: 11px;
+        padding: 10px 12px;
+        outline: none;
+        font-size: 13px;
+        background: #f8fafc;
+    }
+
+        .afy-toolbar input:focus {
+            border-color: #2563eb;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+        }
+
+.afy-table-wrap {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    overflow: auto;
+    max-height: 620px;
+}
+
+.afy-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+    .afy-table th,
+    .afy-table td {
+        padding: 10px 11px;
+        border-bottom: 1px solid #eef2f7;
+        text-align: left;
+        font-size: 13px;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .afy-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        background: #f8fafc;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .afy-table tbody tr {
+        transition: background .15s ease;
+    }
+
+        .afy-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+    .afy-table tr.passive {
+        opacity: 0.55;
+    }
+
+    .afy-table td:nth-child(4) {
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .afy-table td:nth-child(5) {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .afy-table td:nth-child(13) {
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .afy-table th:nth-child(1),
+    .afy-table td:nth-child(1) {
+        width: 150px;
+    }
+
+.afy-actions {
+    display: flex;
+    gap: 6px;
+}
+
+    .afy-actions button {
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 8px;
+    }
+
+.plate {
+    display: inline-flex;
+    background: #eef2ff;
+    color: #1e40af;
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.status {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+    .status.aktif {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status.pasif {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+.afy-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(15, 23, 42, 0.45);
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.afy-modal {
+    width: min(820px, 100%);
+    max-height: 90vh;
+    overflow: auto;
+    background: white;
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.afy-modal-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+    .afy-modal-head span {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .afy-modal-head h2 {
+        margin: 3px 0 0;
+        font-size: 20px;
+    }
+
+    .afy-modal-head button {
+        border: none;
+        background: #f1f5f9;
+        border-radius: 10px;
+        width: 34px;
+        height: 34px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+.afy-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+    .afy-form-grid label {
+        display: grid;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 900;
+        color: #475569;
+    }
+
+    .afy-form-grid input,
+    .afy-form-grid textarea {
+        border: 1px solid #dbe3ef;
+        border-radius: 10px;
+        padding: 9px 10px;
+        outline: none;
+        background: #f8fafc;
+        font-size: 12px;
+    }
+
+        .afy-form-grid input:focus,
+        .afy-form-grid textarea:focus {
+            border-color: #2563eb;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+        }
+
+    .afy-form-grid textarea {
+        min-height: 68px;
+        resize: vertical;
+    }
+
+.afy-check {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.afy-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+@media (max-width: 1400px) {
+    .afy-action-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .afy-page {
+        padding: 12px;
+    }
+
+    .afy-top,
+    .afy-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .afy-action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .afy-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .afy-table-wrap {
+        max-height: 420px;
+    }
+}

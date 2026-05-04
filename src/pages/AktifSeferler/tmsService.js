@@ -1,4 +1,6 @@
-﻿export async function syncFromTMS({ start, end }) {
+﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
+export async function syncFromTMS({ start, end }) {
     const body = {
         startDate: start,
         endDate: end,
@@ -14,7 +16,7 @@
 
     console.log("TMS REQUEST BODY:", JSON.stringify(body));
 
-    const res = await fetch("/api/proxy/tmsdespatches", {
+    const res = await fetch(`${API_BASE_URL}/api/proxy/tmsdespatches`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
