@@ -1,14 +1,21 @@
 ﻿import { useState } from "react";
+import { MdAdminPanelSettings } from "react-icons/md";
+
 import "./Home.css";
+
 import AktifSeferler from "./AktifSeferler";
 import TamamlananSeferler from "./TamamlananSeferler";
 import AracDurumlari from "./AracDurumları";
+
 import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
 import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
 import KullaniciKPI from "./Raporlar/kullanicikpi";
+
 import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
 import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
 import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
+
+import YonetimPaneli from "./Yonetici/YonetimPaneli";
 
 type HomeProps = {
     onLogout: () => void;
@@ -90,33 +97,48 @@ function Home({ onLogout }: HomeProps) {
 
     const kullaniciRol = aktifKullanici?.rol || "Kullanıcı";
 
-    const avatarLetter = String(kullaniciAdi || "K").charAt(0).toUpperCase();
+    const avatarLetter = String(kullaniciAdi || "K")
+        .charAt(0)
+        .toUpperCase();
 
     const renderPage = () => {
         if (activePage === "Aktif Seferler") return <AktifSeferler />;
 
-        if (activePage === "Tamamlanan Seferler") return <TamamlananSeferler />;
+        if (activePage === "Tamamlanan Seferler")
+            return <TamamlananSeferler />;
 
         if (activePage === "Araç Durumları") return <AracDurumlari />;
 
-        if (activePage === "Yüklemede Bekleme") return <YuklemedeBekleme />;
+        if (activePage === "Yüklemede Bekleme")
+            return <YuklemedeBekleme />;
 
-        if (activePage === "Teslimde Bekleme") return <TeslimdeBekleme />;
+        if (activePage === "Teslimde Bekleme")
+            return <TeslimdeBekleme />;
 
         if (activePage === "Kullanıcı KPİ") return <KullaniciKPI />;
 
-        if (activePage === "Plaka Kira & Sürücü Tutarları") return <AracFiyatYonetimi />;
+        if (activePage === "Plaka Kira & Sürücü Tutarları")
+            return <AracFiyatYonetimi />;
 
-        if (activePage === "Hayat Kimya YHH") return <HayatKimyaYakitHakedis />;
+        if (activePage === "Hayat Kimya YHH")
+            return <HayatKimyaYakitHakedis />;
 
-        if (activePage === "Pepsi YHH") return <PepsiYakitHakedis />;
+        if (activePage === "Pepsi YHH")
+            return <PepsiYakitHakedis />;
+
+        if (activePage === "Yönetim Paneli")
+            return <YonetimPaneli />;
 
         return (
             <section className="hero-panel">
                 <div>
                     <span className="eyebrow">Aktif Sayfa</span>
+
                     <h1>{activePage}</h1>
-                    <p>Seçilen modül için içerik alanı burada görüntülenecek.</p>
+
+                    <p>
+                        Seçilen modül için içerik alanı burada görüntülenecek.
+                    </p>
                 </div>
 
                 <div className="system-card">
@@ -130,7 +152,10 @@ function Home({ onLogout }: HomeProps) {
     return (
         <div className="home-container">
             <header className="topbar">
-                <div className="brand" onClick={() => setActivePage("Dashboard")}>
+                <div
+                    className="brand"
+                    onClick={() => setActivePage("Dashboard")}
+                >
                     <div className="brand-logo">F</div>
 
                     <div className="brand-text">
@@ -143,18 +168,27 @@ function Home({ onLogout }: HomeProps) {
                     {menuGroups.map((group) => (
                         <div className="nav-group" key={group.title}>
                             <button className="nav-button" type="button">
-                                <span className="nav-icon">{group.icon}</span>
+                                <span className="nav-icon">
+                                    {group.icon}
+                                </span>
+
                                 {group.title}
+
                                 <span className="nav-arrow">⌄</span>
                             </button>
 
                             <div className="mega-menu">
                                 <div className="mega-header">
-                                    <div className="mega-icon">{group.icon}</div>
+                                    <div className="mega-icon">
+                                        {group.icon}
+                                    </div>
 
                                     <div>
                                         <h3>{group.title}</h3>
-                                        <p>{group.items.length} işlem</p>
+
+                                        <p>
+                                            {group.items.length} işlem
+                                        </p>
                                     </div>
                                 </div>
 
@@ -163,10 +197,16 @@ function Home({ onLogout }: HomeProps) {
                                         <button
                                             key={item}
                                             type="button"
-                                            className={`mega-item ${activePage === item ? "active" : ""}`}
-                                            onClick={() => setActivePage(item)}
+                                            className={`mega-item ${activePage === item
+                                                    ? "active"
+                                                    : ""
+                                                }`}
+                                            onClick={() =>
+                                                setActivePage(item)
+                                            }
                                         >
                                             <span>{item}</span>
+
                                             <small>→</small>
                                         </button>
                                     ))}
@@ -177,27 +217,49 @@ function Home({ onLogout }: HomeProps) {
                 </nav>
 
                 <div className="top-actions">
-                    <button className="notification-btn" type="button">
+                    <button
+                        className="notification-btn"
+                        type="button"
+                    >
                         🔔
                         <span />
                     </button>
 
                     <div className="profile">
-                        <div className="avatar">{avatarLetter}</div>
+                        <div className="avatar">
+                            {avatarLetter}
+                        </div>
 
                         <div>
                             <strong>{kullaniciAdi}</strong>
+
                             <span>{kullaniciRol}</span>
                         </div>
                     </div>
 
-                    <button onClick={onLogout} className="logout-btn">
+                    <button
+                        className="admin-btn"
+                        onClick={() =>
+                            setActivePage("Yönetim Paneli")
+                        }
+                    >
+                        <MdAdminPanelSettings className="admin-icon" />
+
+                        <span>Yönetim Paneli</span>
+                    </button>
+
+                    <button
+                        onClick={onLogout}
+                        className="logout-btn"
+                    >
                         Çıkış
                     </button>
                 </div>
             </header>
 
-            <main className="main-content">{renderPage()}</main>
+            <main className="main-content">
+                {renderPage()}
+            </main>
         </div>
     );
 }

@@ -2,6 +2,7 @@
 import { supabase } from "../../supabaseClient";
 import "./AracDurumlari.css";
 import { islemLogla } from "../../utils/islemLogla";
+import * as XLSX from "xlsx";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin"];
@@ -127,10 +128,11 @@ export default function AracDurumlari() {
     const [izinModalRow, setIzinModalRow] = useState(null);
     const [kesintiModalRow, setKesintiModalRow] = useState(null);
     const [cikisModalRow, setCikisModalRow] = useState(null);
-    const [listPanel, setListPanel] = useState(null);
     const [izinForm, setIzinForm] = useState(emptyIzinForm);
     const [kesintiForm, setKesintiForm] = useState(emptyKesintiForm);
     const [cikisForm, setCikisForm] = useState(emptyCikisForm);
+    const [listModalOpen, setListModalOpen] = useState(false);
+    const [listTab, setListTab] = useState("izin");
 
     useEffect(() => { loadData(); }, []);
 
@@ -389,8 +391,100 @@ export default function AracDurumlari() {
     const aracTipOptions = useMemo(() => ["Tümü", ...Array.from(new Set(activeRows.map((x) => x.arac_tip).filter(Boolean)))], [activeRows]);
     const izinStatuOptions = useMemo(() => Array.from(new Set([...LEAVE_STATUS_OPTIONS, ...rows.flatMap((r) => (Array.isArray(r.izinler) ? r.izinler : []).map((i) => i.statu).filter(Boolean))])), [rows]);
     const statusOptions = useMemo(() => ["Tümü", ...Array.from(new Set([...STATUS_OPTIONS.filter((x) => x !== "Tümü" && x !== "Çıkartıldı"), ...activeRows.map((x) => x.durum).filter(Boolean), ...izinStatuOptions]))], [activeRows, izinStatuOptions]);
-    const allIzinler = useMemo(() => activeRows.flatMap((row) => row.izinler.map((izin) => ({ ...izin, row, plaka: row.plaka, surucu_isim: row.surucu_isim, bolge: row.bolge }))), [activeRows]);
-    const allKesintiler = useMemo(() => activeRows.flatMap((row) => row.kesintiler.map((kesinti) => ({ ...kesinti, row, plaka: row.plaka, surucu_isim: row.surucu_isim, bolge: row.bolge }))), [activeRows]);
+    const allIzinler = useMemo(() => activeRows.flatMap((row) =>
+        row.izinler.map((izin) => ({
+            ...izin,
+            row,
+            plaka: row.plaka,
+            surucu_isim: row.surucu_isim,
+            tel_no: row.tel_no,
+            tedarikci_isim: row.tedarikci_isim,
+            bolge: row.bolge,
+            arac_tip: row.arac_tip,
+        }))
+    ), [activeRows]);
+
+    const allKesintiler = useMemo(() => activeRows.flatMap((row) =>
+        row.kesintiler.map((kesinti) => ({
+            ...kesinti,
+            row,
+            plaka: row.plaka,
+            surucu_isim: row.surucu_isim,
+            tel_no: row.tel_no,
+            tedarikci_isim: row.tedarikci_isim,
+            bolge: row.bolge,
+            arac_tip: row.arac_tip,
+        }))
+    ), [activeRows]);
+    function exportExcel(fileName, rows) {
+        if (!rows.length) {
+            alert("Aktarılacak kayıt bulunamadı.");
+            return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(wb, ws, "Liste");
+
+        XLSX.writeFile(
+            wb,
+            `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`
+        );
+    }
+
+    function exportAktifAraclar() {
+        exportExcel("aktif_araclar",
+            activeRows.map((row) => ({
+                Plaka: row.plaka,
+                Surucu: row.surucu_isim,
+                Telefon: row.tel_no,
+                Tedarikci: row.tedarikci_isim,
+                Bolge: row.bolge,
+                AracTip: row.arac_tip,
+                Durum: row.durum,
+            }))
+        );
+    }
+
+    function exportIzinler() {
+        exportExcel("izinler",
+            allIzinler.map((item) => ({
+                Plaka: item.plaka,
+                Surucu: item.surucu_isim,
+                Baslangic: item.baslangic,
+                Bitis: item.bitis,
+                Gun: item.gun,
+                Statu: item.statu,
+                Aciklama: item.aciklama,
+            }))
+        );
+    }
+
+    function exportKesintiler() {
+        exportExcel("kesintiler",
+            allKesintiler.map((item) => ({
+                Plaka: item.plaka,
+                Surucu: item.surucu_isim,
+                Tarih: item.tarih,
+                Tip: item.tip,
+                Deger: item.deger,
+                Aciklama: item.aciklama,
+            }))
+        );
+    }
+
+    function exportCikarilanAraclar() {
+        exportExcel("cikarilan_araclar",
+            exitedRows.map((row) => ({
+                Plaka: row.plaka,
+                Surucu: row.surucu_isim,
+                Bolge: row.bolge,
+                CikisTarihi: row.cikartilan_tarih,
+                CikisNedeni: row.cikartilma_nedeni,
+            }))
+        );
+    }
 
     const filteredRows = useMemo(() => activeRows.filter((row) => {
         const q = normalize(search);
@@ -413,9 +507,15 @@ export default function AracDurumlari() {
             <div className="hero-actions">
                 <button className="add-btn" onClick={openAddForm}>+ Araç Ekle</button>
                 <button className={`problem-btn ${onlyProblematic ? "active" : ""}`} onClick={() => setOnlyProblematic((p) => !p)}>Problemli Araçlar</button>
-                <button className="list-btn" onClick={() => setListPanel("izin")}>İzin Listesi</button>
-                <button className="list-btn danger" onClick={() => setListPanel("kesinti")}>Kesinti Listesi</button>
-                <button className="list-btn exit" onClick={() => setListPanel("cikis")}>Çıkarılan Araçlar</button>
+                <button
+                    className="list-btn"
+                    onClick={() => {
+                        setListTab("izin");
+                        setListModalOpen(true);
+                    }}
+                >
+                    Listeler
+                </button>
             </div>
         </div>
 
@@ -472,11 +572,24 @@ export default function AracDurumlari() {
             </aside>
         </div>
 
+
         {formOpen && <VehicleForm editingRow={editingRow} form={form} updateForm={updateForm} onSubmit={saveVehicle} onClose={closeForm} />}
         {izinModalRow && <SmallRecordModal title="İzin Ekle" subtitle={izinModalRow.plaka} type="izin" form={izinForm} setForm={setIzinForm} records={izinModalRow.izinler || []} row={izinModalRow} onRemove={removeIzin} onSubmit={addIzin} leaveStatusOptions={izinStatuOptions} onClose={() => setIzinModalRow(null)} />}
         {kesintiModalRow && <SmallRecordModal title="Kesinti Ekle" subtitle={kesintiModalRow.plaka} type="kesinti" form={kesintiForm} setForm={setKesintiForm} records={kesintiModalRow.kesintiler || []} row={kesintiModalRow} onRemove={removeKesinti} onSubmit={addKesinti} onClose={() => setKesintiModalRow(null)} />}
         {cikisModalRow && <CikisModal row={cikisModalRow} form={cikisForm} setForm={setCikisForm} onSubmit={saveCikis} onClose={() => setCikisModalRow(null)} />}
-        {listPanel && <RecordListPanel type={listPanel} records={listPanel === "izin" ? allIzinler : listPanel === "kesinti" ? allKesintiler : exitedRows} onRemove={listPanel === "izin" ? removeIzin : removeKesinti} onEditExit={openCikisModal} onUndoExit={undoCikis} onClose={() => setListPanel(null)} />}
+        {listModalOpen && (
+            <ListCenterModal
+                activeTab={listTab}
+                setActiveTab={setListTab}
+                izinler={allIzinler}
+                kesintiler={allKesintiler}
+                cikarilanlar={exitedRows}
+                onClose={() => setListModalOpen(false)}
+                onExportIzin={exportIzinler}
+                onExportKesinti={exportKesintiler}
+                onExportCikis={exportCikarilanAraclar}
+            />
+        )}
     </div>;
 }
 
@@ -712,35 +825,270 @@ function RecordPreview({ title, records, type, row, onRemove }) {
     </div>;
 }
 
-function RecordListPanel({ type, records, onRemove, onEditExit, onUndoExit, onClose }) {
-    const isIzin = type === "izin", isKesinti = type === "kesinti", isCikis = type === "cikis";
-    const title = isIzin ? "Tüm Araçların İzin Listesi" : isKesinti ? "Tüm Araçların Kesinti Listesi" : "Çıkarılan Araçlar";
 
-    return <div className="side-panel-backdrop" onClick={onClose}>
-        <aside className={`record-side-panel ${type}`} onClick={(e) => e.stopPropagation()}>
-            <div className="side-panel-head"><div><span>Genel liste</span><h2>{title}</h2></div><button type="button" onClick={onClose}>×</button></div>
-            <div className="side-panel-summary"><strong>{records.length}</strong><span>toplam kayıt</span></div>
-            <div className="side-panel-list">
-                {records.length === 0 ? <div className="modal-record-empty">Henüz kayıt yok.</div> : records.map((item) => isCikis ? <div className="side-panel-item exit-item" key={item.id}>
-                    <div className="side-panel-item-top"><strong>{value(item.plaka)}</strong><ExitWarningBadge row={item} /></div>
-                    <div className="side-panel-meta"><span>{value(item.surucu_isim)}</span><span>{value(item.bolge)}</span></div>
-                    <div className="side-panel-date-line">Çıkış: {value(item.cikartilan_tarih)}</div>
-                    <p><b>Neden:</b> {value(item.cikartilma_nedeni)}</p>
-                    <div className="exit-status-grid">
-                        <span className={item.iade_gps ? "ok" : "bad"}>GPS</span>
-                        <span className={item.iade_evraklar ? "ok" : "bad"}>Evrak</span>
-                        <span className={item.iade_utts ? "ok" : "bad"}>UTTS</span>
-                        <span className={item.iade_gestas_negmar ? "ok" : "bad"}>Gestaş/Negmar</span>
+
+function ListCenterModal({
+    activeTab,
+    setActiveTab,
+    izinler,
+    kesintiler,
+    cikarilanlar,
+    onClose,
+    onExportIzin,
+    onExportKesinti,
+    onExportCikis,
+}) {
+    const isIzin = activeTab === "izin";
+    const isKesinti = activeTab === "kesinti";
+    const records = isIzin ? izinler : isKesinti ? kesintiler : cikarilanlar;
+    const [listSearch, setListSearch] = useState("");
+    const [listBolge, setListBolge] = useState("Tümü");
+    const [listExtra, setListExtra] = useState("Tümü");
+
+    const bolgeOptions = [
+        "Tümü",
+        ...Array.from(new Set(records.map((x) => x.bolge).filter(Boolean)))
+    ];
+
+    const extraOptions = isIzin
+        ? ["Tümü", ...Array.from(new Set(records.map((x) => x.statu).filter(Boolean)))]
+        : isKesinti
+            ? ["Tümü", ...Array.from(new Set(records.map((x) => x.tip).filter(Boolean)))]
+            : ["Tümü", "İade Tamam", "İade Eksik"];
+
+    const filteredRecords = records.filter((item) => {
+        const q = normalize(listSearch);
+
+        const searchable = normalize([
+            item.plaka,
+            item.surucu_isim,
+            item.tel_no,
+            item.tedarikci_isim,
+            item.bolge,
+            item.arac_tip,
+            item.aciklama,
+            item.cikartilma_nedeni,
+        ].join(" "));
+
+        if (q && !searchable.includes(q)) return false;
+
+        if (listBolge !== "Tümü" && item.bolge !== listBolge)
+            return false;
+
+        if (isIzin && listExtra !== "Tümü" && item.statu !== listExtra)
+            return false;
+
+        if (isKesinti && listExtra !== "Tümü" && item.tip !== listExtra)
+            return false;
+
+        if (!isIzin && !isKesinti && listExtra === "İade Tamam" && exitHasWarning(item))
+            return false;
+
+        if (!isIzin && !isKesinti && listExtra === "İade Eksik" && !exitHasWarning(item))
+            return false;
+
+        return true;
+    });
+
+    const title = isIzin
+        ? "İzin Listesi"
+        : isKesinti
+            ? "Kesinti Listesi"
+            : "Çıkarılan Araçlar";
+
+    const exportFn = isIzin
+        ? onExportIzin
+        : isKesinti
+            ? onExportKesinti
+            : onExportCikis;
+
+    return (
+        <div className="list-center-overlay" onMouseDown={onClose}>
+            <div className="list-center-modal" onMouseDown={(e) => e.stopPropagation()}>
+                <div className="list-center-head">
+                    <div>
+                        <span>Filo Kayıtları</span>
+                        <h2>{title}</h2>
+                        <p>{filteredRecords.length}/{records.length} kayıt gösteriliyor</p>
                     </div>
-                    <div className="side-panel-actions"><button type="button" onClick={() => onEditExit(item)}>Düzenle</button><button type="button" onClick={() => onUndoExit(item)}>Ana Listeye Al</button></div>
-                </div> : <div className="side-panel-item" key={item.id}>
-                    <div className="side-panel-item-top"><strong>{value(item.plaka)}</strong><span>{value(item.surucu_isim)}</span></div>
-                    <div className="side-panel-meta"><span>{value(item.bolge)}</span><span>{isIzin ? value(item.statu) : formatKesinti(item)}</span></div>
-                    <div className="side-panel-date-line">{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)} • ${value(item.gun)} gün` : value(item.tarih)}</div>
-                    {item.aciklama && <p>{item.aciklama}</p>}
-                    <div className="side-panel-actions"><button type="button" onClick={() => onRemove(item.row, item.id)}>Sil</button></div>
-                </div>)}
+
+                    <div className="list-center-actions">
+                        <button type="button" className="modal-excel-btn" onClick={exportFn}>
+                            Excel’e Aktar
+                        </button>
+
+                        <button type="button" className="modal-close-btn" onClick={onClose}>
+                            ×
+                        </button>
+                    </div>
+                </div>
+
+                <div className="list-tabs">
+                    <button type="button" className={isIzin ? "active" : ""} onClick={() => setActiveTab("izin")}>
+                        İzinler <span>{izinler.length}</span>
+                    </button>
+
+                    <button type="button" className={isKesinti ? "active" : ""} onClick={() => setActiveTab("kesinti")}>
+                        Kesintiler <span>{kesintiler.length}</span>
+                    </button>
+
+                    <button type="button" className={activeTab === "cikis" ? "active" : ""} onClick={() => setActiveTab("cikis")}>
+                        Çıkarılanlar <span>{cikarilanlar.length}</span>
+                    </button>
+                </div>
+                <div className="list-filter-bar">
+
+                    <div className="list-filter-search">
+                        <span>⌕</span>
+
+                        <input
+                            value={listSearch}
+                            onChange={(e) => setListSearch(e.target.value)}
+                            placeholder="Plaka, sürücü, telefon, tedarikçi ara..."
+                        />
+                    </div>
+
+                    <select
+                        value={listBolge}
+                        onChange={(e) => setListBolge(e.target.value)}
+                    >
+                        {bolgeOptions.map((x) => (
+                            <option key={x}>{x}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={listExtra}
+                        onChange={(e) => setListExtra(e.target.value)}
+                    >
+                        {extraOptions.map((x) => (
+                            <option key={x}>{x}</option>
+                        ))}
+                    </select>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setListSearch("");
+                            setListBolge("Tümü");
+                            setListExtra("Tümü");
+                        }}
+                    >
+                        Temizle
+                    </button>
+
+                </div>
+
+                <div className="list-table-wrap">
+                    <table className="list-table">
+                        <thead>
+                            {isIzin ? (
+                                <tr>
+                                    <th>Plaka</th>
+                                    <th>Sürücü</th>
+                                    <th>Telefon</th>
+                                    <th>Tedarikçi</th>
+                                    <th>Bölge</th>
+                                    <th>Araç Tip</th>
+                                    <th>Başlangıç</th>
+                                    <th>Bitiş</th>
+                                    <th>Gün</th>
+                                    <th>Statü</th>
+                                    <th>Açıklama</th>
+                                </tr>
+                            ) : isKesinti ? (
+                                <tr>
+                                    <th>Plaka</th>
+                                    <th>Sürücü</th>
+                                    <th>Telefon</th>
+                                    <th>Tedarikçi</th>
+                                    <th>Bölge</th>
+                                    <th>Araç Tip</th>
+                                    <th>Tarih</th>
+                                    <th>Tip</th>
+                                    <th>Değer</th>
+                                    <th>Açıklama</th>
+                                </tr>
+                            ) : (
+                                <tr>
+                                    <th>Plaka</th>
+                                    <th>Sürücü</th>
+                                    <th>Telefon</th>
+                                    <th>Tedarikçi</th>
+                                    <th>Bölge</th>
+                                    <th>Araç Tip</th>
+                                    <th>Çıkış Tarihi</th>
+                                    <th>Çıkış Nedeni</th>
+                                    <th>GPS</th>
+                                    <th>Evrak</th>
+                                    <th>UTTS</th>
+                                    <th>Gestaş/Negmar</th>
+                                    <th>Durum</th>
+                                </tr>
+                            )}
+                        </thead>
+
+                        <tbody>
+                            {filteredRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan="13" className="list-empty">
+                                        Kayıt bulunamadı.
+                                    </td>
+                                </tr>
+                            ) : isIzin ? (
+                                    filteredRecords.map((item) => (
+                                    <tr key={item.id}>
+                                        <td>{value(item.plaka)}</td>
+                                        <td>{value(item.surucu_isim)}</td>
+                                        <td>{value(item.tel_no)}</td>
+                                        <td>{value(item.tedarikci_isim)}</td>
+                                        <td>{value(item.bolge)}</td>
+                                        <td>{value(item.arac_tip)}</td>
+                                        <td>{value(item.baslangic)}</td>
+                                        <td>{value(item.bitis)}</td>
+                                        <td>{value(item.gun)}</td>
+                                        <td>{value(item.statu)}</td>
+                                        <td>{value(item.aciklama)}</td>
+                                    </tr>
+                                ))
+                            ) : isKesinti ? (
+                                        filteredRecords.map((item) => (
+                                        <tr key={item.id}>
+                                        <td>{value(item.plaka)}</td>
+                                        <td>{value(item.surucu_isim)}</td>
+                                        <td>{value(item.tel_no)}</td>
+                                        <td>{value(item.tedarikci_isim)}</td>
+                                        <td>{value(item.bolge)}</td>
+                                        <td>{value(item.arac_tip)}</td>
+                                        <td>{value(item.tarih)}</td>
+                                        <td>{value(item.tip)}</td>
+                                        <td>{formatKesinti(item)}</td>
+                                        <td>{value(item.aciklama)}</td>
+                                    </tr>
+                                ))
+                                    ) : (
+                                        filteredRecords.map((row) => (
+                                            <tr key={row.id}>
+                                                <td>{value(row.plaka)}</td>
+                                                <td>{value(row.surucu_isim)}</td>
+                                                <td>{value(row.tel_no)}</td>
+                                                <td>{value(row.tedarikci_isim)}</td>
+                                                <td>{value(row.bolge)}</td>
+                                                <td>{value(row.arac_tip)}</td>
+                                                <td>{value(row.cikartilan_tarih)}</td>
+                                                <td>{value(row.cikartilma_nedeni)}</td>
+                                                <td>{row.iade_gps ? "Tamam" : "Eksik"}</td>
+                                                <td>{row.iade_evraklar ? "Tamam" : "Eksik"}</td>
+                                                <td>{row.iade_utts ? "Tamam" : "Eksik"}</td>
+                                                <td>{row.iade_gestas_negmar ? "Tamam" : "Eksik"}</td>
+                                                <td><ExitWarningBadge row={row} /></td>
+                                            </tr>
+                                        ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </aside>
-    </div>;
+        </div>
+    );
 }

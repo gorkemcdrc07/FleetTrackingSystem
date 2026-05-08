@@ -145,6 +145,41 @@ function IconTonaj() {
     );
 }
 
+function IconTrash() {
+    return (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path
+                d="M3 6h18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+            />
+
+            <path
+                d="M8 6V4h8v2"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+
+            <path
+                d="M19 6l-1 14H6L5 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinejoin="round"
+            />
+
+            <path
+                d="M10 11v5M14 11v5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+            />
+        </svg>
+    );
+}
+
 function IconColumns() {
     return (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -295,16 +330,16 @@ function sanitizeTableLayout(layout) {
 function getAktifKullanici() {
     try {
         return (
-            JSON.parse(localStorage.getItem("kullanici")) ||
-            JSON.parse(localStorage.getItem("aktifKullanici")) ||
-            JSON.parse(localStorage.getItem("user")) ||
+            JSON.parse(localStorage.getItem("fts_user") || "null") ||
+            JSON.parse(localStorage.getItem("kullanici") || "null") ||
+            JSON.parse(localStorage.getItem("aktifKullanici") || "null") ||
+            JSON.parse(localStorage.getItem("user") || "null") ||
             null
         );
     } catch {
         return null;
     }
 }
-
 async function findKullaniciRow() {
     const aktifKullanici = getAktifKullanici();
 
@@ -519,7 +554,15 @@ function rowMatchesColumnFilter(row, col, filter) {
 }
 
 
-function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
+function OpsBtns({
+    row,
+    onDetail,
+    onIkaz,
+    onETA,
+    onTonaj,
+    onSeferSil,
+    etaDelayed
+}) {
     const ikazli = row.aciklama === IKAZ_ACIKLAMA;
     const tonajli = row.tonaj_durumu === TONAJ_ACIKLAMA;
 
@@ -626,6 +669,33 @@ function OpsBtns({ row, onDetail, onIkaz, onETA, onTonaj, etaDelayed }) {
             >
                 <IconIkaz /> İkaz
             </button>
+
+            <button
+                className="op-btn op-btn-delete danger"
+                title="Sefer Sil"
+                onClick={async (e) => {
+                    e.stopPropagation();
+
+                    await islemLogla({
+                        islem_tipi: "SEFER_SIL",
+                        islem_aciklama: "Sefer pasif hale getirildi",
+                        tablo_adi: "aktif_seferler",
+                        kayit_id: row.id || null,
+                        sefer_no: row.sefer_no || null,
+                        plaka: row.plaka || null,
+                        detay: {
+                            buton: "Sefer Sil",
+                            ekran: "Aktif Seferler",
+                        },
+                    });
+
+                    onSeferSil(row);
+                }}
+            >
+                <IconTrash />
+                Sil
+            </button>
+
         </div>
     );
 }
@@ -638,6 +708,7 @@ function CellValue({
     onIkaz,
     onETA,
     onTonaj,
+    onSeferSil,
     etaDelayed
 }) {
     if (col.key === "_ops") {
@@ -648,6 +719,7 @@ function CellValue({
                 onIkaz={onIkaz}
                 onETA={onETA}
                 onTonaj={onTonaj}
+                onSeferSil={onSeferSil}
                 etaDelayed={etaDelayed}
             />
         );
@@ -865,6 +937,7 @@ function AktifSeferler() {
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
+    const [showColumnFilters, setShowColumnFilters] = useState(false);
     const [toast, setToast] = useState(null);
     const [completionCandidate, setCompletionCandidate] = useState(null);
     const [completingTrip, setCompletingTrip] = useState(false);
@@ -874,8 +947,111 @@ function AktifSeferler() {
     const [columnWidths, setColumnWidths] = useState(defaultLayout.columnWidths);
     const [columnOrder, setColumnOrder] = useState(defaultLayout.columnOrder);
     const [visibleColumnKeys, setVisibleColumnKeys] = useState(defaultLayout.visibleColumnKeys);
+    const [aktifKullaniciDb, setAktifKullaniciDb] = useState(null);
+    const [yetkiLoading, setYetkiLoading] = useState(true);
+    const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const [deletingTrip, setDeletingTrip] = useState(false);
 
-    const resizingRef = useRef(null);
+    useEffect(() => {
+        async function kullaniciYetkisiniGetir() {
+            try {
+                const localUser = getAktifKullanici();
+
+                if (!localUser) {
+                    setYetkiLoading(false);
+                    return;
+                }
+
+                let query = supabase
+                    .from("kullanicilar")
+                    .select("id, kullanici, ad, rol, yetki, aktif");
+
+                if (localUser.id) {
+                    query = query.eq("id", localUser.id);
+                } else {
+                    query = query.eq(
+                        "kullanici",
+                        localUser.kullanici || localUser.kullanici_adi || localUser.username || localUser.ad
+                    );
+                }
+
+                const { data, error } = await query.maybeSingle();
+
+                if (error) throw error;
+
+                setAktifKullaniciDb(data);
+            } catch (error) {
+                console.error("Kullanıcı yetkisi alınamadı:", error);
+            } finally {
+                setYetkiLoading(false);
+            }
+        }
+
+        kullaniciYetkisiniGetir();
+    }, []);
+
+    const handleSeferSil = useCallback((row) => {
+        setDeleteCandidate(row);
+    }, []);
+
+    const confirmDeleteTrip = useCallback(async () => {
+        if (!deleteCandidate) return;
+
+        setDeletingTrip(true);
+
+        try {
+            const { error } = await supabase
+                .from("aktif_seferler")
+                .update({
+                    pasif: true,
+                    pasif_tarihi: new Date().toISOString(),
+                    pasif_nedeni: "Kullanıcı tarafından silindi",
+                })
+                .eq("sefer_no", deleteCandidate.sefer_no);
+
+            if (error) throw error;
+
+            setRows((prev) =>
+                prev.filter(
+                    (item) => item.sefer_no !== deleteCandidate.sefer_no
+                )
+            );
+
+            setDeleteCandidate(null);
+
+            setToast({
+                type: "success",
+                message: "Sefer pasif hale getirildi.",
+            });
+
+            setTimeout(() => setToast(null), 2600);
+
+        } catch (err) {
+            console.error("Sefer silme hatası:", err);
+
+            setToast({
+                type: "error",
+                message: "Sefer silinirken hata oluştu.",
+            });
+
+            setTimeout(() => setToast(null), 2600);
+        } finally {
+            setDeletingTrip(false);
+        }
+    }, [deleteCandidate]);
+
+    const kullaniciYetki = Array.isArray(aktifKullaniciDb?.yetki)
+        ? aktifKullaniciDb.yetki
+        : [];
+
+    const can = (page, action) => {
+        const pagePermission = kullaniciYetki.find((item) => item.page === page);
+        return pagePermission?.actions?.includes(action) || false;
+    };
+
+    const canView = can("Aktif Seferler", "view");
+    const canUpdate = can("Aktif Seferler", "update");
+    const canExport = can("Aktif Seferler", "export");    const resizingRef = useRef(null);
     const layoutSaveTimerRef = useRef(null);
 
     const orderedColumns = useMemo(() => {
@@ -1277,6 +1453,7 @@ function AktifSeferler() {
             const { data, error } = await supabase
                 .from("aktif_seferler")
                 .select("*")
+                .eq("pasif", false)
                 .gte("sefer_tarihi", startDate)
                 .lte("sefer_tarihi", endDate)
                 .order("sefer_tarihi", { ascending: false });
@@ -1309,9 +1486,21 @@ function AktifSeferler() {
 
             const completedSet = new Set((completedRows || []).map((x) => x.sefer_no));
 
+            const { data: passiveRows, error: passiveError } = await supabase
+                .from("aktif_seferler")
+                .select("sefer_no")
+                .eq("pasif", true);
+
+            if (passiveError) throw passiveError;
+
+            const passiveSet = new Set(
+                (passiveRows || []).map((x) => x.sefer_no)
+            );
+
             const mappedRows = mapTMSRows(incoming)
                 .filter((r) => r.sefer_no?.startsWith("SFR"))
                 .filter((r) => !completedSet.has(r.sefer_no))
+                .filter((r) => !passiveSet.has(r.sefer_no))
                 .map((r) => ({
                     sefer_no: r.sefer_no,
                     sefer_tarihi: r.sefer_tarihi,
@@ -1466,6 +1655,32 @@ function AktifSeferler() {
         split(row.teslim_noktasi).length > 0 ||
         split(row.teslim_alan_firma).length > 0;
 
+    if (yetkiLoading) {
+        return (
+            <div className="aktif-page">
+                <div className="aktif-header">
+                    <div>
+                        <span className="aktif-eyebrow">Yetki Kontrolü</span>
+                        <h1>Yetkiler yükleniyor...</h1>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!canView) {
+        return (
+            <div className="aktif-page">
+                <div className="aktif-header">
+                    <div>
+                        <span className="aktif-eyebrow">Yetkisiz Erişim</span>
+                        <h1>Bu ekran için yetkiniz yok</h1>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="aktif-page">
             <div className="aktif-header">
@@ -1477,17 +1692,18 @@ function AktifSeferler() {
                 <div className="aktif-header-actions">
                     <div className="aktif-count-badge">{visibleRows.length}/{baseRows.length} sefer</div>
 
-                    <button
-                        className="eta-export-btn"
-                        type="button"
-                        onClick={exportEtaUyumsuzExcel}
-                        disabled={!etaUyumsuzRows.length}
-                        title="ETA uyumsuz satırları Excel'e aktar"
-                    >
-                        ETA Uyumsuz Excel
-                        <span>{etaUyumsuzRows.length}</span>
-                    </button>
-
+                    {canExport && (
+                        <button
+                            className="eta-export-btn"
+                            type="button"
+                            onClick={exportEtaUyumsuzExcel}
+                            disabled={!etaUyumsuzRows.length}
+                            title="ETA uyumsuz satırları Excel'e aktar"
+                        >
+                            ETA Uyumsuz Excel
+                            <span>{etaUyumsuzRows.length}</span>
+                        </button>
+                    )}
                     <button
                         className="columns-icon-btn"
                         type="button"
@@ -1537,33 +1753,87 @@ function AktifSeferler() {
 
                     <div className="filter-divider" />
 
+                    {canUpdate && (
+                        <button
+                            className="tms-refresh-btn"
+                            onClick={tmsdenCekVeKaydet}
+                            disabled={loading || syncing}
+                        >
+                            {syncing ? (
+                                <>
+                                    <span className="btn-spinner" />
+                                    Yenileniyor
+                                </>
+                            ) : (
+                                <>
+                                    <span className="refresh-icon">↻</span>
+                                    TMS’den Yenile
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="table-toolbar">
+                <div className="table-toolbar-left">
+                    <span className="toolbar-count">
+                        {visibleRows.length}/{baseRows.length} sefer
+                    </span>
+
+                    <span className="toolbar-hint">
+                        Aktif sefer listesi
+                    </span>
+                </div>
+
+                <div className="table-toolbar-actions">
                     <button
-                        className="tms-refresh-btn"
-                        onClick={tmsdenCekVeKaydet}
-                        disabled={loading || syncing}
+                        type="button"
+                        className={`toolbar-filter-btn ${Object.keys(columnFilters).length ? "has-filter" : ""}`}
+                        onClick={() => setShowColumnFilters(true)}
                     >
-                        {syncing ? (
-                            <>
-                                <span className="btn-spinner" />
-                                Yenileniyor
-                            </>
-                        ) : (
-                            <>
-                                <span className="refresh-icon">↻</span>
-                                TMS’den Yenile
-                            </>
+                        Sütun Filtreleri
+
+                        {Object.keys(columnFilters).length > 0 && (
+                            <span>{Object.keys(columnFilters).length}</span>
                         )}
                     </button>
                 </div>
             </div>
 
-            <ColumnFiltersPanel
-                columns={visibleOrderedColumns}
-                rows={baseRows}
-                filters={columnFilters}
-                onChange={setColumnFilters}
-                onClearAll={clearColumnFilters}
-            />
+            {showColumnFilters && (
+                <div
+                    className="filter-drawer-overlay"
+                    onMouseDown={() => setShowColumnFilters(false)}
+                >
+                    <div
+                        className="filter-drawer"
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <div className="filter-drawer-head">
+                            <div>
+                                <span>Filtreleme</span>
+                                <h3>Sütun Filtreleri</h3>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowColumnFilters(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <ColumnFiltersPanel
+                            columns={visibleOrderedColumns}
+                            rows={baseRows}
+                            filters={columnFilters}
+                            onChange={setColumnFilters}
+                            onClearAll={clearColumnFilters}
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="aktif-card">
                 <div className="table-wrapper">
@@ -1625,15 +1895,16 @@ function AktifSeferler() {
                                                             />
                                                         ) : null
                                                     ) : (
-                                                        <CellValue
-                                                            col={col}
-                                                            row={row}
-                                                            isOpen={isOpen}
-                                                            onDetail={(r) => setDetailRow(r)}
-                                                            onIkaz={handleIkaz}
-                                                            onETA={(r) => setEtaRow(r)}
-                                                            onTonaj={handleTonaj}
-                                                            etaDelayed={Boolean(delayedEtaMap[rowKey])}
+                                                            <CellValue
+                                                                col={col}
+                                                                row={row}
+                                                                isOpen={isOpen}
+                                                                onDetail={(r) => setDetailRow(r)}
+                                                                onIkaz={handleIkaz}
+                                                                onETA={(r) => setEtaRow(r)}
+                                                                onTonaj={handleTonaj}
+                                                                onSeferSil={handleSeferSil}
+                                                                etaDelayed={Boolean(delayedEtaMap[rowKey])}
                                                         />
                                                     )}
                                                 </td>
@@ -1711,6 +1982,47 @@ function AktifSeferler() {
                     <div className="toast-content">
                         <strong>{toast.type === "success" ? "İşlem Başarılı" : "Hata"}</strong>
                         <span>{toast.message}</span>
+                    </div>
+                </div>
+            )}
+            {deleteCandidate && (
+                <div className="delete-modal-overlay">
+                    <div className="delete-modal">
+
+                        <div className="delete-modal-icon">
+                            🗑
+                        </div>
+
+                        <h3>Seferi Pasif Hale Getir</h3>
+
+                        <p>
+                            <strong>{deleteCandidate.sefer_no}</strong>
+                            {" "}numaralı sefer pasif hale getirilecek.
+                            <br />
+                            TMS’den tekrar gelmeyecek.
+                        </p>
+
+                        <div className="delete-modal-actions">
+
+                            <button
+                                type="button"
+                                className="delete-cancel"
+                                disabled={deletingTrip}
+                                onClick={() => setDeleteCandidate(null)}
+                            >
+                                Vazgeç
+                            </button>
+
+                            <button
+                                type="button"
+                                className="delete-confirm"
+                                disabled={deletingTrip}
+                                onClick={confirmDeleteTrip}
+                            >
+                                {deletingTrip ? "Siliniyor..." : "Evet, Pasif Yap"}
+                            </button>
+
+                        </div>
                     </div>
                 </div>
             )}

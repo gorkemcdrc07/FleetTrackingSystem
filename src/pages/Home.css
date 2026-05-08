@@ -355,6 +355,99 @@
     box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.16);
 }
 
+.admin-btn {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 22px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+    .admin-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 18px 35px rgba(37, 99, 235, 0.35), 0 0 25px rgba(59, 130, 246, 0.25);
+    }
+
+    .admin-btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient( 120deg, transparent 20%, rgba(255,255,255,0.18) 50%, transparent 80% );
+        transform: translateX(-120%);
+        transition: transform 0.7s ease;
+    }
+
+    .admin-btn:hover::before {
+        transform: translateX(120%);
+    }
+
+    /* Arka animasyon */
+    .admin-btn::after {
+        content: "🔐";
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%) rotate(-10deg);
+        font-size: 70px;
+        opacity: 0.06;
+        animation: floatLock 4s ease-in-out infinite;
+    }
+
+@keyframes floatLock {
+    0% {
+        transform: translateY(-50%) rotate(-10deg);
+    }
+
+    50% {
+        transform: translateY(-60%) rotate(6deg);
+    }
+
+    100% {
+        transform: translateY(-50%) rotate(-10deg);
+    }
+}
+
+.admin-icon {
+    position: relative;
+    z-index: 2;
+    font-size: 22px;
+    color: #60a5fa;
+    animation: pulseKey 2s infinite;
+}
+
+@keyframes pulseKey {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 rgba(96,165,250,0.4));
+    }
+
+    50% {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 10px rgba(96,165,250,0.7));
+    }
+
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 rgba(96,165,250,0.4));
+    }
+}
+
+.admin-btn span {
+    position: relative;
+    z-index: 2;
+}
+
 @media (max-width: 1300px) {
     .topbar {
         height: auto;
