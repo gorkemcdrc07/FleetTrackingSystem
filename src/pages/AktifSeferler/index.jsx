@@ -932,8 +932,21 @@ function AktifSeferler() {
     const [detailRow, setDetailRow] = useState(null);
     const [etaRow, setEtaRow] = useState(null);
     const [delayedEtaMap, setDelayedEtaMap] = useState({});
-    const [startDate, setStartDate] = useState("2026-04-01");
-    const [endDate, setEndDate] = useState("2026-04-02");
+    const today = new Date();
+
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const formatInputDate = (date) =>
+        date.toISOString().split("T")[0];
+
+    const [startDate, setStartDate] = useState(
+        formatInputDate(yesterday)
+    );
+
+    const [endDate, setEndDate] = useState(
+        formatInputDate(today)
+    );
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
