@@ -391,7 +391,7 @@ export default function AracDurumlari() {
     const aracTipOptions = useMemo(() => ["Tümü", ...Array.from(new Set(activeRows.map((x) => x.arac_tip).filter(Boolean)))], [activeRows]);
     const izinStatuOptions = useMemo(() => Array.from(new Set([...LEAVE_STATUS_OPTIONS, ...rows.flatMap((r) => (Array.isArray(r.izinler) ? r.izinler : []).map((i) => i.statu).filter(Boolean))])), [rows]);
     const statusOptions = useMemo(() => ["Tümü", ...Array.from(new Set([...STATUS_OPTIONS.filter((x) => x !== "Tümü" && x !== "Çıkartıldı"), ...activeRows.map((x) => x.durum).filter(Boolean), ...izinStatuOptions]))], [activeRows, izinStatuOptions]);
-    const allIzinler = useMemo(() => activeRows.flatMap((row) =>
+    const allIzinler = useMemo(() => enrichedRows.flatMap((row) =>
         row.izinler.map((izin) => ({
             ...izin,
             row,
@@ -401,10 +401,11 @@ export default function AracDurumlari() {
             tedarikci_isim: row.tedarikci_isim,
             bolge: row.bolge,
             arac_tip: row.arac_tip,
+            arac_durum: row.isten_cikarildi ? "Çıkartıldı" : "Aktif",
         }))
-    ), [activeRows]);
+    ), [enrichedRows]);
 
-    const allKesintiler = useMemo(() => activeRows.flatMap((row) =>
+    const allKesintiler = useMemo(() => enrichedRows.flatMap((row) =>
         row.kesintiler.map((kesinti) => ({
             ...kesinti,
             row,
@@ -414,8 +415,10 @@ export default function AracDurumlari() {
             tedarikci_isim: row.tedarikci_isim,
             bolge: row.bolge,
             arac_tip: row.arac_tip,
+            arac_durum: row.isten_cikarildi ? "Çıkartıldı" : "Aktif",
         }))
-    ), [activeRows]);
+    ), [enrichedRows]);
+
     function exportExcel(fileName, rows) {
         if (!rows.length) {
             alert("Aktarılacak kayıt bulunamadı.");
@@ -994,6 +997,7 @@ function ListCenterModal({
                                     <th>Bitiş</th>
                                     <th>Gün</th>
                                     <th>Statü</th>
+                                    <th>Durum</th>
                                     <th>Açıklama</th>
                                 </tr>
                             ) : isKesinti ? (
@@ -1007,8 +1011,9 @@ function ListCenterModal({
                                     <th>Tarih</th>
                                     <th>Tip</th>
                                     <th>Değer</th>
+                                    <th>Durum</th>
                                     <th>Açıklama</th>
-                                </tr>
+                                    </tr>
                             ) : (
                                 <tr>
                                     <th>Plaka</th>
@@ -1048,8 +1053,9 @@ function ListCenterModal({
                                         <td>{value(item.bitis)}</td>
                                         <td>{value(item.gun)}</td>
                                         <td>{value(item.statu)}</td>
+                                        <td>{value(item.arac_durum)}</td>
                                         <td>{value(item.aciklama)}</td>
-                                    </tr>
+                                        </tr>
                                 ))
                             ) : isKesinti ? (
                                         filteredRecords.map((item) => (
@@ -1063,8 +1069,9 @@ function ListCenterModal({
                                         <td>{value(item.tarih)}</td>
                                         <td>{value(item.tip)}</td>
                                         <td>{formatKesinti(item)}</td>
+                                        <td>{value(item.arac_durum)}</td>
                                         <td>{value(item.aciklama)}</td>
-                                    </tr>
+                                            </tr>
                                 ))
                                     ) : (
                                         filteredRecords.map((row) => (
