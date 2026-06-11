@@ -1,0 +1,280 @@
+﻿.hamaliye-page {
+    padding: 26px;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    color: #111827;
+}
+
+.hamaliye-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    background: #111827;
+    color: #ffffff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 22px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+}
+
+.hamaliye-eyebrow {
+    display: inline-flex;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    color: #d1d5db;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.hamaliye-hero h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.hamaliye-hero p {
+    margin: 8px 0 0;
+    max-width: 720px;
+    color: #d1d5db;
+    font-size: 14px;
+}
+
+.hamaliye-summary {
+    min-width: 150px;
+    background: #ffffff;
+    color: #111827;
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+}
+
+    .hamaliye-summary span {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .hamaliye-summary strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 34px;
+    }
+
+.hamaliye-form-card,
+.hamaliye-table-card {
+    background: rgba(255,255,255,0.92);
+    border-radius: 22px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 22px;
+    box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+.hamaliye-section-title,
+.hamaliye-table-head {
+    margin-bottom: 18px;
+}
+
+    .hamaliye-section-title h2,
+    .hamaliye-table-head h2 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+    }
+
+    .hamaliye-section-title p,
+    .hamaliye-table-head p {
+        margin: 4px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+.hamaliye-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(170px, 1fr));
+    gap: 16px;
+}
+
+.hamaliye-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+    .hamaliye-field.wide {
+        grid-column: span 2;
+    }
+
+    .hamaliye-field label {
+        font-size: 12px;
+        font-weight: 800;
+        color: #374151;
+    }
+
+    .hamaliye-field input,
+    .hamaliye-field select {
+        height: 43px;
+        border: 1px solid #d1d5db;
+        border-radius: 13px;
+        padding: 0 13px;
+        font-size: 14px;
+        background: #ffffff;
+        color: #111827;
+        outline: none;
+    }
+
+        .hamaliye-field input:focus,
+        .hamaliye-field select:focus {
+            border-color: #111827;
+            box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.08);
+        }
+
+    .hamaliye-field.readonly input {
+        background: #f3f4f6;
+        color: #4b5563;
+        font-weight: 700;
+    }
+
+.hamaliye-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 22px;
+}
+
+    .hamaliye-actions button {
+        background: #111827;
+        color: #ffffff;
+        border: none;
+        border-radius: 14px;
+        padding: 12px 30px;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+        .hamaliye-actions button:hover {
+            background: #000000;
+        }
+
+        .hamaliye-actions button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+.hamaliye-table-wrapper {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+}
+
+    .hamaliye-table-wrapper table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1450px;
+        background: #ffffff;
+    }
+
+    .hamaliye-table-wrapper th {
+        background: #f9fafb;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 800;
+        text-align: left;
+        padding: 14px 12px;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+
+    .hamaliye-table-wrapper td {
+        font-size: 13px;
+        padding: 13px 12px;
+        border-bottom: 1px solid #eef2f7;
+        color: #111827;
+        white-space: nowrap;
+    }
+
+    .hamaliye-table-wrapper tr:hover td {
+        background: #f9fafb;
+    }
+
+.type-badge {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.hamaliye-empty-row {
+    text-align: center;
+    color: #6b7280 !important;
+    padding: 28px !important;
+}
+
+.hamaliye-delete-btn {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+    border-radius: 10px;
+    padding: 8px 13px;
+    cursor: pointer;
+    font-weight: 800;
+}
+
+    .hamaliye-delete-btn:hover {
+        background: #ffe4e6;
+    }
+
+@media (max-width: 1200px) {
+    .hamaliye-form-grid {
+        grid-template-columns: repeat(3, minmax(170px, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .hamaliye-hero {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hamaliye-form-grid {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+
+    .hamaliye-field.wide {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 600px) {
+    .hamaliye-page {
+        padding: 14px;
+    }
+
+    .hamaliye-hero {
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    .hamaliye-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hamaliye-field.wide {
+        grid-column: span 1;
+    }
+
+    .hamaliye-actions {
+        justify-content: stretch;
+    }
+
+        .hamaliye-actions button {
+            width: 100%;
+        }
+}

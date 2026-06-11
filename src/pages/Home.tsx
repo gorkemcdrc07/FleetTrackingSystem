@@ -14,7 +14,7 @@ import KullaniciKPI from "./Raporlar/kullanicikpi";
 import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
 import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
 import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
-
+import Hamaliye from "./Hakedisler/Hamaliye";
 import YonetimPaneli from "./Yonetici/YonetimPaneli";
 
 type HomeProps = {
@@ -125,6 +125,9 @@ function Home({ onLogout }: HomeProps) {
 
         if (activePage === "Pepsi YHH")
             return <PepsiYakitHakedis />;
+
+        if (activePage === "Hamaliye")
+            return <Hamaliye />;
 
         if (activePage === "Yönetim Paneli")
             return <YonetimPaneli />;
