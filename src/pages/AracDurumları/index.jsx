@@ -5,7 +5,7 @@ import { islemLogla } from "../../utils/islemLogla";
 import * as XLSX from "xlsx";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
-const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin"];
+const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin", "Bakım İzni"];
 
 const DOCUMENT_TYPES = [
     "Ruhsat",
@@ -32,7 +32,7 @@ const emptyForm = {
 };
 
 const emptyIzinForm = { baslangic: "", bitis: "", statu: "Yıllık İzin", yeniStatu: "", aciklama: "" };
-const emptyKesintiForm = { tarih: "", tip: "para", deger: "", aciklama: "" };
+const emptyKesintiForm = { baslangic: "", bitis: "", tip: "para", deger: "", aciklama: "" };
 const emptyCikisForm = {
     cikartilan_tarih: "",
     cikartilma_nedeni: "",
@@ -64,6 +64,11 @@ function isTodayBetween(s, e) { const a = parseDate(s); const b = parseDate(e); 
 function getActiveLeave(row) { return (Array.isArray(row.izinler) ? row.izinler : []).find((x) => isTodayBetween(x.baslangic, x.bitis)) || null; }
 function getDisplayStatus(row) { if (row.isten_cikarildi) return "Çıkartıldı"; const leave = getActiveLeave(row); return leave ? (leave.statu || "İzinde") : (row.durum || "Müsait"); }
 function formatKesinti(item) { if (!item) return "—"; return item.tip === "gun" ? `${value(item.deger)} gün` : `${value(item.deger)} ₺`; }
+function formatKesintiTarih(item) {
+    if (!item) return "—";
+    if (item.baslangic || item.bitis) return `${value(item.baslangic)} - ${value(item.bitis)}`;
+    return value(item.tarih);
+}
 function exitHasWarning(row) { return Boolean(row.isten_cikarildi && (!row.iade_gps || !row.iade_evraklar)); }
 
 function normalizeDocuments(docs) {
@@ -260,11 +265,14 @@ export default function AracDurumlari() {
 
     async function addKesinti(e) {
         e.preventDefault(); if (!kesintiModalRow) return;
-        if (!kesintiForm.tarih && !kesintiForm.deger && !kesintiForm.aciklama) return;
+        if (!kesintiForm.baslangic && !kesintiForm.bitis && !kesintiForm.deger && !kesintiForm.aciklama) return;
+        if (kesintiForm.baslangic && kesintiForm.bitis && new Date(kesintiForm.bitis) < new Date(kesintiForm.baslangic)) { alert("Bitiş tarihi başlangıç tarihinden önce olamaz."); return; }
 
         const nextList = [...(Array.isArray(kesintiModalRow.kesintiler) ? kesintiModalRow.kesintiler : []), {
             id: createId(),
-            tarih: kesintiForm.tarih,
+            baslangic: formatInputDate(kesintiForm.baslangic),
+            bitis: formatInputDate(kesintiForm.bitis),
+            tarih: formatInputDate(kesintiForm.baslangic),
             tip: kesintiForm.tip || "para",
             deger: kesintiForm.deger,
             aciklama: kesintiForm.aciklama,
@@ -469,7 +477,8 @@ export default function AracDurumlari() {
             allKesintiler.map((item) => ({
                 Plaka: item.plaka,
                 Surucu: item.surucu_isim,
-                Tarih: item.tarih,
+                Baslangic: item.baslangic,
+                Bitis: item.bitis,
                 Tip: item.tip,
                 Deger: item.deger,
                 Aciklama: item.aciklama,
@@ -770,7 +779,8 @@ function SmallRecordModal({ title, subtitle, type, form, setForm, records = [], 
                     <div className="auto-day-box"><span>Gün Sayısı</span><strong>{previewDays || "—"}</strong></div>
                     <FormInput label="Açıklama" value={form.aciklama} placeholder="İzin açıklaması" onChange={(v) => setForm((p) => ({ ...p, aciklama: v }))} />
                 </> : <>
-                    <FormInput label="Tarih" value={form.tarih} placeholder="gg.aa.yyyy" onChange={(v) => setForm((p) => ({ ...p, tarih: v }))} />
+                    <FormInput label="Başlangıç Tarihi" type="date" value={form.baslangic} onChange={(v) => setForm((p) => ({ ...p, baslangic: v }))} />
+                    <FormInput label="Bitiş Tarihi" type="date" value={form.bitis} onChange={(v) => setForm((p) => ({ ...p, bitis: v }))} />
                     <label>Kesinti Tipi<select value={form.tip} onChange={(e) => setForm((p) => ({ ...p, tip: e.target.value, deger: "" }))}><option value="para">Para</option><option value="gun">Gün</option></select></label>
                     <FormInput label={form.tip === "gun" ? "Gün Sayısı" : "Tutar"} value={form.deger} placeholder={form.tip === "gun" ? "Örn: 2" : "Örn: 1500"} onChange={(v) => setForm((p) => ({ ...p, deger: v }))} />
                     <FormInput label="Açıklama" value={form.aciklama} placeholder="Kesinti açıklaması" onChange={(v) => setForm((p) => ({ ...p, aciklama: v }))} />
@@ -807,7 +817,7 @@ function RecordMiniList({ type, records, row, onRemove }) {
     return <div className={`modal-record-list ${type}`}>
         <div className="modal-record-list-head"><strong>Mevcut Kayıtlar</strong><span>{records.length} kayıt</span></div>
         {records.length === 0 ? <div className="modal-record-empty">Henüz kayıt yok.</div> : records.map((item) => <div className="modal-record-item" key={item.id}>
-            <div><strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${value(item.tarih)} / ${formatKesinti(item)}`}</strong><span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)} • ${value(item.aciklama)}` : value(item.aciklama)}</span></div>
+            <div><strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${formatKesintiTarih(item)} / ${formatKesinti(item)}`}</strong><span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)} • ${value(item.aciklama)}` : value(item.aciklama)}</span></div>
             <button type="button" onClick={() => onRemove(row, item.id)}>Sil</button>
         </div>)}
     </div>;
@@ -819,7 +829,7 @@ function RecordPreview({ title, records, type, row, onRemove }) {
         <div className="record-preview-head"><h3>{title}</h3><span>{records.length} kayıt</span></div>
         {records.length === 0 ? <p className="preview-empty">Kayıt yok.</p> : records.map((item) => <div className="preview-item" key={item.id}>
             <div className="preview-main">
-                <strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${value(item.tarih)} / ${formatKesinti(item)}`}</strong>
+                <strong>{isIzin ? `${value(item.baslangic)} - ${value(item.bitis)}` : `${formatKesintiTarih(item)} / ${formatKesinti(item)}`}</strong>
                 <span>{isIzin ? `${value(item.gun)} gün • ${value(item.statu)}` : item.tip === "gun" ? "Gün kesintisi" : "Para kesintisi"}</span>
                 {item.aciklama && <p>{item.aciklama}</p>}
             </div>
@@ -1008,12 +1018,13 @@ function ListCenterModal({
                                     <th>Tedarikçi</th>
                                     <th>Bölge</th>
                                     <th>Araç Tip</th>
-                                    <th>Tarih</th>
+                                    <th>Başlangıç</th>
+                                    <th>Bitiş</th>
                                     <th>Tip</th>
                                     <th>Değer</th>
                                     <th>Durum</th>
                                     <th>Açıklama</th>
-                                    </tr>
+                                </tr>
                             ) : (
                                 <tr>
                                     <th>Plaka</th>
@@ -1041,7 +1052,7 @@ function ListCenterModal({
                                     </td>
                                 </tr>
                             ) : isIzin ? (
-                                    filteredRecords.map((item) => (
+                                filteredRecords.map((item) => (
                                     <tr key={item.id}>
                                         <td>{value(item.plaka)}</td>
                                         <td>{value(item.surucu_isim)}</td>
@@ -1055,42 +1066,43 @@ function ListCenterModal({
                                         <td>{value(item.statu)}</td>
                                         <td>{value(item.arac_durum)}</td>
                                         <td>{value(item.aciklama)}</td>
-                                        </tr>
+                                    </tr>
                                 ))
                             ) : isKesinti ? (
-                                        filteredRecords.map((item) => (
-                                        <tr key={item.id}>
+                                filteredRecords.map((item) => (
+                                    <tr key={item.id}>
                                         <td>{value(item.plaka)}</td>
                                         <td>{value(item.surucu_isim)}</td>
                                         <td>{value(item.tel_no)}</td>
                                         <td>{value(item.tedarikci_isim)}</td>
                                         <td>{value(item.bolge)}</td>
                                         <td>{value(item.arac_tip)}</td>
-                                        <td>{value(item.tarih)}</td>
+                                        <td>{value(item.baslangic || item.tarih)}</td>
+                                        <td>{value(item.bitis)}</td>
                                         <td>{value(item.tip)}</td>
                                         <td>{formatKesinti(item)}</td>
                                         <td>{value(item.arac_durum)}</td>
                                         <td>{value(item.aciklama)}</td>
-                                            </tr>
+                                    </tr>
                                 ))
-                                    ) : (
-                                        filteredRecords.map((row) => (
-                                            <tr key={row.id}>
-                                                <td>{value(row.plaka)}</td>
-                                                <td>{value(row.surucu_isim)}</td>
-                                                <td>{value(row.tel_no)}</td>
-                                                <td>{value(row.tedarikci_isim)}</td>
-                                                <td>{value(row.bolge)}</td>
-                                                <td>{value(row.arac_tip)}</td>
-                                                <td>{value(row.cikartilan_tarih)}</td>
-                                                <td>{value(row.cikartilma_nedeni)}</td>
-                                                <td>{row.iade_gps ? "Tamam" : "Eksik"}</td>
-                                                <td>{row.iade_evraklar ? "Tamam" : "Eksik"}</td>
-                                                <td>{row.iade_utts ? "Tamam" : "Eksik"}</td>
-                                                <td>{row.iade_gestas_negmar ? "Tamam" : "Eksik"}</td>
-                                                <td><ExitWarningBadge row={row} /></td>
-                                            </tr>
-                                        ))
+                            ) : (
+                                filteredRecords.map((row) => (
+                                    <tr key={row.id}>
+                                        <td>{value(row.plaka)}</td>
+                                        <td>{value(row.surucu_isim)}</td>
+                                        <td>{value(row.tel_no)}</td>
+                                        <td>{value(row.tedarikci_isim)}</td>
+                                        <td>{value(row.bolge)}</td>
+                                        <td>{value(row.arac_tip)}</td>
+                                        <td>{value(row.cikartilan_tarih)}</td>
+                                        <td>{value(row.cikartilma_nedeni)}</td>
+                                        <td>{row.iade_gps ? "Tamam" : "Eksik"}</td>
+                                        <td>{row.iade_evraklar ? "Tamam" : "Eksik"}</td>
+                                        <td>{row.iade_utts ? "Tamam" : "Eksik"}</td>
+                                        <td>{row.iade_gestas_negmar ? "Tamam" : "Eksik"}</td>
+                                        <td><ExitWarningBadge row={row} /></td>
+                                    </tr>
+                                ))
                             )}
                         </tbody>
                     </table>

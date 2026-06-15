@@ -222,7 +222,7 @@ body {
 
 .fleet-table {
     width: max-content;
-    min-width: 1680px;
+    min-width: 1760px;
     border-collapse: collapse;
     table-layout: fixed;
     font-size: 12.5px;
@@ -316,7 +316,7 @@ body {
         border-color: #fecaca;
     }
 
-    .status-badge.izinde, .status-badge.yillik-izin, .status-badge.raporlu, .status-badge.ucretsiz-izin, .status-badge.mazeret-izni, .status-badge.idari-izin {
+    .status-badge.izinde, .status-badge.yillik-izin, .status-badge.raporlu, .status-badge.ucretsiz-izin, .status-badge.mazeret-izni, .status-badge.idari-izin, .status-badge.bakim-izni {
         color: #6d28d9;
         background: #f5f3ff;
         border-color: #ddd6fe;
