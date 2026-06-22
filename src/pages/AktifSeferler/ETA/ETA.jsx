@@ -2,6 +2,23 @@
 import { supabase } from "../../../supabaseClient";
 import "./ETA.css";
 
+const ISTANBUL_ANADOLU_ILCELERI = [
+    "ADALAR",
+    "ATAŞEHİR",
+    "BEYKOZ",
+    "ÇEKMEKÖY",
+    "KADIKÖY",
+    "KARTAL",
+    "MALTEPE",
+    "PENDİK",
+    "SANCAKTEPE",
+    "SULTANBEYLİ",
+    "ŞİLE",
+    "TUZLA",
+    "ÜMRANİYE",
+    "ÜSKÜDAR",
+];
+
 function split(val) {
     return String(val || "")
         .split(";")
@@ -16,9 +33,58 @@ function normalizeTR(value) {
         .trim();
 }
 
+function normalizeCompare(value) {
+    return normalizeTR(value)
+        .replaceAll("İ", "I")
+        .replaceAll("İ", "I")
+        .replaceAll("Ğ", "G")
+        .replaceAll("Ü", "U")
+        .replaceAll("Ş", "S")
+        .replaceAll("Ö", "O")
+        .replaceAll("Ç", "C");
+}
+
 function getLastValue(value) {
     const parts = split(value);
     return parts.length ? parts[parts.length - 1] : "";
+}
+
+function getFirstLoadStop(row) {
+    const rota = Array.isArray(row?.rota_detaylari) ? row.rota_detaylari : [];
+
+    return (
+        rota.find((x) => x.tip === "yukleme" || x.type === "Yükleme" || x.type === "yukle") ||
+        null
+    );
+}
+
+function getLastDeliveryStop(row) {
+    const rota = Array.isArray(row?.rota_detaylari) ? row.rota_detaylari : [];
+
+    const deliveries = rota.filter(
+        (x) => x.tip === "teslim" || x.type === "Teslim" || x.type === "teslim"
+    );
+
+    return deliveries.length ? deliveries[deliveries.length - 1] : null;
+}
+
+function isIstanbul(value) {
+    return normalizeCompare(value) === "ISTANBUL";
+}
+
+function getEtaCikisValue(yuklemeIl, yuklemeIlce) {
+    const il = normalizeTR(yuklemeIl);
+    const ilce = normalizeTR(yuklemeIlce);
+    const ilceCompare = normalizeCompare(yuklemeIlce);
+
+    if (!isIstanbul(yuklemeIl)) return il;
+    if (!ilce) return "";
+
+    const anadoluCompareList = ISTANBUL_ANADOLU_ILCELERI.map(normalizeCompare);
+
+    return anadoluCompareList.includes(ilceCompare)
+        ? "İSTANBUL ANADOLU"
+        : "İSTANBUL AVRUPA";
 }
 
 function parseDate(value) {
@@ -55,8 +121,8 @@ function getActualEtaInfo(row) {
     const rota = Array.isArray(row?.rota_detaylari) ? row.rota_detaylari : [];
     if (!rota.length) return null;
 
-    const loads = rota.filter((x) => x.tip === "yukleme" || x.type === "Yükleme");
-    const deliveries = rota.filter((x) => x.tip === "teslim" || x.type === "Teslim");
+    const loads = rota.filter((x) => x.tip === "yukleme" || x.type === "Yükleme" || x.type === "yukle");
+    const deliveries = rota.filter((x) => x.tip === "teslim" || x.type === "Teslim" || x.type === "teslim");
 
     const firstLoad = loads[0];
     const lastDelivery = deliveries[deliveries.length - 1];
@@ -113,12 +179,38 @@ function ETA({ row, onClose }) {
     const etaKeys = useMemo(() => {
         if (!row) return null;
 
-        const yuklemeIl = getLastValue(row.yukleme_ili);
-        const teslimIl = getLastValue(row.teslim_ili);
+        const firstLoadStop = getFirstLoadStop(row);
+        const lastDeliveryStop = getLastDeliveryStop(row);
+
+        const yuklemeIl =
+            getLastValue(row.yukleme_ili) ||
+            firstLoadStop?.il ||
+            firstLoadStop?.city ||
+            row.ham_veri?.yukleme_ili;
+
+        const yuklemeIlce =
+            getLastValue(row.yukleme_ilcesi) ||
+            getLastValue(row.yukleme_ilce) ||
+            getLastValue(row.yuklemeIlcesi) ||
+            getLastValue(row.yuklemeIlce) ||
+            getLastValue(row.yukleme_ilçesi) ||
+            getLastValue(row.yukleme_ilçe) ||
+            firstLoadStop?.ilce ||
+            firstLoadStop?.district ||
+            row.ham_veri?.yukleme_ilcesi ||
+            row.ham_veri?.yukleme_ilce;
+
+        const teslimIl =
+            getLastValue(row.teslim_ili) ||
+            lastDeliveryStop?.il ||
+            lastDeliveryStop?.city ||
+            row.ham_veri?.teslim_ili;
 
         return {
-            cikis: normalizeTR(yuklemeIl),
+            cikis: getEtaCikisValue(yuklemeIl, yuklemeIlce),
             varis: normalizeTR(teslimIl),
+            yuklemeIl: normalizeTR(yuklemeIl),
+            yuklemeIlce: normalizeTR(yuklemeIlce),
         };
     }, [row]);
 
@@ -132,7 +224,12 @@ function ETA({ row, onClose }) {
 
     const isDelayed = useMemo(() => {
         if (!actualEtaInfo?.isComplete || !etaLimitDays) return false;
-        return actualEtaInfo.actualDays > etaLimitDays;
+
+        const toleranceMinutes = 15;
+        const limitHours = etaLimitDays * 24;
+        const actualHours = actualEtaInfo.actualHours;
+
+        return actualHours > limitHours + toleranceMinutes / 60;
     }, [actualEtaInfo, etaLimitDays]);
 
     useEffect(() => {
@@ -144,8 +241,18 @@ function ETA({ row, onClose }) {
             setEtaData(null);
 
             try {
-                if (!etaKeys.cikis) {
+                if (!etaKeys.yuklemeIl) {
                     setErrorText("Yükleme ili bulunamadı.");
+                    return;
+                }
+
+                if (isIstanbul(etaKeys.yuklemeIl) && !etaKeys.yuklemeIlce) {
+                    setErrorText("İstanbul için yükleme ilçesi bulunamadı.");
+                    return;
+                }
+
+                if (!etaKeys.cikis) {
+                    setErrorText("Çıkış bilgisi oluşturulamadı.");
                     return;
                 }
 
@@ -159,19 +266,21 @@ function ETA({ row, onClose }) {
                     .select("*")
                     .ilike("cikis", `${etaKeys.cikis}%`)
                     .ilike("varis", `${etaKeys.varis}%`)
-                    .maybeSingle();
+                    .limit(1);
 
                 if (error) throw error;
 
-                if (!data) {
-                    setErrorText("ETA tablosunda eşleşen kayıt bulunamadı.");
+                const matchedEta = data?.[0];
+
+                if (!matchedEta) {
+                    setErrorText(`${etaKeys.cikis} - ${etaKeys.varis} için ETA kaydı bulunamadı.`);
                     return;
                 }
 
-                setEtaData(data);
+                setEtaData(matchedEta);
             } catch (err) {
                 console.error("ETA sorgu hatası:", err);
-                setErrorText("ETA bilgisi alınırken hata oluştu.");
+                setErrorText(err?.message || "ETA bilgisi alınırken hata oluştu.");
             } finally {
                 setLoading(false);
             }
@@ -223,6 +332,11 @@ function ETA({ row, onClose }) {
                         <div className="eta-card">
                             <span>Yükleme İli / Çıkış</span>
                             <strong>{etaKeys?.cikis || "—"}</strong>
+                        </div>
+
+                        <div className="eta-card">
+                            <span>Yükleme İlçesi</span>
+                            <strong>{etaKeys?.yuklemeIlce || "—"}</strong>
                         </div>
 
                         <div className="eta-card">

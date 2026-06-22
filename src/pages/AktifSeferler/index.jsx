@@ -446,6 +446,27 @@ function getActualEtaDays(row) {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
 
+function getActualEtaHours(row) {
+    const rota = Array.isArray(row.rota_detaylari) ? row.rota_detaylari : [];
+    if (!rota.length) return null;
+
+    const loads = rota.filter((x) => x.tip === "yukleme" || x.type === "Yükleme");
+    const deliveries = rota.filter((x) => x.tip === "teslim" || x.type === "Teslim");
+
+    const firstLoad = loads[0];
+    const lastDelivery = deliveries[deliveries.length - 1];
+
+    const start = parseDate(firstLoad?.cikis || firstLoad?.gerceklesen_cikis);
+    const end = parseDate(lastDelivery?.varis || lastDelivery?.gerceklesen_varis);
+
+    if (!start || !end) return null;
+
+    const diffMs = end.getTime() - start.getTime();
+    if (diffMs < 0) return null;
+
+    return diffMs / (1000 * 60 * 60);
+}
+
 function parseGunValue(value) {
     if (!value) return null;
 
@@ -470,6 +491,53 @@ function normalizeTR(value) {
         .toLocaleUpperCase("tr-TR")
         .replace(/\s+/g, " ")
         .trim();
+}
+
+const ISTANBUL_ANADOLU_ILCELERI = [
+    "ADALAR",
+    "ATAŞEHİR",
+    "BEYKOZ",
+    "ÇEKMEKÖY",
+    "KADIKÖY",
+    "KARTAL",
+    "MALTEPE",
+    "PENDİK",
+    "SANCAKTEPE",
+    "SULTANBEYLİ",
+    "ŞİLE",
+    "TUZLA",
+    "ÜMRANİYE",
+    "ÜSKÜDAR",
+];
+
+function normalizeCompare(value) {
+    return normalizeTR(value)
+        .replaceAll("İ", "I")
+        .replaceAll("İ", "I")
+        .replaceAll("Ğ", "G")
+        .replaceAll("Ü", "U")
+        .replaceAll("Ş", "S")
+        .replaceAll("Ö", "O")
+        .replaceAll("Ç", "C");
+}
+
+function isIstanbul(value) {
+    return normalizeCompare(value) === "ISTANBUL";
+}
+
+function getEtaCikisValue(yuklemeIl, yuklemeIlce) {
+    const il = normalizeTR(yuklemeIl);
+    const ilce = normalizeTR(yuklemeIlce);
+    const ilceCompare = normalizeCompare(yuklemeIlce);
+
+    if (!isIstanbul(yuklemeIl)) return il;
+    if (!ilce) return "";
+
+    const anadoluCompareList = ISTANBUL_ANADOLU_ILCELERI.map(normalizeCompare);
+
+    return anadoluCompareList.includes(ilceCompare)
+        ? "İSTANBUL ANADOLU"
+        : "İSTANBUL AVRUPA";
 }
 
 function getFilterText(row, col) {
@@ -1179,11 +1247,13 @@ function AktifSeferler() {
             const nextMap = {};
 
             for (const row of visibleRows) {
-                const actualDays = getActualEtaDays(row);
+                const actualHours = getActualEtaHours(row);
 
-                if (!actualDays) continue;
+                if (!actualHours) continue;
+                const yuklemeIl = getLastValue(row.yukleme_ili);
+                const yuklemeIlce = getLastValue(row.yukleme_ilcesi);
 
-                const cikis = normalizeTR(getLastValue(row.yukleme_ili));
+                const cikis = getEtaCikisValue(yuklemeIl, yuklemeIlce);
                 const varis = normalizeTR(getLastValue(row.teslim_ili));
 
                 if (!cikis || !varis) continue;
@@ -1193,22 +1263,25 @@ function AktifSeferler() {
                     .select("*")
                     .ilike("cikis", `${cikis}%`)
                     .ilike("varis", `${varis}%`)
-                    .maybeSingle();
+                    .limit(1);
 
-                if (error || !data) continue;
+                if (error || !data?.length) continue;
 
-                const etaDays = parseGunValue(data["gün"]);
-
+                const etaRef = data[0];
+                const etaDays = parseGunValue(etaRef["gün"]);
                 if (!etaDays) continue;
 
                 const rowKey = row.id || row.sefer_no;
 
-                if (actualDays > etaDays) {
+                const toleranceMinutes = 15;
+                const limitHours = etaDays * 24 + toleranceMinutes / 60;
+
+                if (actualHours > limitHours) {
                     nextMap[rowKey] = {
-                        actualDays,
+                        actualDays: Number((actualHours / 24).toFixed(2)),
                         etaDays,
-                        km: data.km,
-                        gun: data["gün"],
+                        km: etaRef.km,
+                        gun: etaRef["gün"],
                     };
                 }
             }
@@ -1914,7 +1987,25 @@ function AktifSeferler() {
                                                                 isOpen={isOpen}
                                                                 onDetail={(r) => setDetailRow(r)}
                                                                 onIkaz={handleIkaz}
-                                                                onETA={(r) => setEtaRow(r)}
+                                                                onETA={(r) =>
+                                                                    setEtaRow({
+                                                                        ...r,
+
+                                                                        yukleme_ili:
+                                                                            r.yukleme_ili ||
+                                                                            r.ham_veri?.yukleme_ili,
+
+                                                                        yukleme_ilcesi:
+                                                                            r.yukleme_ilcesi ||
+                                                                            r.yukleme_ilce ||
+                                                                            r.ham_veri?.yukleme_ilcesi ||
+                                                                            r.ham_veri?.yukleme_ilce,
+
+                                                                        teslim_ili:
+                                                                            r.teslim_ili ||
+                                                                            r.ham_veri?.teslim_ili,
+                                                                    })
+                                                                }
                                                                 onTonaj={handleTonaj}
                                                                 onSeferSil={handleSeferSil}
                                                                 etaDelayed={Boolean(delayedEtaMap[rowKey])}
