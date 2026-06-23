@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
+﻿// TamamlananSeferler.jsx
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { supabase } from "../../supabaseClient";
 import "./TamamlananSeferler.css";
 import SutunDuzeni from "../AktifSeferler/Gorunum/SutunDuzeni";
@@ -111,9 +112,6 @@ function EtaBadge({ delayed }) {
     );
 }
 
-const IKAZ_ACIKLAMA =
-    "Operasyon verimsizlik konusunda ikaz edildi ama yine de araç bulamadıkları için filo ataması yapıldı.";
-
 const TONAJ_ACIKLAMA = "Tonajlı";
 
 function isTonajli(row) {
@@ -205,17 +203,6 @@ function CellValue({ col, row }) {
     }
 
     return val ? <span>{val}</span> : <span className="muted">—</span>;
-}
-
-function JsonBlock({ title, value }) {
-    if (!value) return null;
-
-    return (
-        <div className="detail-section">
-            <h4>{title}</h4>
-            <pre>{JSON.stringify(value, null, 2)}</pre>
-        </div>
-    );
 }
 
 function diffText(startValue, endValue) {
@@ -543,6 +530,142 @@ function TamamlananSeferler() {
         });
     }, [rows, startDate, endDate, onlyEtaMismatch]);
 
+    function createExcelHeaderStyle(bg = "1E293B") {
+        return {
+            font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+            fill: { fgColor: { rgb: bg } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true },
+            border: {
+                top: { style: "thin", color: { rgb: "CBD5E1" } },
+                bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+                left: { style: "thin", color: { rgb: "CBD5E1" } },
+                right: { style: "thin", color: { rgb: "CBD5E1" } },
+            },
+        };
+    }
+
+    function styleExcelWorksheet(worksheet, headerRowIndex = 0) {
+        if (!worksheet["!ref"]) return;
+
+        const range = XLSX.utils.decode_range(worksheet["!ref"]);
+
+        for (let C = range.s.c; C <= range.e.c; C++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: C });
+            if (!worksheet[cellAddress]) continue;
+            worksheet[cellAddress].s = createExcelHeaderStyle();
+        }
+
+        for (let R = headerRowIndex + 1; R <= range.e.r; R++) {
+            for (let C = range.s.c; C <= range.e.c; C++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!worksheet[cellAddress]) continue;
+
+                worksheet[cellAddress].s = {
+                    alignment: { vertical: "center", wrapText: true },
+                    border: {
+                        top: { style: "thin", color: { rgb: "E2E8F0" } },
+                        bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+                        left: { style: "thin", color: { rgb: "E2E8F0" } },
+                        right: { style: "thin", color: { rgb: "E2E8F0" } },
+                    },
+                };
+            }
+        }
+    }
+
+    function exportAllToExcel() {
+        if (!filteredRows.length) {
+            alert("Excel'e aktarılacak kayıt bulunamadı.");
+            return;
+        }
+
+        const reportRows = filteredRows.map((row) => ({
+            "Sefer No": row.sefer_no || "",
+            "Sefer Tarihi": formatDate(row.sefer_tarihi),
+            "Araç Statü": row.arac_statu || "",
+            "Plaka": row.plaka || "",
+            "Treyler": row.treyler || "",
+            "Sürücü": row.surucu_ad_soyad || "",
+            "Müşteri": row.musteri_adi || "",
+            "Sipariş No": row.musteri_siparis_no || "",
+            "Hizmet": row.hizmet_adi || "",
+            "Proje": row.proje_adi || "",
+            "Yükleme İl": row.yukleme_ili || "",
+            "Son Teslim İl": row.teslim_ili || "",
+            "İrsaliye No": row.irsaliye_no || "",
+            "ETA Referans Gün": row.eta_referans_gun || "",
+            "Gerçekleşen Gün": row.eta_gerceklesen_gun || "",
+            "Gecikme Süresi": row.eta_gecikme_suresi || "",
+            "ETA Durum": row.eta_gecikme ? "Gecikti" : "Normal",
+            "Tonaj": isTonajli(row) ? "Tonajlı" : "",
+            "İkaz": isIkazli(row) ? "İkazlı" : "",
+            "Açıklama": row.aciklama || "",
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(reportRows, { origin: "A6" });
+
+        XLSX.utils.sheet_add_aoa(
+            worksheet,
+            [
+                ["TAMAMLANAN SEFERLER RAPORU"],
+                [`Rapor Tarihi: ${formatDate(new Date())}`],
+                [`Toplam Sefer: ${filteredRows.length}`],
+                [
+                    startDate || endDate
+                        ? `Tarih Filtresi: ${startDate || "Başlangıç yok"} - ${endDate || "Bitiş yok"}`
+                        : "Tarih Filtresi: Tüm tarih aralığı",
+                ],
+                [""],
+            ],
+            { origin: "A1" }
+        );
+
+        worksheet["!merges"] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 19 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 19 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 19 } },
+            { s: { r: 3, c: 0 }, e: { r: 3, c: 19 } },
+            { s: { r: 4, c: 0 }, e: { r: 4, c: 19 } },
+        ];
+
+        worksheet["!cols"] = [
+            { wch: 15 }, { wch: 15 }, { wch: 16 }, { wch: 14 }, { wch: 14 },
+            { wch: 24 }, { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+            { wch: 26 }, { wch: 26 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+            { wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 42 },
+        ];
+
+        worksheet["!rows"] = [
+            { hpt: 34 },
+            { hpt: 23 },
+            { hpt: 23 },
+            { hpt: 23 },
+            { hpt: 10 },
+            { hpt: 32 },
+        ];
+
+        worksheet["!autofilter"] = {
+            ref: `A6:T${reportRows.length + 6}`,
+        };
+
+        worksheet["A1"].s = {
+            font: { bold: true, sz: 22, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "0F172A" } },
+            alignment: { horizontal: "center", vertical: "center" },
+        };
+
+        styleExcelWorksheet(worksheet, 5);
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Tamamlanan Seferler");
+
+        XLSX.writeFile(
+            workbook,
+            `tamamlanan-seferler-${new Date().toISOString().slice(0, 10)}.xlsx`,
+            { cellStyles: true }
+        );
+    }
+
     function exportEtaMismatchToExcel() {
         const etaRows = filteredRows.filter((row) => row.eta_gecikme);
 
@@ -619,30 +742,13 @@ function TamamlananSeferler() {
             ref: `A6:T${reportRows.length + 6}`,
         };
 
-        const range = XLSX.utils.decode_range(worksheet["!ref"]);
-
         worksheet["A1"].s = {
             font: { bold: true, sz: 22, color: { rgb: "FFFFFF" } },
             fill: { fgColor: { rgb: "0F172A" } },
             alignment: { horizontal: "center", vertical: "center" },
         };
 
-        for (let C = range.s.c; C <= range.e.c; C++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: 5, c: C });
-            if (!worksheet[cellAddress]) continue;
-
-            worksheet[cellAddress].s = {
-                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-                fill: { fgColor: { rgb: "334155" } },
-                alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                border: {
-                    top: { style: "thin", color: { rgb: "94A3B8" } },
-                    bottom: { style: "thin", color: { rgb: "94A3B8" } },
-                    left: { style: "thin", color: { rgb: "94A3B8" } },
-                    right: { style: "thin", color: { rgb: "94A3B8" } },
-                },
-            };
-        }
+        styleExcelWorksheet(worksheet, 5);
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "ETA Raporu");
@@ -818,6 +924,14 @@ function TamamlananSeferler() {
                         }}
                     >
                         {onlyEtaMismatch ? "ETA Raporunu Al" : "ETA Uyumsuzlukları Göster"}
+                    </button>
+
+                    <button
+                        className="listele-btn success-btn"
+                        type="button"
+                        onClick={exportAllToExcel}
+                    >
+                        Excel'e Aktar
                     </button>
 
                     <button

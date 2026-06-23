@@ -734,6 +734,16 @@ body.is-column-resizing {
     border: 1px dashed #cbd5e1;
 }
 
+.listele-btn.success-btn {
+    background: #16a34a;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+}
+
+    .listele-btn.success-btn:hover:not(:disabled) {
+        background: #15803d;
+        box-shadow: 0 4px 14px rgba(22, 163, 74, 0.32);
+    }
+
 @media (max-width: 1100px) {
     .route-groups-grid {
         grid-template-columns: 1fr;
