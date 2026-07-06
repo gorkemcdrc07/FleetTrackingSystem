@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import "./Hamaliye.css";
 
@@ -10,6 +10,15 @@ const giderSecenekleri = [
     "KÖPRÜ/HGS",
     "ÇEKİCİ HASARI",
 ];
+
+const filterInitial = {
+    search: "",
+    gelirGider: "Tümü",
+    startDate: "",
+    endDate: "",
+    minAmount: "",
+    maxAmount: "",
+};
 
 function getAktifKullanici() {
     try {
@@ -67,10 +76,97 @@ function getInitialForm() {
     };
 }
 
+function normalizeText(value) {
+    return String(value || "")
+        .toLocaleLowerCase("tr-TR")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function formatCurrency(value) {
+    return Number(value || 0).toLocaleString("tr-TR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
+
+function formatDateForDisplay(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleDateString("tr-TR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
+}
+
+function toNumber(value) {
+    if (value === "" || value === null || value === undefined) return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function getRowSearchText(item) {
+    return normalizeText([
+        item.gelir_gider,
+        item.sefer_no,
+        item.tarih,
+        item.plaka,
+        item.ad_soyad,
+        item.surucu_tel,
+        item.yukleme_musteri,
+        item.fatura_musteri,
+        item.bolge_palet_sayisi,
+        item.donem,
+        item.kullanici,
+    ].join(" "));
+}
+
+function mapFormToPayload(form) {
+    return {
+        gelir_gider: form.gelirGider,
+        sefer_no: form.seferNo,
+        tarih: form.tarih || null,
+        plaka: form.plaka,
+        ad_soyad: form.adSoyad,
+        surucu_tel: form.surucuTel,
+        yukleme_musteri: form.yuklemeMusteri,
+        fatura_musteri: form.faturaMusteri,
+        bolge_palet_sayisi: form.bolgePaletSayisi,
+        odenen_tutar: form.odenenTutar ? Number(form.odenenTutar) : 0,
+        palet_sayisi: form.paletSayisi ? Number(form.paletSayisi) : 0,
+        donem: form.donem,
+        kullanici: form.kullanici,
+    };
+}
+
+function mapRowToForm(row) {
+    return {
+        gelirGider: row.gelir_gider || "",
+        seferNo: row.sefer_no || "",
+        tarih: row.tarih || bugununTarihi(),
+        plaka: row.plaka || "",
+        adSoyad: row.ad_soyad || "",
+        surucuTel: row.surucu_tel || "",
+        yuklemeMusteri: row.yukleme_musteri || "",
+        faturaMusteri: row.fatura_musteri || "",
+        bolgePaletSayisi: row.bolge_palet_sayisi || "",
+        odenenTutar: row.odenen_tutar ?? "",
+        paletSayisi: row.palet_sayisi ?? "",
+        donem: row.donem || otomatikDonem(),
+        kullanici: row.kullanici || getInitialForm().kullanici,
+    };
+}
+
 export default function Hamaliye() {
     const [form, setForm] = useState(getInitialForm);
     const [kayitlar, setKayitlar] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [editingRow, setEditingRow] = useState(null);
+    const [filters, setFilters] = useState(filterInitial);
+    const [showFilters, setShowFilters] = useState(true);
 
     useEffect(() => {
         verileriGetir();
@@ -94,6 +190,44 @@ export default function Hamaliye() {
         setLoading(false);
     }
 
+    const filteredKayitlar = useMemo(() => {
+        return kayitlar.filter((item) => {
+            const q = normalizeText(filters.search);
+            const amount = Number(item.odenen_tutar || 0);
+            const minAmount = toNumber(filters.minAmount);
+            const maxAmount = toNumber(filters.maxAmount);
+
+            if (q && !getRowSearchText(item).includes(q)) return false;
+            if (filters.gelirGider !== "Tümü" && item.gelir_gider !== filters.gelirGider) return false;
+            if (filters.startDate && item.tarih && new Date(item.tarih) < new Date(filters.startDate)) return false;
+            if (filters.endDate && item.tarih && new Date(item.tarih) > new Date(filters.endDate)) return false;
+            if (minAmount !== null && amount < minAmount) return false;
+            if (maxAmount !== null && amount > maxAmount) return false;
+
+            return true;
+        });
+    }, [kayitlar, filters]);
+
+    const stats = useMemo(() => {
+        const totalAmount = filteredKayitlar.reduce((sum, item) => sum + Number(item.odenen_tutar || 0), 0);
+        const totalPallet = filteredKayitlar.reduce((sum, item) => sum + Number(item.palet_sayisi || 0), 0);
+        const uniqueTripCount = new Set(filteredKayitlar.map((x) => x.sefer_no).filter(Boolean)).size;
+
+        return {
+            count: filteredKayitlar.length,
+            totalAmount,
+            totalPallet,
+            uniqueTripCount,
+        };
+    }, [filteredKayitlar]);
+
+    const activeFilterCount = useMemo(() => {
+        return Object.entries(filters).filter(([key, value]) => {
+            if (key === "gelirGider") return value !== "Tümü";
+            return Boolean(value);
+        }).length;
+    }, [filters]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
 
@@ -103,6 +237,26 @@ export default function Hamaliye() {
         }));
     };
 
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+
+        setFilters((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    function resetForm() {
+        setForm(getInitialForm());
+        setEditingRow(null);
+    }
+
+    function duzenle(item) {
+        setEditingRow(item);
+        setForm(mapRowToForm(item));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     const kaydet = async (e) => {
         e.preventDefault();
 
@@ -111,25 +265,17 @@ export default function Hamaliye() {
             return;
         }
 
-        const yeniKayit = {
-            gelir_gider: form.gelirGider,
-            sefer_no: form.seferNo,
-            tarih: form.tarih || null,
-            plaka: form.plaka,
-            ad_soyad: form.adSoyad,
-            surucu_tel: form.surucuTel,
-            yukleme_musteri: form.yuklemeMusteri,
-            fatura_musteri: form.faturaMusteri,
-            bolge_palet_sayisi: form.bolgePaletSayisi,
-            odenen_tutar: form.odenenTutar ? Number(form.odenenTutar) : 0,
-            palet_sayisi: form.paletSayisi ? Number(form.paletSayisi) : 0,
-            donem: form.donem,
-            kullanici: form.kullanici,
-        };
+        setLoading(true);
 
-        const { error } = await supabase
-            .from("hamaliye_kayitlari")
-            .insert([yeniKayit]);
+        const payload = mapFormToPayload(form);
+
+        const query = editingRow
+            ? supabase.from("hamaliye_kayitlari").update(payload).eq("id", editingRow.id)
+            : supabase.from("hamaliye_kayitlari").insert([payload]);
+
+        const { error } = await query;
+
+        setLoading(false);
 
         if (error) {
             console.error("Hamaliye kayıt hatası:", error);
@@ -137,7 +283,7 @@ export default function Hamaliye() {
             return;
         }
 
-        setForm(getInitialForm());
+        resetForm();
         await verileriGetir();
     };
 
@@ -156,6 +302,7 @@ export default function Hamaliye() {
             return;
         }
 
+        if (editingRow?.id === id) resetForm();
         await verileriGetir();
     };
 
@@ -167,20 +314,43 @@ export default function Hamaliye() {
                     <h1>Hamaliye Yönetimi</h1>
                     <p>
                         Hamaliye, prim, hasar, otopark, HGS ve çekici giderlerini
-                        sefer bazlı olarak kaydedebilirsiniz.
+                        sefer bazlı kaydedin, filtreleyin ve gerektiğinde düzenleyin.
                     </p>
                 </div>
 
-                <div className="hamaliye-summary">
-                    <span>Toplam Kayıt</span>
-                    <strong>{kayitlar.length}</strong>
+                <div className="hamaliye-summary-grid">
+                    <div className="hamaliye-summary">
+                        <span>Gösterilen Kayıt</span>
+                        <strong>{stats.count}</strong>
+                    </div>
+                    <div className="hamaliye-summary">
+                        <span>Toplam Tutar</span>
+                        <strong>{formatCurrency(stats.totalAmount)} ₺</strong>
+                    </div>
+                    <div className="hamaliye-summary">
+                        <span>Toplam Palet</span>
+                        <strong>{stats.totalPallet}</strong>
+                    </div>
+                    <div className="hamaliye-summary">
+                        <span>Sefer Sayısı</span>
+                        <strong>{stats.uniqueTripCount}</strong>
+                    </div>
                 </div>
             </div>
 
             <form className="hamaliye-form-card" onSubmit={kaydet}>
-                <div className="hamaliye-section-title">
-                    <h2>Yeni Kayıt</h2>
-                    <p>Gerekli alanları doldurup kaydı oluşturun.</p>
+                <div className="hamaliye-section-title with-action">
+                    <div>
+                        <span>{editingRow ? "Kayıt Güncelleme" : "Yeni Kayıt"}</span>
+                        <h2>{editingRow ? "Kayıt Düzenle" : "Yeni Hamaliye Kaydı"}</h2>
+                        <p>{editingRow ? "Seçili kaydın bilgilerini güncelleyebilirsiniz." : "Gerekli alanları doldurup kaydı oluşturun."}</p>
+                    </div>
+
+                    {editingRow && (
+                        <button type="button" className="hamaliye-ghost-btn" onClick={resetForm}>
+                            Düzenlemeyi İptal Et
+                        </button>
+                    )}
                 </div>
 
                 <div className="hamaliye-form-grid">
@@ -196,7 +366,7 @@ export default function Hamaliye() {
 
                     <div className="hamaliye-field">
                         <label>Sefer No</label>
-                        <input name="seferNo" value={form.seferNo} onChange={handleChange} />
+                        <input name="seferNo" value={form.seferNo} onChange={handleChange} placeholder="SFR..." />
                     </div>
 
                     <div className="hamaliye-field">
@@ -206,7 +376,7 @@ export default function Hamaliye() {
 
                     <div className="hamaliye-field">
                         <label>Plaka</label>
-                        <input name="plaka" value={form.plaka} onChange={handleChange} />
+                        <input name="plaka" value={form.plaka} onChange={handleChange} placeholder="34 ABC 123" />
                     </div>
 
                     <div className="hamaliye-field">
@@ -256,17 +426,86 @@ export default function Hamaliye() {
                 </div>
 
                 <div className="hamaliye-actions">
+                    {editingRow && (
+                        <button type="button" className="hamaliye-cancel-btn" onClick={resetForm}>
+                            Vazgeç
+                        </button>
+                    )}
                     <button type="submit" disabled={loading}>
-                        {loading ? "İşleniyor..." : "Kaydet"}
+                        {loading ? "İşleniyor..." : editingRow ? "Güncelle" : "Kaydet"}
                     </button>
                 </div>
             </form>
 
+            <div className="hamaliye-filter-panel">
+                <div className="hamaliye-filter-head">
+                    <div>
+                        <span>Filtreleme</span>
+                        <h2>Kayıtları Süz</h2>
+                    </div>
+
+                    <div className="hamaliye-filter-actions">
+                        {activeFilterCount > 0 && <strong>{activeFilterCount} aktif filtre</strong>}
+                        <button type="button" onClick={() => setShowFilters((prev) => !prev)}>
+                            {showFilters ? "Filtreleri Gizle" : "Filtreleri Göster"}
+                        </button>
+                        <button type="button" className="danger" onClick={() => setFilters(filterInitial)}>
+                            Temizle
+                        </button>
+                    </div>
+                </div>
+
+                {showFilters && (
+                    <div className="hamaliye-filter-grid">
+                        <div className="hamaliye-filter-field search">
+                            <label>Genel Arama</label>
+                            <input
+                                name="search"
+                                value={filters.search}
+                                onChange={handleFilterChange}
+                                placeholder="Sefer no, plaka, sürücü, müşteri ara..."
+                            />
+                        </div>
+
+                        <div className="hamaliye-filter-field">
+                            <label>Gelir/Gider</label>
+                            <select name="gelirGider" value={filters.gelirGider} onChange={handleFilterChange}>
+                                <option value="Tümü">Tümü</option>
+                                {giderSecenekleri.map((item) => (
+                                    <option key={item} value={item}>{item}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="hamaliye-filter-field">
+                            <label>Başlangıç</label>
+                            <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
+                        </div>
+
+                        <div className="hamaliye-filter-field">
+                            <label>Bitiş</label>
+                            <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
+                        </div>
+
+                        <div className="hamaliye-filter-field">
+                            <label>Min Tutar</label>
+                            <input type="number" name="minAmount" value={filters.minAmount} onChange={handleFilterChange} />
+                        </div>
+
+                        <div className="hamaliye-filter-field">
+                            <label>Max Tutar</label>
+                            <input type="number" name="maxAmount" value={filters.maxAmount} onChange={handleFilterChange} />
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="hamaliye-table-card">
                 <div className="hamaliye-table-head">
                     <div>
+                        <span>Kayıt Listesi</span>
                         <h2>Kayıtlar</h2>
-                        <p>Supabase üzerinde kayıtlı hamaliye giderleri.</p>
+                        <p>{filteredKayitlar.length} kayıt gösteriliyor. Toplam {formatCurrency(stats.totalAmount)} ₺</p>
                     </div>
                 </div>
 
@@ -274,6 +513,7 @@ export default function Hamaliye() {
                     <table>
                         <thead>
                             <tr>
+                                <th>İşlem</th>
                                 <th>Gelir/Gider</th>
                                 <th>Sefer No</th>
                                 <th>Tarih</th>
@@ -287,38 +527,42 @@ export default function Hamaliye() {
                                 <th>Palet</th>
                                 <th>Dönem</th>
                                 <th>Kullanıcı</th>
-                                <th>İşlem</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            {kayitlar.length === 0 ? (
+                            {filteredKayitlar.length === 0 ? (
                                 <tr>
                                     <td colSpan="14" className="hamaliye-empty-row">
-                                        {loading ? "Veriler yükleniyor..." : "Henüz kayıt eklenmedi."}
+                                        {loading ? "Veriler yükleniyor..." : "Filtreye uygun kayıt bulunamadı."}
                                     </td>
                                 </tr>
                             ) : (
-                                kayitlar.map((item) => (
-                                    <tr key={item.id}>
-                                        <td><span className="type-badge">{item.gelir_gider}</span></td>
-                                        <td>{item.sefer_no}</td>
-                                        <td>{item.tarih}</td>
-                                        <td>{item.plaka}</td>
-                                        <td>{item.ad_soyad}</td>
-                                        <td>{item.surucu_tel}</td>
-                                        <td>{item.yukleme_musteri}</td>
-                                        <td>{item.fatura_musteri}</td>
-                                        <td>{item.bolge_palet_sayisi}</td>
-                                        <td>{Number(item.odenen_tutar || 0).toLocaleString("tr-TR")} ₺</td>
-                                        <td>{item.palet_sayisi}</td>
-                                        <td>{item.donem}</td>
-                                        <td>{item.kullanici}</td>
+                                filteredKayitlar.map((item) => (
+                                    <tr key={item.id} className={editingRow?.id === item.id ? "editing-row" : ""}>
                                         <td>
-                                            <button type="button" className="hamaliye-delete-btn" onClick={() => sil(item.id)}>
-                                                Sil
-                                            </button>
+                                            <div className="hamaliye-row-actions">
+                                                <button type="button" className="hamaliye-edit-btn" onClick={() => duzenle(item)}>
+                                                    Düzenle
+                                                </button>
+                                                <button type="button" className="hamaliye-delete-btn" onClick={() => sil(item.id)}>
+                                                    Sil
+                                                </button>
+                                            </div>
                                         </td>
+                                        <td><span className="type-badge">{item.gelir_gider}</span></td>
+                                        <td><span className="trip-badge">{item.sefer_no}</span></td>
+                                        <td>{formatDateForDisplay(item.tarih)}</td>
+                                        <td><span className="plate-badge">{item.plaka || "—"}</span></td>
+                                        <td>{item.ad_soyad || "—"}</td>
+                                        <td>{item.surucu_tel || "—"}</td>
+                                        <td>{item.yukleme_musteri || "—"}</td>
+                                        <td>{item.fatura_musteri || "—"}</td>
+                                        <td>{item.bolge_palet_sayisi || "—"}</td>
+                                        <td><strong>{formatCurrency(item.odenen_tutar)} ₺</strong></td>
+                                        <td>{item.palet_sayisi || "—"}</td>
+                                        <td>{item.donem || "—"}</td>
+                                        <td>{item.kullanici || "—"}</td>
                                     </tr>
                                 ))
                             )}

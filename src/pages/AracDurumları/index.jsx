@@ -46,6 +46,7 @@ function value(v) { return v === null || v === undefined || v === "" ? "—" : v
 function normalize(v) { return String(v || "").toLocaleLowerCase("tr-TR").trim(); }
 function createId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
 function formatInputDate(dateText) { if (!dateText) return ""; const p = String(dateText).split("-"); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : ""; }
+function inputDateFromDisplay(dateText) { if (!dateText) return ""; const p = String(dateText).split("."); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : String(dateText).slice(0, 10); }
 function parseDate(dateText) { if (!dateText) return null; const p = String(dateText).split("."); if (p.length !== 3) return null; const d = new Date(`${p[2]}-${p[1]}-${p[0]}`); if (isNaN(d)) return null; d.setHours(0, 0, 0, 0); return d; }
 function calculateLeaveDaysFromInput(s, e) { if (!s || !e) return ""; const a = new Date(s); const b = new Date(e); if (isNaN(a) || isNaN(b) || b < a) return ""; return String(Math.floor((b - a) / (1000 * 60 * 60 * 24)) + 1); }
 function isExpiringSoon(t) { const d = parseDate(t); if (!d) return false; const n = new Date(); n.setHours(0, 0, 0, 0); const days = (d - n) / (1000 * 60 * 60 * 24); return days >= 0 && days <= 30; }
@@ -341,6 +342,133 @@ export default function AracDurumlari() {
         updateLocalRow(data);
     }
 
+    async function updateIzinRecord(row, recordId, updatedRecord) {
+        if (!row || !recordId) return;
+
+        const nextList = (row.izinler || []).map((item) =>
+            item.id === recordId
+                ? {
+                    ...item,
+                    ...updatedRecord,
+                    gun: calculateLeaveDaysFromInput(updatedRecord.baslangicInput, updatedRecord.bitisInput) || updatedRecord.gun || item.gun,
+                    baslangic: formatInputDate(updatedRecord.baslangicInput) || updatedRecord.baslangic || item.baslangic,
+                    bitis: formatInputDate(updatedRecord.bitisInput) || updatedRecord.bitis || item.bitis,
+                    updated_at: new Date().toISOString(),
+                }
+                : item
+        ).map(({ baslangicInput, bitisInput, ...clean }) => clean);
+
+        const { data, error } = await supabase
+            .from("arac_durumlari")
+            .update({ izinler: nextList })
+            .eq("id", row.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error("İzin kaydı güncellenemedi:", error);
+            alert("İzin kaydı güncellenemedi.");
+            return;
+        }
+
+        islemLogla({
+            islem_tipi: "ARAC_IZIN_GUNCELLEME",
+            islem_aciklama: "Araç izin kaydı güncellendi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: row.id,
+            plaka: row.plaka,
+            eski_deger: { izinler: row.izinler || [] },
+            yeni_deger: { izinler: nextList },
+            detay: { guncellenen_izin_id: recordId },
+        });
+
+        updateLocalRow(data);
+    }
+
+    async function updateKesintiRecord(row, recordId, updatedRecord) {
+        if (!row || !recordId) return;
+
+        const nextList = (row.kesintiler || []).map((item) =>
+            item.id === recordId
+                ? {
+                    ...item,
+                    ...updatedRecord,
+                    baslangic: formatInputDate(updatedRecord.baslangicInput) || updatedRecord.baslangic || item.baslangic,
+                    bitis: formatInputDate(updatedRecord.bitisInput) || updatedRecord.bitis || item.bitis,
+                    tarih: formatInputDate(updatedRecord.baslangicInput) || updatedRecord.tarih || item.tarih,
+                    updated_at: new Date().toISOString(),
+                }
+                : item
+        ).map(({ baslangicInput, bitisInput, ...clean }) => clean);
+
+        const { data, error } = await supabase
+            .from("arac_durumlari")
+            .update({ kesintiler: nextList })
+            .eq("id", row.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Kesinti kaydı güncellenemedi:", error);
+            alert("Kesinti kaydı güncellenemedi.");
+            return;
+        }
+
+        islemLogla({
+            islem_tipi: "ARAC_KESINTI_GUNCELLEME",
+            islem_aciklama: "Araç kesinti kaydı güncellendi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: row.id,
+            plaka: row.plaka,
+            eski_deger: { kesintiler: row.kesintiler || [] },
+            yeni_deger: { kesintiler: nextList },
+            detay: { guncellenen_kesinti_id: recordId },
+        });
+
+        updateLocalRow(data);
+    }
+
+    async function updateCikisRecord(row, updatedRecord) {
+        if (!row?.id) return;
+
+        const payload = {
+            cikartilan_tarih: updatedRecord.cikartilan_tarih || "",
+            cikartilma_nedeni: updatedRecord.cikartilma_nedeni || "",
+            iade_gps: Boolean(updatedRecord.iade_gps),
+            iade_evraklar: Boolean(updatedRecord.iade_evraklar),
+            iade_utts: Boolean(updatedRecord.iade_utts),
+            iade_gestas_negmar: Boolean(updatedRecord.iade_gestas_negmar),
+            durum: "Çıkartıldı",
+            isten_cikarildi: true,
+        };
+
+        const { data, error } = await supabase
+            .from("arac_durumlari")
+            .update(payload)
+            .eq("id", row.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Çıkış bilgileri güncellenemedi:", error);
+            alert("Çıkış bilgileri güncellenemedi.");
+            return;
+        }
+
+        islemLogla({
+            islem_tipi: "ARAC_CIKIS_GUNCELLEME",
+            islem_aciklama: "İşten çıkartılan araç bilgileri güncellendi",
+            tablo_adi: "arac_durumlari",
+            kayit_id: row.id,
+            plaka: row.plaka,
+            eski_deger: row,
+            yeni_deger: data,
+            detay: { degisen_alanlar: getChangedFields(row, data) },
+        });
+
+        updateLocalRow(data);
+    }
+
     async function removeIzin(row, id) {
         const removed = (row.izinler || []).find((x) => x.id === id);
         const next = (row.izinler || []).filter((x) => x.id !== id);
@@ -528,6 +656,15 @@ export default function AracDurumlari() {
                 >
                     Listeler
                 </button>
+                <button
+                    className="list-btn danger"
+                    onClick={() => {
+                        setListTab("cikis");
+                        setListModalOpen(true);
+                    }}
+                >
+                    İşten Çıkartılanlar
+                </button>
             </div>
         </div>
 
@@ -600,6 +737,12 @@ export default function AracDurumlari() {
                 onExportIzin={exportIzinler}
                 onExportKesinti={exportKesintiler}
                 onExportCikis={exportCikarilanAraclar}
+                onUndoCikis={undoCikis}
+                onUpdateIzin={updateIzinRecord}
+                onUpdateKesinti={updateKesintiRecord}
+                onUpdateCikis={updateCikisRecord}
+                onRemoveIzin={removeIzin}
+                onRemoveKesinti={removeKesinti}
             />
         )}
     </div>;
@@ -850,28 +993,54 @@ function ListCenterModal({
     onExportIzin,
     onExportKesinti,
     onExportCikis,
+    onUndoCikis,
+    onUpdateIzin,
+    onUpdateKesinti,
+    onUpdateCikis,
+    onRemoveIzin,
+    onRemoveKesinti,
 }) {
     const isIzin = activeTab === "izin";
     const isKesinti = activeTab === "kesinti";
     const records = isIzin ? izinler : isKesinti ? kesintiler : cikarilanlar;
+
     const [listSearch, setListSearch] = useState("");
     const [listBolge, setListBolge] = useState("Tümü");
     const [listExtra, setListExtra] = useState("Tümü");
+    const [listDateStart, setListDateStart] = useState("");
+    const [listDateEnd, setListDateEnd] = useState("");
+    const [editingRecord, setEditingRecord] = useState(null);
+    const [editForm, setEditForm] = useState({});
+
+    useEffect(() => {
+        setListSearch("");
+        setListBolge("Tümü");
+        setListExtra("Tümü");
+        setListDateStart("");
+        setListDateEnd("");
+        setEditingRecord(null);
+        setEditForm({});
+    }, [activeTab]);
 
     const bolgeOptions = [
         "Tümü",
-        ...Array.from(new Set(records.map((x) => x.bolge).filter(Boolean)))
+        ...Array.from(new Set(records.map((x) => x.bolge).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), "tr")),
     ];
 
     const extraOptions = isIzin
         ? ["Tümü", ...Array.from(new Set(records.map((x) => x.statu).filter(Boolean)))]
         : isKesinti
-            ? ["Tümü", ...Array.from(new Set(records.map((x) => x.tip).filter(Boolean)))]
+            ? ["Tümü", ...Array.from(new Set(records.map((x) => x.tip).filter(Boolean))).map((x) => x === "para" ? "Para" : x === "gun" ? "Gün" : x)]
             : ["Tümü", "İade Tamam", "İade Eksik"];
+
+    function getRecordDate(item) {
+        if (isIzin) return parseDate(item.baslangic);
+        if (isKesinti) return parseDate(item.baslangic || item.tarih);
+        return item.cikartilan_tarih ? new Date(item.cikartilan_tarih) : null;
+    }
 
     const filteredRecords = records.filter((item) => {
         const q = normalize(listSearch);
-
         const searchable = normalize([
             item.plaka,
             item.surucu_isim,
@@ -881,232 +1050,293 @@ function ListCenterModal({
             item.arac_tip,
             item.aciklama,
             item.cikartilma_nedeni,
+            item.statu,
+            item.tip,
         ].join(" "));
 
         if (q && !searchable.includes(q)) return false;
+        if (listBolge !== "Tümü" && item.bolge !== listBolge) return false;
+        if (isIzin && listExtra !== "Tümü" && item.statu !== listExtra) return false;
+        if (isKesinti && listExtra !== "Tümü") {
+            const typeValue = item.tip === "para" ? "Para" : item.tip === "gun" ? "Gün" : item.tip;
+            if (typeValue !== listExtra) return false;
+        }
+        if (!isIzin && !isKesinti && listExtra === "İade Tamam" && exitHasWarning(item)) return false;
+        if (!isIzin && !isKesinti && listExtra === "İade Eksik" && !exitHasWarning(item)) return false;
 
-        if (listBolge !== "Tümü" && item.bolge !== listBolge)
-            return false;
-
-        if (isIzin && listExtra !== "Tümü" && item.statu !== listExtra)
-            return false;
-
-        if (isKesinti && listExtra !== "Tümü" && item.tip !== listExtra)
-            return false;
-
-        if (!isIzin && !isKesinti && listExtra === "İade Tamam" && exitHasWarning(item))
-            return false;
-
-        if (!isIzin && !isKesinti && listExtra === "İade Eksik" && !exitHasWarning(item))
-            return false;
+        const recordDate = getRecordDate(item);
+        if (listDateStart && recordDate && recordDate < new Date(listDateStart)) return false;
+        if (listDateEnd && recordDate) {
+            const end = new Date(listDateEnd);
+            end.setHours(23, 59, 59, 999);
+            if (recordDate > end) return false;
+        }
 
         return true;
     });
 
-    const title = isIzin
-        ? "İzin Listesi"
-        : isKesinti
-            ? "Kesinti Listesi"
-            : "Çıkarılan Araçlar";
+    const listStats = {
+        total: records.length,
+        filtered: filteredRecords.length,
+        aktif: records.filter((x) => x.arac_durum === "Aktif" || !x.arac_durum).length,
+        cikis: records.filter((x) => x.arac_durum === "Çıkartıldı" || x.isten_cikarildi).length,
+        warning: cikarilanlar.filter(exitHasWarning).length,
+        ready: cikarilanlar.filter((x) => !exitHasWarning(x)).length,
+    };
 
-    const exportFn = isIzin
-        ? onExportIzin
+    const title = isIzin ? "İzinler" : isKesinti ? "Kesintiler" : "Çıkarılanlar";
+    const subtitle = isIzin
+        ? "Araç izin geçmişini filtreleyin, düzenleyin veya silin."
         : isKesinti
-            ? onExportKesinti
-            : onExportCikis;
+            ? "Gün/para kesintilerini takip edin, düzenleyin veya silin."
+            : "İşten çıkartılan araçları inceleyin, çıkış bilgisini düzenleyin veya tekrar işe alın.";
+
+    const exportFn = isIzin ? onExportIzin : isKesinti ? onExportKesinti : onExportCikis;
+
+    function openEdit(item) {
+        setEditingRecord(item);
+
+        if (isIzin) {
+            setEditForm({
+                baslangicInput: inputDateFromDisplay(item.baslangic),
+                bitisInput: inputDateFromDisplay(item.bitis),
+                statu: item.statu || "Yıllık İzin",
+                aciklama: item.aciklama || "",
+            });
+            return;
+        }
+
+        if (isKesinti) {
+            setEditForm({
+                baslangicInput: inputDateFromDisplay(item.baslangic || item.tarih),
+                bitisInput: inputDateFromDisplay(item.bitis),
+                tip: item.tip || "para",
+                deger: item.deger || "",
+                aciklama: item.aciklama || "",
+            });
+            return;
+        }
+
+        setEditForm({
+            cikartilan_tarih: item.cikartilan_tarih || "",
+            cikartilma_nedeni: item.cikartilma_nedeni || "",
+            iade_gps: Boolean(item.iade_gps),
+            iade_evraklar: Boolean(item.iade_evraklar),
+            iade_utts: Boolean(item.iade_utts),
+            iade_gestas_negmar: Boolean(item.iade_gestas_negmar),
+        });
+    }
+
+    async function saveEdit(e) {
+        e.preventDefault();
+        if (!editingRecord) return;
+
+        if (isIzin) {
+            if (editForm.baslangicInput && editForm.bitisInput && !calculateLeaveDaysFromInput(editForm.baslangicInput, editForm.bitisInput)) {
+                alert("Bitiş tarihi başlangıç tarihinden önce olamaz.");
+                return;
+            }
+            await onUpdateIzin(editingRecord.row, editingRecord.id, editForm);
+        } else if (isKesinti) {
+            if (editForm.baslangicInput && editForm.bitisInput && new Date(editForm.bitisInput) < new Date(editForm.baslangicInput)) {
+                alert("Bitiş tarihi başlangıç tarihinden önce olamaz.");
+                return;
+            }
+            await onUpdateKesinti(editingRecord.row, editingRecord.id, editForm);
+        } else {
+            if (!editForm.cikartilan_tarih || !String(editForm.cikartilma_nedeni || "").trim()) {
+                alert("Çıkış tarihi ve çıkış nedeni zorunludur.");
+                return;
+            }
+            await onUpdateCikis(editingRecord, editForm);
+        }
+
+        setEditingRecord(null);
+        setEditForm({});
+    }
+
+    function clearFilters() {
+        setListSearch("");
+        setListBolge("Tümü");
+        setListExtra("Tümü");
+        setListDateStart("");
+        setListDateEnd("");
+    }
 
     return (
         <div className="list-center-overlay" onMouseDown={onClose}>
-            <div className="list-center-modal" onMouseDown={(e) => e.stopPropagation()}>
-                <div className="list-center-head">
+            <div className="list-center-modal modern-list-modal" onMouseDown={(e) => e.stopPropagation()}>
+                <div className="list-modern-head">
                     <div>
-                        <span>Filo Kayıtları</span>
+                        <span>Filo Kayıt Merkezi</span>
                         <h2>{title}</h2>
-                        <p>{filteredRecords.length}/{records.length} kayıt gösteriliyor</p>
+                        <p>{subtitle}</p>
                     </div>
 
-                    <div className="list-center-actions">
-                        <button type="button" className="modal-excel-btn" onClick={exportFn}>
-                            Excel’e Aktar
-                        </button>
-
-                        <button type="button" className="modal-close-btn" onClick={onClose}>
-                            ×
-                        </button>
+                    <div className="list-modern-actions">
+                        <button type="button" className="modal-excel-btn" onClick={exportFn}>Excel’e Aktar</button>
+                        <button type="button" className="modal-close-btn" onClick={onClose}>×</button>
                     </div>
                 </div>
 
-                <div className="list-tabs">
+                <div className="list-modern-tabs">
                     <button type="button" className={isIzin ? "active" : ""} onClick={() => setActiveTab("izin")}>
-                        İzinler <span>{izinler.length}</span>
+                        <b>İzinler</b><span>{izinler.length}</span>
                     </button>
-
                     <button type="button" className={isKesinti ? "active" : ""} onClick={() => setActiveTab("kesinti")}>
-                        Kesintiler <span>{kesintiler.length}</span>
+                        <b>Kesintiler</b><span>{kesintiler.length}</span>
                     </button>
-
                     <button type="button" className={activeTab === "cikis" ? "active" : ""} onClick={() => setActiveTab("cikis")}>
-                        Çıkarılanlar <span>{cikarilanlar.length}</span>
+                        <b>Çıkarılanlar</b><span>{cikarilanlar.length}</span>
                     </button>
                 </div>
-                <div className="list-filter-bar">
 
-                    <div className="list-filter-search">
+                <div className="list-kpi-row">
+                    <div><span>Toplam</span><strong>{listStats.total}</strong></div>
+                    <div><span>Gösterilen</span><strong>{listStats.filtered}</strong></div>
+                    {isIzin || isKesinti ? (
+                        <>
+                            <div><span>Aktif Araç</span><strong>{listStats.aktif}</strong></div>
+                            <div><span>Çıkartılmış Araç</span><strong>{listStats.cikis}</strong></div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="danger"><span>İade Eksik</span><strong>{listStats.warning}</strong></div>
+                            <div className="success"><span>Geri Alıma Hazır</span><strong>{listStats.ready}</strong></div>
+                        </>
+                    )}
+                </div>
+
+                <div className="list-modern-filter">
+                    <div className="list-filter-search premium">
                         <span>⌕</span>
-
-                        <input
-                            value={listSearch}
-                            onChange={(e) => setListSearch(e.target.value)}
-                            placeholder="Plaka, sürücü, telefon, tedarikçi ara..."
-                        />
+                        <input value={listSearch} onChange={(e) => setListSearch(e.target.value)} placeholder="Plaka, sürücü, telefon, tedarikçi veya açıklama ara..." />
                     </div>
-
-                    <select
-                        value={listBolge}
-                        onChange={(e) => setListBolge(e.target.value)}
-                    >
-                        {bolgeOptions.map((x) => (
-                            <option key={x}>{x}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={listExtra}
-                        onChange={(e) => setListExtra(e.target.value)}
-                    >
-                        {extraOptions.map((x) => (
-                            <option key={x}>{x}</option>
-                        ))}
-                    </select>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setListSearch("");
-                            setListBolge("Tümü");
-                            setListExtra("Tümü");
-                        }}
-                    >
-                        Temizle
-                    </button>
-
+                    <select value={listBolge} onChange={(e) => setListBolge(e.target.value)}>{bolgeOptions.map((x) => <option key={x}>{x}</option>)}</select>
+                    <select value={listExtra} onChange={(e) => setListExtra(e.target.value)}>{extraOptions.map((x) => <option key={x}>{x}</option>)}</select>
+                    <input type="date" value={listDateStart} onChange={(e) => setListDateStart(e.target.value)} />
+                    <input type="date" value={listDateEnd} onChange={(e) => setListDateEnd(e.target.value)} />
+                    <button type="button" onClick={clearFilters}>Temizle</button>
                 </div>
 
-                <div className="list-table-wrap">
-                    <table className="list-table">
-                        <thead>
-                            {isIzin ? (
-                                <tr>
-                                    <th>Plaka</th>
-                                    <th>Sürücü</th>
-                                    <th>Telefon</th>
-                                    <th>Tedarikçi</th>
-                                    <th>Bölge</th>
-                                    <th>Araç Tip</th>
-                                    <th>Başlangıç</th>
-                                    <th>Bitiş</th>
-                                    <th>Gün</th>
-                                    <th>Statü</th>
-                                    <th>Durum</th>
-                                    <th>Açıklama</th>
-                                </tr>
-                            ) : isKesinti ? (
-                                <tr>
-                                    <th>Plaka</th>
-                                    <th>Sürücü</th>
-                                    <th>Telefon</th>
-                                    <th>Tedarikçi</th>
-                                    <th>Bölge</th>
-                                    <th>Araç Tip</th>
-                                    <th>Başlangıç</th>
-                                    <th>Bitiş</th>
-                                    <th>Tip</th>
-                                    <th>Değer</th>
-                                    <th>Durum</th>
-                                    <th>Açıklama</th>
-                                </tr>
-                            ) : (
-                                <tr>
-                                    <th>Plaka</th>
-                                    <th>Sürücü</th>
-                                    <th>Telefon</th>
-                                    <th>Tedarikçi</th>
-                                    <th>Bölge</th>
-                                    <th>Araç Tip</th>
-                                    <th>Çıkış Tarihi</th>
-                                    <th>Çıkış Nedeni</th>
-                                    <th>GPS</th>
-                                    <th>Evrak</th>
-                                    <th>UTTS</th>
-                                    <th>Gestaş/Negmar</th>
-                                    <th>Durum</th>
-                                </tr>
-                            )}
-                        </thead>
+                <div className="modern-record-scroll">
+                    {filteredRecords.length === 0 ? (
+                        <div className="modern-record-empty">Kayıt bulunamadı.</div>
+                    ) : (
+                        <div className={`modern-record-grid ${activeTab}`}>
+                            {filteredRecords.map((item) => {
+                                const key = isIzin || isKesinti ? `${item.row?.id}-${item.id}` : item.id;
+                                return (
+                                    <div className={`modern-record-card ${activeTab} ${!isIzin && !isKesinti && exitHasWarning(item) ? "has-warning" : ""}`} key={key}>
+                                        <div className="modern-record-top">
+                                            <div>
+                                                <span>{isIzin ? "İzin Kaydı" : isKesinti ? "Kesinti Kaydı" : "Çıkartılan Araç"}</span>
+                                                <h3>{value(item.plaka)}</h3>
+                                            </div>
+                                            {isIzin && <span className="modern-pill purple">{value(item.statu)}</span>}
+                                            {isKesinti && <span className={`modern-pill ${item.tip === "gun" ? "orange" : "red"}`}>{item.tip === "gun" ? "Gün" : "Para"}</span>}
+                                            {!isIzin && !isKesinti && <ExitWarningBadge row={item} />}
+                                        </div>
 
-                        <tbody>
-                            {filteredRecords.length === 0 ? (
-                                <tr>
-                                    <td colSpan="13" className="list-empty">
-                                        Kayıt bulunamadı.
-                                    </td>
-                                </tr>
-                            ) : isIzin ? (
-                                filteredRecords.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>{value(item.plaka)}</td>
-                                        <td>{value(item.surucu_isim)}</td>
-                                        <td>{value(item.tel_no)}</td>
-                                        <td>{value(item.tedarikci_isim)}</td>
-                                        <td>{value(item.bolge)}</td>
-                                        <td>{value(item.arac_tip)}</td>
-                                        <td>{value(item.baslangic)}</td>
-                                        <td>{value(item.bitis)}</td>
-                                        <td>{value(item.gun)}</td>
-                                        <td>{value(item.statu)}</td>
-                                        <td>{value(item.arac_durum)}</td>
-                                        <td>{value(item.aciklama)}</td>
-                                    </tr>
-                                ))
-                            ) : isKesinti ? (
-                                filteredRecords.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>{value(item.plaka)}</td>
-                                        <td>{value(item.surucu_isim)}</td>
-                                        <td>{value(item.tel_no)}</td>
-                                        <td>{value(item.tedarikci_isim)}</td>
-                                        <td>{value(item.bolge)}</td>
-                                        <td>{value(item.arac_tip)}</td>
-                                        <td>{value(item.baslangic || item.tarih)}</td>
-                                        <td>{value(item.bitis)}</td>
-                                        <td>{value(item.tip)}</td>
-                                        <td>{formatKesinti(item)}</td>
-                                        <td>{value(item.arac_durum)}</td>
-                                        <td>{value(item.aciklama)}</td>
-                                    </tr>
-                                ))
-                            ) : (
-                                filteredRecords.map((row) => (
-                                    <tr key={row.id}>
-                                        <td>{value(row.plaka)}</td>
-                                        <td>{value(row.surucu_isim)}</td>
-                                        <td>{value(row.tel_no)}</td>
-                                        <td>{value(row.tedarikci_isim)}</td>
-                                        <td>{value(row.bolge)}</td>
-                                        <td>{value(row.arac_tip)}</td>
-                                        <td>{value(row.cikartilan_tarih)}</td>
-                                        <td>{value(row.cikartilma_nedeni)}</td>
-                                        <td>{row.iade_gps ? "Tamam" : "Eksik"}</td>
-                                        <td>{row.iade_evraklar ? "Tamam" : "Eksik"}</td>
-                                        <td>{row.iade_utts ? "Tamam" : "Eksik"}</td>
-                                        <td>{row.iade_gestas_negmar ? "Tamam" : "Eksik"}</td>
-                                        <td><ExitWarningBadge row={row} /></td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                        <div className="modern-driver-box">
+                                            <strong>{value(item.surucu_isim)}</strong>
+                                            <span>{value(item.tel_no)}</span>
+                                        </div>
+
+                                        <div className="modern-info-grid">
+                                            <div><span>Tedarikçi</span><strong>{value(item.tedarikci_isim)}</strong></div>
+                                            <div><span>Bölge</span><strong>{value(item.bolge)}</strong></div>
+                                            <div><span>Araç Tip</span><strong>{value(item.arac_tip)}</strong></div>
+                                            {isIzin && <div><span>Gün</span><strong>{value(item.gun)}</strong></div>}
+                                            {isKesinti && <div><span>Değer</span><strong>{formatKesinti(item)}</strong></div>}
+                                            {!isIzin && !isKesinti && <div><span>Çıkış Tarihi</span><strong>{value(item.cikartilan_tarih)}</strong></div>}
+                                        </div>
+
+                                        {isIzin && (
+                                            <div className="modern-date-line"><span>{value(item.baslangic)}</span><i /> <span>{value(item.bitis)}</span></div>
+                                        )}
+                                        {isKesinti && (
+                                            <div className="modern-date-line"><span>{value(item.baslangic || item.tarih)}</span><i /> <span>{value(item.bitis)}</span></div>
+                                        )}
+                                        {!isIzin && !isKesinti && (
+                                            <div className="exit-check-grid compact">
+                                                <span className={item.iade_gps ? "ok" : "missing"}>GPS</span>
+                                                <span className={item.iade_evraklar ? "ok" : "missing"}>Evrak</span>
+                                                <span className={item.iade_utts ? "ok" : "missing"}>UTTS</span>
+                                                <span className={item.iade_gestas_negmar ? "ok" : "missing"}>G/N</span>
+                                            </div>
+                                        )}
+
+                                        <div className="modern-note-box">
+                                            <span>{!isIzin && !isKesinti ? "Çıkış Nedeni" : "Açıklama"}</span>
+                                            <p>{value(!isIzin && !isKesinti ? item.cikartilma_nedeni : item.aciklama)}</p>
+                                        </div>
+
+                                        <div className="modern-card-actions">
+                                            <button type="button" className="edit-soft-btn" onClick={() => openEdit(item)}>Düzenle</button>
+                                            {isIzin && <button type="button" className="delete-soft-btn" onClick={() => onRemoveIzin(item.row, item.id)}>Sil</button>}
+                                            {isKesinti && <button type="button" className="delete-soft-btn" onClick={() => onRemoveKesinti(item.row, item.id)}>Sil</button>}
+                                            {!isIzin && !isKesinti && <button type="button" className="rehire-btn compact" onClick={() => onUndoCikis(item)}>Tekrar İşe Al</button>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
+
+                {editingRecord && (
+                    <div className="modern-edit-drawer" onMouseDown={() => setEditingRecord(null)}>
+                        <form className="modern-edit-card" onSubmit={saveEdit} onMouseDown={(e) => e.stopPropagation()}>
+                            <div className="modern-edit-head">
+                                <div>
+                                    <span>{value(editingRecord.plaka)}</span>
+                                    <h3>{isIzin ? "İzin Kaydını Düzenle" : isKesinti ? "Kesinti Kaydını Düzenle" : "Çıkış Bilgisini Düzenle"}</h3>
+                                </div>
+                                <button type="button" onClick={() => setEditingRecord(null)}>×</button>
+                            </div>
+
+                            <div className="modern-edit-body">
+                                {isIzin && (
+                                    <>
+                                        <FormInput label="Başlangıç Tarihi" type="date" value={editForm.baslangicInput} onChange={(v) => setEditForm((p) => ({ ...p, baslangicInput: v }))} />
+                                        <FormInput label="Bitiş Tarihi" type="date" value={editForm.bitisInput} onChange={(v) => setEditForm((p) => ({ ...p, bitisInput: v }))} />
+                                        <label>Statü<input value={editForm.statu || ""} onChange={(e) => setEditForm((p) => ({ ...p, statu: e.target.value }))} /></label>
+                                        <label className="textarea-label">Açıklama<textarea value={editForm.aciklama || ""} onChange={(e) => setEditForm((p) => ({ ...p, aciklama: e.target.value }))} /></label>
+                                    </>
+                                )}
+
+                                {isKesinti && (
+                                    <>
+                                        <FormInput label="Başlangıç Tarihi" type="date" value={editForm.baslangicInput} onChange={(v) => setEditForm((p) => ({ ...p, baslangicInput: v }))} />
+                                        <FormInput label="Bitiş Tarihi" type="date" value={editForm.bitisInput} onChange={(v) => setEditForm((p) => ({ ...p, bitisInput: v }))} />
+                                        <label>Kesinti Tipi<select value={editForm.tip || "para"} onChange={(e) => setEditForm((p) => ({ ...p, tip: e.target.value }))}><option value="para">Para</option><option value="gun">Gün</option></select></label>
+                                        <FormInput label={editForm.tip === "gun" ? "Gün Sayısı" : "Tutar"} value={editForm.deger} onChange={(v) => setEditForm((p) => ({ ...p, deger: v }))} />
+                                        <label className="textarea-label">Açıklama<textarea value={editForm.aciklama || ""} onChange={(e) => setEditForm((p) => ({ ...p, aciklama: e.target.value }))} /></label>
+                                    </>
+                                )}
+
+                                {!isIzin && !isKesinti && (
+                                    <>
+                                        <FormInput label="Çıkartılan Tarih" type="date" value={editForm.cikartilan_tarih} onChange={(v) => setEditForm((p) => ({ ...p, cikartilan_tarih: v }))} />
+                                        <label className="textarea-label">Çıkış Nedeni<textarea value={editForm.cikartilma_nedeni || ""} onChange={(e) => setEditForm((p) => ({ ...p, cikartilma_nedeni: e.target.value }))} /></label>
+                                        <div className="modern-check-list">
+                                            <CheckboxField label="GPS iptal/iade edildi" checked={editForm.iade_gps} onChange={(v) => setEditForm((p) => ({ ...p, iade_gps: v }))} />
+                                            <CheckboxField label="Evraklar teslim alındı" checked={editForm.iade_evraklar} onChange={(v) => setEditForm((p) => ({ ...p, iade_evraklar: v }))} />
+                                            <CheckboxField label="UTTS iptal edildi" checked={editForm.iade_utts} onChange={(v) => setEditForm((p) => ({ ...p, iade_utts: v }))} />
+                                            <CheckboxField label="Gestaş / Negmar iptal edildi" checked={editForm.iade_gestas_negmar} onChange={(v) => setEditForm((p) => ({ ...p, iade_gestas_negmar: v }))} />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="modern-edit-actions">
+                                <button type="button" className="cancel-btn" onClick={() => setEditingRecord(null)}>Vazgeç</button>
+                                <button type="submit" className="save-btn">Güncelle</button>
+                            </div>
+                        </form>
+                    </div>
+                )}
             </div>
         </div>
     );

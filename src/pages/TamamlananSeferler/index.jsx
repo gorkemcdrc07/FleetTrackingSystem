@@ -104,9 +104,43 @@ function IconColumns() {
     );
 }
 
+function IconFilter() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M4 5h16l-6 8v6l-4-2v-4L4 5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+function IconX() {
+    return (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+function IconSearch() {
+    return (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+            <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+function IconChevronDown() {
+    return (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
 function EtaBadge({ delayed }) {
     return (
         <span className={`eta-badge ${delayed ? "danger" : "success"}`}>
+            <i className="eta-dot" />
             {delayed ? "Gecikti" : "Normal"}
         </span>
     );
@@ -125,24 +159,24 @@ function isIkazli(row) {
 const DEFAULT_COLUMNS = [
     { key: "sefer_no", label: "Sefer No", width: 120, sticky: true, type: "sefer", locked: true },
     { key: "sefer_tarihi", label: "Sefer Tarihi", width: 115, type: "date" },
-    { key: "arac_statu", label: "Araç Statü", width: 115, type: "statu" },
-    { key: "plaka", label: "Plaka", width: 95, type: "plaka" },
-    { key: "treyler", label: "Treyler", width: 95, type: "plaka" },
-    { key: "surucu_ad_soyad", label: "Sürücü", width: 155 },
-    { key: "musteri_adi", label: "Müşteri", width: 175 },
-    { key: "musteri_siparis_no", label: "Sipariş No", width: 125 },
-    { key: "hizmet_adi", label: "Hizmet", width: 135 },
-    { key: "proje_adi", label: "Proje", width: 135 },
-    { key: "yukleme_ili", label: "Yükleme İl", width: 125, type: "multi" },
-    { key: "teslim_ili", label: "Son Teslim İl", width: 125, type: "last" },
-    { key: "irsaliye_no", label: "İrsaliye No", width: 135 },
-    { key: "eta_referans_gun", label: "ETA Referans", width: 120 },
-    { key: "eta_gerceklesen_gun", label: "Gerçekleşen", width: 125, type: "gun" },
-    { key: "eta_gecikme_suresi", label: "Gecikme", width: 115, type: "gecikme" },
-    { key: "eta_durum", label: "ETA Durum", width: 110, type: "etaDurum" },
-    { key: "tonaj_durumu", label: "Tonaj", width: 110, type: "tonaj" },
-    { key: "ikaz_durumu", label: "İkaz", width: 110, type: "ikaz" },
-    { key: "aciklama", label: "Açıklama", width: 260, type: "textLong" },
+    { key: "arac_statu", label: "Araç Statü", width: 115, type: "statu", filter: "select" },
+    { key: "plaka", label: "Plaka", width: 95, type: "plaka", filter: "text" },
+    { key: "treyler", label: "Treyler", width: 95, type: "plaka", filter: "text" },
+    { key: "surucu_ad_soyad", label: "Sürücü", width: 155, filter: "text" },
+    { key: "musteri_adi", label: "Müşteri", width: 175, filter: "text" },
+    { key: "musteri_siparis_no", label: "Sipariş No", width: 125, filter: "text" },
+    { key: "hizmet_adi", label: "Hizmet", width: 135, filter: "text" },
+    { key: "proje_adi", label: "Proje", width: 135, filter: "text" },
+    { key: "yukleme_ili", label: "Yükleme İl", width: 125, type: "multi", filter: "text" },
+    { key: "teslim_ili", label: "Son Teslim İl", width: 125, type: "last", filter: "text" },
+    { key: "irsaliye_no", label: "İrsaliye No", width: 135, filter: "text" },
+    { key: "eta_referans_gun", label: "ETA Referans", width: 120, filter: "text" },
+    { key: "eta_gerceklesen_gun", label: "Gerçekleşen", width: 125, type: "gun", filter: "text" },
+    { key: "eta_gecikme_suresi", label: "Gecikme", width: 115, type: "gecikme", filter: "text" },
+    { key: "eta_durum", label: "ETA Durum", width: 110, type: "etaDurum", filter: "select" },
+    { key: "tonaj_durumu", label: "Tonaj", width: 110, type: "tonaj", filter: "select" },
+    { key: "ikaz_durumu", label: "İkaz", width: 110, type: "ikaz", filter: "select" },
+    { key: "aciklama", label: "Açıklama", width: 260, type: "textLong", filter: "text" },
 ];
 
 function CellValue({ col, row }) {
@@ -420,6 +454,45 @@ async function enrichEta(row) {
     };
 }
 
+// Bir sütunun geçerli filtre değerine göre satırı eşleştirir.
+// Metin filtreleri Türkçe karakter duyarsız "içerir" mantığıyla,
+// seçime dayalı filtreler ise kesin eşleşmeyle çalışır.
+function matchColumnFilter(row, col, filterValue) {
+    if (!filterValue) return true;
+
+    if (col.key === "eta_durum") {
+        const state = row.eta_gecikme ? "gecikti" : "normal";
+        return state === filterValue;
+    }
+
+    if (col.type === "tonaj") {
+        const has = isTonajli(row);
+        return filterValue === "var" ? has : !has;
+    }
+
+    if (col.type === "ikaz") {
+        const has = isIkazli(row);
+        return filterValue === "var" ? has : !has;
+    }
+
+    if (col.key === "arac_statu") {
+        return row.arac_statu === filterValue;
+    }
+
+    if (col.type === "multi") {
+        const parts = split(row[col.key]).map(normalizeTR);
+        const needle = normalizeTR(filterValue);
+        return parts.some((p) => p.includes(needle));
+    }
+
+    if (col.type === "last") {
+        return normalizeTR(getLastValue(row[col.key])).includes(normalizeTR(filterValue));
+    }
+
+    const val = row[col.key];
+    return normalizeTR(String(val ?? "")).includes(normalizeTR(filterValue));
+}
+
 function TamamlananSeferler() {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -428,6 +501,8 @@ function TamamlananSeferler() {
     const [endDate, setEndDate] = useState("");
     const [onlyEtaMismatch, setOnlyEtaMismatch] = useState(false);
     const [expandedRows, setExpandedRows] = useState({});
+    const [showFilters, setShowFilters] = useState(false);
+    const [columnFilters, setColumnFilters] = useState({});
     const resizingRef = useRef(null);
 
     const [columnWidths, setColumnWidths] = useState(() => {
@@ -472,6 +547,20 @@ function TamamlananSeferler() {
         }));
     }, []);
 
+    const updateColumnFilter = useCallback((key, value) => {
+        setColumnFilters((prev) => {
+            const next = { ...prev };
+            if (!value) {
+                delete next[key];
+            } else {
+                next[key] = value;
+            }
+            return next;
+        });
+    }, []);
+
+    const clearColumnFilters = useCallback(() => setColumnFilters({}), []);
+
     useEffect(() => {
         async function loadData() {
             setLoading(true);
@@ -512,6 +601,20 @@ function TamamlananSeferler() {
         return rows.filter(isIkazli).length;
     }, [rows]);
 
+    // Araç statü sütunu için mevcut verideki benzersiz değerlerden dinamik seçenek listesi.
+    const aracStatuOptions = useMemo(() => {
+        return Array.from(new Set(rows.map((r) => r.arac_statu).filter(Boolean))).sort((a, b) =>
+            a.localeCompare(b, "tr-TR")
+        );
+    }, [rows]);
+
+    const activeColumnFilterEntries = useMemo(
+        () => Object.entries(columnFilters).filter(([, value]) => value),
+        [columnFilters]
+    );
+
+    const activeFilterCount = activeColumnFilterEntries.length;
+
     const filteredRows = useMemo(() => {
         return rows.filter((row) => {
             const rowDate = parseDate(row.sefer_tarihi);
@@ -526,9 +629,14 @@ function TamamlananSeferler() {
 
             if (onlyEtaMismatch && !row.eta_gecikme) return false;
 
+            for (const [key, value] of activeColumnFilterEntries) {
+                const col = DEFAULT_COLUMNS.find((c) => c.key === key);
+                if (col && !matchColumnFilter(row, col, value)) return false;
+            }
+
             return true;
         });
-    }, [rows, startDate, endDate, onlyEtaMismatch]);
+    }, [rows, startDate, endDate, onlyEtaMismatch, activeColumnFilterEntries]);
 
     function createExcelHeaderStyle(bg = "1E293B") {
         return {
@@ -873,10 +981,134 @@ function TamamlananSeferler() {
         };
     }, []);
 
+    function renderSelectFilter(colKey, value, onChange, options, placeholder = "Tümü") {
+        const isActive = Boolean(value);
+
+        return (
+            <div className={`column-filter-control select-control ${isActive ? "is-active" : ""}`}>
+                <select
+                    className="filter-select"
+                    value={value || ""}
+                    onChange={(e) => onChange(e.target.value)}
+                    aria-label="Sütun filtresi"
+                >
+                    <option value="">{placeholder}</option>
+                    {options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+                <span className="filter-select-arrow">
+                    <IconChevronDown />
+                </span>
+                {isActive && (
+                    <button
+                        type="button"
+                        className="filter-clear-btn select-clear"
+                        onClick={() => onChange("")}
+                        aria-label="Filtreyi temizle"
+                    >
+                        <IconX />
+                    </button>
+                )}
+            </div>
+        );
+    }
+
+    function renderFilterCell(col) {
+        const currentValue = columnFilters[col.key] || "";
+
+        if (col.key === "sefer_tarihi") {
+            return (
+                <span className="filter-cell-hint">
+                    Tarih aralığı üst panelden seçilir
+                </span>
+            );
+        }
+
+        if (col.key === "eta_durum") {
+            return renderSelectFilter(
+                "eta_durum",
+                columnFilters.eta_durum,
+                (value) => updateColumnFilter("eta_durum", value),
+                [
+                    { value: "gecikti", label: "Gecikti" },
+                    { value: "normal", label: "Normal" },
+                ]
+            );
+        }
+
+        if (col.type === "tonaj") {
+            return renderSelectFilter(
+                "tonaj_durumu",
+                columnFilters.tonaj_durumu,
+                (value) => updateColumnFilter("tonaj_durumu", value),
+                [
+                    { value: "var", label: "Tonajlı" },
+                    { value: "yok", label: "Tonajsız" },
+                ]
+            );
+        }
+
+        if (col.type === "ikaz") {
+            return renderSelectFilter(
+                "ikaz_durumu",
+                columnFilters.ikaz_durumu,
+                (value) => updateColumnFilter("ikaz_durumu", value),
+                [
+                    { value: "var", label: "İkazlı" },
+                    { value: "yok", label: "İkazsız" },
+                ]
+            );
+        }
+
+        if (col.key === "arac_statu") {
+            return renderSelectFilter(
+                "arac_statu",
+                columnFilters.arac_statu,
+                (value) => updateColumnFilter("arac_statu", value),
+                aracStatuOptions.map((opt) => ({ value: opt, label: opt }))
+            );
+        }
+
+        if (col.filter === "text") {
+            const isActive = Boolean(currentValue);
+
+            return (
+                <div className={`column-filter-control filter-text-wrap ${isActive ? "is-active" : ""}`}>
+                    <span className="filter-search-icon">
+                        <IconSearch />
+                    </span>
+                    <input
+                        type="text"
+                        className="filter-input"
+                        placeholder="Sütunda ara"
+                        value={currentValue}
+                        onChange={(e) => updateColumnFilter(col.key, e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    {isActive && (
+                        <button
+                            type="button"
+                            className="filter-clear-btn"
+                            onClick={() => updateColumnFilter(col.key, "")}
+                            aria-label="Filtreyi temizle"
+                        >
+                            <IconX />
+                        </button>
+                    )}
+                </div>
+            );
+        }
+
+        return <span className="filter-cell-hint muted-hint">Filtre yok</span>;
+    }
+
     return (
         <div className="tamamlanan-page">
             <div className="tamamlanan-header">
-                <div>
+                <div className="tamamlanan-title-area">
                     <span className="tamamlanan-eyebrow">Operasyon Yönetimi</span>
                     <h1>Tamamlanan Seferler</h1>
                 </div>
@@ -901,49 +1133,81 @@ function TamamlananSeferler() {
                         <strong>{ikazCount}</strong>
                         <span>İkazlı</span>
                     </div>
-
-                    <div className="date-filter">
-                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                    </div>
-
-                    <button
-                        className={`listele-btn ${onlyEtaMismatch ? "danger-btn" : ""}`}
-                        type="button"
-                        onClick={() => {
-                            if (!onlyEtaMismatch) {
-                                setOnlyEtaMismatch(true);
-                                return;
-                            }
-
-                            const exported = exportEtaMismatchToExcel();
-
-                            if (exported) {
-                                setOnlyEtaMismatch(false);
-                            }
-                        }}
-                    >
-                        {onlyEtaMismatch ? "ETA Raporunu Al" : "ETA Uyumsuzlukları Göster"}
-                    </button>
-
-                    <button
-                        className="listele-btn success-btn"
-                        type="button"
-                        onClick={exportAllToExcel}
-                    >
-                        Excel'e Aktar
-                    </button>
-
-                    <button
-                        className="listele-btn secondary"
-                        type="button"
-                        onClick={() => setShowSutunDuzeni(true)}
-                    >
-                        <IconColumns />
-                        Sütun Düzeni
-                    </button>
                 </div>
             </div>
+
+            <div className="tamamlanan-toolbar">
+                <div className="date-filter">
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+
+                <button
+                    className={`listele-btn ${onlyEtaMismatch ? "danger-btn" : ""}`}
+                    type="button"
+                    onClick={() => {
+                        if (!onlyEtaMismatch) {
+                            setOnlyEtaMismatch(true);
+                            return;
+                        }
+
+                        const exported = exportEtaMismatchToExcel();
+
+                        if (exported) {
+                            setOnlyEtaMismatch(false);
+                        }
+                    }}
+                >
+                    {onlyEtaMismatch ? "ETA Raporunu Al" : "ETA Uyumsuzlukları Göster"}
+                </button>
+
+                <button
+                    className="listele-btn success-btn"
+                    type="button"
+                    onClick={exportAllToExcel}
+                >
+                    Excel'e Aktar
+                </button>
+
+                <button
+                    className={`listele-btn filter-toggle-btn ${showFilters ? "is-active" : ""}`}
+                    type="button"
+                    onClick={() => setShowFilters((v) => !v)}
+                >
+                    <IconFilter />
+                    Filtrele
+                    {activeFilterCount > 0 && <span className="filter-count-badge">{activeFilterCount}</span>}
+                </button>
+
+                <button
+                    className="listele-btn secondary"
+                    type="button"
+                    onClick={() => setShowSutunDuzeni(true)}
+                >
+                    <IconColumns />
+                    Sütun Düzeni
+                </button>
+            </div>
+
+            {showFilters && activeFilterCount > 0 && (
+                <div className="active-filters-bar">
+                    <span className="active-filters-label">Aktif filtreler:</span>
+                    {activeColumnFilterEntries.map(([key, value]) => {
+                        const col = DEFAULT_COLUMNS.find((c) => c.key === key);
+                        return (
+                            <span className="filter-chip" key={key}>
+                                {col?.label || key}: <b>{value}</b>
+                                <button type="button" onClick={() => updateColumnFilter(key, "")} aria-label="Filtreyi kaldır">
+                                    <IconX />
+                                </button>
+                            </span>
+                        );
+                    })}
+                    <button type="button" className="clear-all-filters-btn" onClick={clearColumnFilters}>
+                        Tümünü Temizle
+                    </button>
+                </div>
+            )}
 
             <div className="tamamlanan-card">
                 <div className="table-wrapper">
@@ -959,7 +1223,11 @@ function TamamlananSeferler() {
                                 {columnsWithLayout.map((col) => (
                                     <th
                                         key={col.key}
-                                        className={col.sticky ? "sticky-col th-sticky resizable-th" : "resizable-th"}
+                                        className={[
+                                            col.sticky ? "sticky-col th-sticky" : "",
+                                            "resizable-th",
+                                            columnFilters[col.key] ? "has-column-filter" : "",
+                                        ].filter(Boolean).join(" ")}
                                         style={col.sticky ? { left: col.left } : undefined}
                                     >
                                         <span>{col.label}</span>
@@ -967,6 +1235,24 @@ function TamamlananSeferler() {
                                     </th>
                                 ))}
                             </tr>
+
+                            {showFilters && (
+                                <tr className="filter-row">
+                                    {columnsWithLayout.map((col) => (
+                                        <th
+                                            key={`filter-${col.key}`}
+                                            className={[
+                                                col.sticky ? "sticky-col" : "",
+                                                "filter-th",
+                                                columnFilters[col.key] ? "is-filtered" : "",
+                                            ].filter(Boolean).join(" ")}
+                                            style={col.sticky ? { left: col.left, top: 40 } : { top: 40 }}
+                                        >
+                                            {renderFilterCell(col)}
+                                        </th>
+                                    ))}
+                                </tr>
+                            )}
                         </thead>
 
                         <tbody>
@@ -981,7 +1267,9 @@ function TamamlananSeferler() {
                             {!loading && filteredRows.length === 0 && (
                                 <tr>
                                     <td colSpan={columnsWithLayout.length} className="empty-cell">
-                                        Tamamlanan sefer bulunamadı.
+                                        {activeFilterCount > 0 || onlyEtaMismatch || startDate || endDate
+                                            ? "Filtrelere uyan sefer bulunamadı."
+                                            : "Tamamlanan sefer bulunamadı."}
                                     </td>
                                 </tr>
                             )}
