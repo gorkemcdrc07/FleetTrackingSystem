@@ -1162,10 +1162,7 @@ function AktifSeferler() {
         });
     }, [visibleOrderedColumns, columnWidths]);
 
-    const baseRows = useMemo(
-        () => rows.filter((r) => r.sefer_no?.startsWith("SFR")),
-        [rows]
-    );
+    const baseRows = useMemo(() => rows, [rows]);
 
     const visibleRows = useMemo(() => {
         const activeFilters = Object.entries(columnFilters).filter(([, filter]) => !isColumnFilterEmpty(filter));
@@ -1583,8 +1580,32 @@ function AktifSeferler() {
                 (passiveRows || []).map((x) => x.sefer_no)
             );
 
-            const mappedRows = mapTMSRows(incoming)
-                .filter((r) => r.sefer_no?.startsWith("SFR"))
+            const ALLOWED_WORKING_TYPES = [
+                "FİLO",
+                "DENTAŞ ÇORLU KİRALIK",
+                "PEPSİ KİRALIK",
+            ];
+
+            const allMapped = mapTMSRows(incoming);
+
+            console.log("TMS GELEN:", incoming.length);
+            console.table(
+                allMapped.map((r) => ({
+                    sefer_no: r.sefer_no,
+                    tip: r.vehicle_working_type_name,
+                    tamamlandi: completedSet.has(r.sefer_no),
+                    pasif: passiveSet.has(r.sefer_no),
+                }))
+            );
+
+            const mappedRows = allMapped
+                .filter((r) =>
+                    ALLOWED_WORKING_TYPES.includes(
+                        String(r.vehicle_working_type_name || "")
+                            .toLocaleUpperCase("tr-TR")
+                            .trim()
+                    )
+                )
                 .filter((r) => !completedSet.has(r.sefer_no))
                 .filter((r) => !passiveSet.has(r.sefer_no))
                 .map((r) => ({
@@ -1612,6 +1633,8 @@ function AktifSeferler() {
                     atama_yapan_kullanici: r.atama_yapan_kullanici,
                     atama_tarihi: r.atama_tarihi,
                     rota_detaylari: createRotaDetaylari(r),
+                    vehicle_working_type_name: r.vehicle_working_type_name,
+                    vehicle_working_type_id: r.vehicle_working_type_id,
                     ham_veri: r,
                 }));
 
@@ -1860,6 +1883,9 @@ function AktifSeferler() {
                     )}
                 </div>
             </div>
+
+
+            <div style={{ height: 20 }} />
 
             <div className="table-toolbar">
                 <div className="table-toolbar-left">

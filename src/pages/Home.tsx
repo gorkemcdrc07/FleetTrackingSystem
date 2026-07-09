@@ -6,6 +6,7 @@ import "./Home.css";
 import AktifSeferler from "./AktifSeferler";
 import TamamlananSeferler from "./TamamlananSeferler";
 import AracDurumlari from "./AracDurumları";
+import AracTakibi from "./AracTakibi";
 
 import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
 import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
@@ -16,6 +17,11 @@ import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
 import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
 import Hamaliye from "./Hakedisler/Hamaliye";
 import YonetimPaneli from "./Yonetici/YonetimPaneli";
+import Alarmlar from "./Alarmlar";
+import Dashboard from "./Dashboard";
+import Playback from "./Playback";
+import Geofence from "./Geofence";
+import OperasyonMerkezi from "./OperasyonMerkezi";
 
 type HomeProps = {
     onLogout: () => void;
@@ -36,7 +42,14 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Araç Yönetimi",
         icon: "🚚",
-        items: ["Araç Durumları"],
+        items: [
+            "Araç Durumları",
+            "Araç Takibi",
+            "Playback",
+            "Geofence",
+            "Operasyon Merkezi",
+            "Alarm Merkezi",
+        ],
     },
     {
         title: "Raporlar",
@@ -102,35 +115,45 @@ function Home({ onLogout }: HomeProps) {
         .toUpperCase();
 
     const renderPage = () => {
-        if (activePage === "Aktif Seferler") return <AktifSeferler />;
+        if (activePage === "Dashboard") return <Dashboard />;
 
-        if (activePage === "Tamamlanan Seferler")
+        if (activePage === "Aktif Seferler") return <AktifSeferler />;
+        if (activePage === "Tamamlanan Seferler") {
             return <TamamlananSeferler />;
+        }
 
         if (activePage === "Araç Durumları") return <AracDurumlari />;
 
-        if (activePage === "Yüklemede Bekleme")
+        if (activePage === "Araç Takibi") return <AracTakibi />;
+        if (activePage === "Playback") return <Playback />;
+        if (activePage === "Geofence") return <Geofence />;
+        if (activePage === "Alarm Merkezi") return <Alarmlar />;
+        if (activePage === "Operasyon Merkezi") return <OperasyonMerkezi />;
+        if (activePage === "Yüklemede Bekleme") {
             return <YuklemedeBekleme />;
+        }
 
-        if (activePage === "Teslimde Bekleme")
+        if (activePage === "Teslimde Bekleme") {
             return <TeslimdeBekleme />;
+        }
 
         if (activePage === "Kullanıcı KPİ") return <KullaniciKPI />;
 
-        if (activePage === "Plaka Kira & Sürücü Tutarları")
+        if (activePage === "Plaka Kira & Sürücü Tutarları") {
             return <AracFiyatYonetimi />;
+        }
 
-        if (activePage === "Hayat Kimya YHH")
+        if (activePage === "Hayat Kimya YHH") {
             return <HayatKimyaYakitHakedis />;
+        }
 
-        if (activePage === "Pepsi YHH")
+        if (activePage === "Pepsi YHH") {
             return <PepsiYakitHakedis />;
+        }
 
-        if (activePage === "Hamaliye")
-            return <Hamaliye />;
+        if (activePage === "Hamaliye") return <Hamaliye />;
 
-        if (activePage === "Yönetim Paneli")
-            return <YonetimPaneli />;
+        if (activePage === "Yönetim Paneli") return <YonetimPaneli />;
 
         return (
             <section className="hero-panel">
@@ -171,9 +194,7 @@ function Home({ onLogout }: HomeProps) {
                     {menuGroups.map((group) => (
                         <div className="nav-group" key={group.title}>
                             <button className="nav-button" type="button">
-                                <span className="nav-icon">
-                                    {group.icon}
-                                </span>
+                                <span className="nav-icon">{group.icon}</span>
 
                                 {group.title}
 
@@ -182,16 +203,11 @@ function Home({ onLogout }: HomeProps) {
 
                             <div className="mega-menu">
                                 <div className="mega-header">
-                                    <div className="mega-icon">
-                                        {group.icon}
-                                    </div>
+                                    <div className="mega-icon">{group.icon}</div>
 
                                     <div>
                                         <h3>{group.title}</h3>
-
-                                        <p>
-                                            {group.items.length} işlem
-                                        </p>
+                                        <p>{group.items.length} işlem</p>
                                     </div>
                                 </div>
 
@@ -200,16 +216,11 @@ function Home({ onLogout }: HomeProps) {
                                         <button
                                             key={item}
                                             type="button"
-                                            className={`mega-item ${activePage === item
-                                                    ? "active"
-                                                    : ""
+                                            className={`mega-item ${activePage === item ? "active" : ""
                                                 }`}
-                                            onClick={() =>
-                                                setActivePage(item)
-                                            }
+                                            onClick={() => setActivePage(item)}
                                         >
                                             <span>{item}</span>
-
                                             <small>→</small>
                                         </button>
                                     ))}
@@ -220,49 +231,35 @@ function Home({ onLogout }: HomeProps) {
                 </nav>
 
                 <div className="top-actions">
-                    <button
-                        className="notification-btn"
-                        type="button"
-                    >
+                    <button className="notification-btn" type="button">
                         🔔
                         <span />
                     </button>
 
                     <div className="profile">
-                        <div className="avatar">
-                            {avatarLetter}
-                        </div>
+                        <div className="avatar">{avatarLetter}</div>
 
                         <div>
                             <strong>{kullaniciAdi}</strong>
-
                             <span>{kullaniciRol}</span>
                         </div>
                     </div>
 
                     <button
                         className="admin-btn"
-                        onClick={() =>
-                            setActivePage("Yönetim Paneli")
-                        }
+                        onClick={() => setActivePage("Yönetim Paneli")}
                     >
                         <MdAdminPanelSettings className="admin-icon" />
-
                         <span>Yönetim Paneli</span>
                     </button>
 
-                    <button
-                        onClick={onLogout}
-                        className="logout-btn"
-                    >
+                    <button onClick={onLogout} className="logout-btn">
                         Çıkış
                     </button>
                 </div>
             </header>
 
-            <main className="main-content">
-                {renderPage()}
-            </main>
+            <main className="main-content">{renderPage()}</main>
         </div>
     );
 }

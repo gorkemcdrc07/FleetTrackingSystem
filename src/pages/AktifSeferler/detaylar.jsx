@@ -3,8 +3,12 @@ import { supabase } from "../../supabaseClient";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./detaylar.css";
+import Sekmeler from "./Detay/Sekmeler";
+import MobilizBilgileri from "./Detay/MobilizBilgileri";
 import RotaDuzenleme from "./RotaDuzenleme/RotaDuzenleme";
 import { islemLogla } from "../../utils/islemLogla";
+import RotaGecmisi from "./Detay/RotaGecmisi";
+import EtaAnalizi from "./Detay/EtaAnalizi";
 
 const DRIVE_BLOCK_MIN = 270;
 const SHORT_BREAK_MIN = 45;
@@ -749,6 +753,7 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
     const [editableRoute, setEditableRoute] = useState([]);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
+    const [activeTab, setActiveTab] = useState("genel");
     const [showRouteEditor, setShowRouteEditor] = useState(false);
 
     useEffect(() => {
@@ -1036,7 +1041,10 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                         </button>
                     </div>
                 </div>
-
+                <Sekmeler
+                    activeTab={activeTab}
+                    onChange={setActiveTab}
+                />
                 <div className="detay-summary">
                     <span>{editableRoute.filter((x) => x.type === "Yükleme").length} yükleme</span>
                     <span>{editableRoute.filter((x) => x.type === "Teslim").length} teslim</span>
@@ -1095,29 +1103,68 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                     </div>
                 )}
 
-                <div className="detay-map-card">
-                    {routeLoading && <div className="detay-map-loading">Harita, kilometre ve ETA hesaplanıyor...</div>}
-                    {!routeLoading && routeError && <div className="detay-map-error">{routeError}</div>}
-                    {!routeLoading && mapRoute && <RouteMap route={mapRoute} />}
-                </div>
+                {activeTab === "genel" && (
+                    <>
+                        <div className="detay-map-card">
 
-                <div className="detay-route-list">
-                    {enrichedRoute.length === 0 ? (
-                        <div className="detay-empty">Bu sefer için rota detayı bulunamadı.</div>
-                    ) : (
-                        enrichedRoute.map((item, index) => (
-                            <RoutePoint
-                                key={`${item.type}-${index}-${item.nokta || ""}`}
-                                item={item}
-                                index={index}
-                                total={enrichedRoute.length}
-                                showDriveDetail={showDriveDetail}
-                                onChangeStopDateTime={handleChangeStopDateTime}
-                            />
-                        ))
-                    )}
-                </div>
+                            {routeLoading && (
+                                <div className="detay-map-loading">
+                                    Harita hesaplanıyor...
+                                </div>
+                            )}
 
+                            {!routeLoading && routeError && (
+                                <div className="detay-map-error">
+                                    {routeError}
+                                </div>
+                            )}
+
+                            {!routeLoading && mapRoute && (
+                                <RouteMap route={mapRoute} />
+                            )}
+
+                        </div>
+
+                        <div className="detay-route-list">
+
+                            {enrichedRoute.length === 0 ? (
+                                <div className="detay-empty">
+                                    Bu sefer için rota detayı bulunamadı.
+                                </div>
+                            ) : (
+                                enrichedRoute.map((item, index) => (
+                                    <RoutePoint
+                                        key={`${item.type}-${index}-${item.nokta || ""}`}
+                                        item={item}
+                                        index={index}
+                                        total={enrichedRoute.length}
+                                        showDriveDetail={showDriveDetail}
+                                        onChangeStopDateTime={handleChangeStopDateTime}
+                                    />
+                                ))
+                            )}
+
+                        </div>
+                    </>
+                )}
+
+                {activeTab === "mobiliz" && (
+                    <MobilizBilgileri
+                        plaka={row.plaka}
+                    />
+                )}
+
+                {activeTab === "rota" && (
+                    <RotaGecmisi plaka={row.plaka} />
+                )}
+                {activeTab === "eta" && (
+                    <EtaAnalizi
+                        toplamMola={formatEta(totalBreakMin)}
+                        toplamDinlenme={formatEta(totalRestMin)}
+                        netSurus={mapRoute?.durationMin ? formatEta(mapRoute.durationMin) : "—"}
+                        gercekEta={totalLegalMin ? formatEta(totalLegalMin) : "—"}
+                    />
+                )}
                 {toast && (
                     <div className={`detay-toast ${toast.type}`}>
                         <div className="detay-toast-icon">

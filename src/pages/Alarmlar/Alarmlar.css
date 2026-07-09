@@ -1,0 +1,292 @@
+.alarmlar-page {
+    padding: 24px;
+    background: #f4f6fb;
+    min-height: 100vh;
+}
+
+.alarmlar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+    .alarmlar-header span {
+        color: #4f46e5;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .alarmlar-header h1 {
+        margin: 6px 0;
+        color: #0f172a;
+        font-size: 30px;
+    }
+
+    .alarmlar-header p {
+        margin: 0;
+        color: #64748b;
+    }
+
+    .alarmlar-header button {
+        height: 44px;
+        border: 0;
+        border-radius: 12px;
+        padding: 0 20px;
+        background: #0f172a;
+        color: white;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+.alarm-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+    .alarm-summary div,
+    .alarm-card,
+    .alarm-empty {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 18px;
+    }
+
+    .alarm-summary span {
+        display: block;
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+
+    .alarm-summary strong {
+        font-size: 30px;
+        color: #0f172a;
+    }
+
+.alarm-list {
+    display: grid;
+    gap: 12px;
+}
+
+.alarm-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    border-left: 6px solid #94a3b8;
+}
+
+    .alarm-card.critical {
+        border-left-color: #dc2626;
+    }
+
+    .alarm-card.warning {
+        border-left-color: #f59e0b;
+    }
+
+    .alarm-card.danger {
+        border-left-color: #ef4444;
+    }
+
+    .alarm-card span {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .alarm-card strong {
+        display: block;
+        color: #0f172a;
+        font-size: 22px;
+        margin: 4px 0;
+    }
+
+    .alarm-card p {
+        margin: 0 0 8px;
+        color: #334155;
+    }
+
+    .alarm-card small {
+        color: #64748b;
+    }
+
+    .alarm-card em {
+        font-style: normal;
+        align-self: flex-start;
+        border-radius: 999px;
+        background: #f1f5f9;
+        padding: 8px 12px;
+        font-weight: 900;
+        color: #334155;
+    }
+
+.alarm-empty {
+    text-align: center;
+    color: #64748b;
+    font-weight: 700;
+}
+.alarm-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.alarm-map-link {
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: white;
+    text-decoration: none;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+.alarm-filter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+    .alarm-filter button {
+        height: 40px;
+        padding: 0 16px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        border-radius: 999px;
+        font-weight: 900;
+        color: #475569;
+        cursor: pointer;
+    }
+
+        .alarm-filter button.active {
+            background: #0f172a;
+            color: white;
+            border-color: #0f172a;
+        }
+
+.alarm-filter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+    .alarm-filter button {
+        height: 40px;
+        padding: 0 16px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        border-radius: 999px;
+        font-weight: 900;
+        color: #475569;
+        cursor: pointer;
+    }
+
+        .alarm-filter button.active {
+            background: #0f172a;
+            color: white;
+            border-color: #0f172a;
+        }
+.alarm-search {
+    margin-bottom: 12px;
+}
+
+    .alarm-search input {
+        width: 100%;
+        max-width: 420px;
+        height: 44px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 0 16px;
+        outline: none;
+        font-weight: 700;
+    }
+.alarm-type-filter {
+    margin-bottom: 18px;
+}
+
+    .alarm-type-filter select {
+        height: 42px;
+        min-width: 230px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: white;
+        padding: 0 14px;
+        font-weight: 800;
+        color: #334155;
+        outline: none;
+    }
+.alarm-type-filter {
+    margin-bottom: 18px;
+}
+
+    .alarm-type-filter select {
+        height: 42px;
+        min-width: 230px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: white;
+        padding: 0 14px;
+        font-weight: 800;
+        color: #334155;
+        outline: none;
+    }
+.alarm-settings {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 18px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+    .alarm-settings div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .alarm-settings span {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .alarm-settings input[type="number"] {
+        height: 38px;
+        width: 120px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0 10px;
+        font-weight: 800;
+    }
+
+    .alarm-settings label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        color: #334155;
+    }
+
+@media (max-width: 900px) {
+    .alarmlar-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .alarm-summary {
+        grid-template-columns: 1fr;
+    }
+}

@@ -11,7 +11,7 @@ export async function syncFromTMS({ start, end }) {
         TMSDespatchId: 0,
         VehicleId: 0,
         DocumentPrint: "",
-        WorkingTypesId: [3, 4, 33],
+        WorkingTypesId: Array.from({ length: 80 }, (_, i) => i + 1),
     };
 
     console.log("TMS REQUEST BODY:", JSON.stringify(body));
@@ -78,6 +78,8 @@ export function mapTMSRows(list) {
             sefer_tarihi: s?.DespatchDate ?? "",
             atama_yapan_kullanici: s?.TMSDespatchCreatedBy ?? "",
             atama_tarihi: s?.TMSDespatchCreatedDate ?? "",
+            vehicle_working_type_name: s?.VehicleWorkingTypeName ?? "",
+            vehicle_working_type_id: s?.VehicleWorkingTypeId ?? null,
             reel_durum: "YENİ",
         };
     });

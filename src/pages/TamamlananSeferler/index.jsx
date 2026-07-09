@@ -95,6 +95,12 @@ function getActualEtaDays(row) {
     return Number((diffMs / (1000 * 60 * 60 * 24)).toFixed(2));
 }
 
+function getRowKey(row) {
+    return row?.id ?? row?.sefer_no;
+}
+
+/* ---------------------------------- İkonlar ---------------------------------- */
+
 function IconColumns() {
     return (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -133,6 +139,110 @@ function IconChevronDown() {
     return (
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
             <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function IconRefresh({ spinning }) {
+    return (
+        <svg
+            className={spinning ? "spin-icon" : ""}
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+        >
+            <path
+                d="M20 11A8 8 0 1 0 18.5 16.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+            />
+            <path d="M20 5v6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function IconEdit() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+function IconSort({ direction }) {
+    return (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className={`sort-icon-svg ${direction || ""}`}>
+            <path d="M7 10l5-6 5 6" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" className="sort-arrow up" />
+            <path d="M7 14l5 6 5-6" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" className="sort-arrow down" />
+        </svg>
+    );
+}
+
+function IconTruck() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="7" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="2" />
+            <path d="M14 10h4l3 3v3h-7z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            <circle cx="7" cy="18" r="1.6" stroke="currentColor" strokeWidth="1.8" />
+            <circle cx="17.5" cy="18" r="1.6" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+    );
+}
+
+function IconClock() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2" />
+            <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function IconWeight() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="6" r="2.6" stroke="currentColor" strokeWidth="2" />
+            <path d="M7.5 10h9l2 10h-13z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function IconAlertTriangle() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4 2 20h20L12 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            <path d="M12 10v4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="17.4" r="0.9" fill="currentColor" />
+        </svg>
+    );
+}
+
+function IconTrendUp() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M3 16l6-6 4 4 8-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 5h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function IconCheckCircle() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+            <path d="M8 12.5l2.6 2.6L16 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function IconAlertCircle() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+            <path d="M12 8v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="16.2" r="0.9" fill="currentColor" />
         </svg>
     );
 }
@@ -178,6 +288,44 @@ const DEFAULT_COLUMNS = [
     { key: "ikaz_durumu", label: "İkaz", width: 110, type: "ikaz", filter: "select" },
     { key: "aciklama", label: "Açıklama", width: 260, type: "textLong", filter: "text" },
 ];
+
+// Global arama kutusunun eşleştireceği alanlar.
+const GLOBAL_SEARCH_KEYS = [
+    "sefer_no",
+    "arac_statu",
+    "plaka",
+    "treyler",
+    "surucu_ad_soyad",
+    "musteri_adi",
+    "musteri_siparis_no",
+    "hizmet_adi",
+    "proje_adi",
+    "yukleme_ili",
+    "teslim_ili",
+    "irsaliye_no",
+    "aciklama",
+];
+
+// Düzenleme modalinde değiştirilebilecek gerçek tablo alanları.
+// eta_durum ve ikaz_durumu ekrandaki hesaplanan alanlardır; doğrudan update edilmez.
+const EDIT_FIELDS = [
+    { key: "sefer_no", label: "Sefer No", type: "text", group: "Sefer Bilgileri" },
+    { key: "sefer_tarihi", label: "Sefer Tarihi", type: "text", group: "Sefer Bilgileri" },
+    { key: "arac_statu", label: "Araç Statü", type: "text", group: "Araç / Sürücü" },
+    { key: "plaka", label: "Plaka", type: "text", group: "Araç / Sürücü" },
+    { key: "treyler", label: "Treyler", type: "text", group: "Araç / Sürücü" },
+    { key: "surucu_ad_soyad", label: "Sürücü", type: "text", group: "Araç / Sürücü" },
+    { key: "musteri_adi", label: "Müşteri", type: "text", group: "Müşteri / Proje" },
+    { key: "musteri_siparis_no", label: "Sipariş No", type: "text", group: "Müşteri / Proje" },
+    { key: "hizmet_adi", label: "Hizmet", type: "text", group: "Müşteri / Proje" },
+    { key: "proje_adi", label: "Proje", type: "text", group: "Müşteri / Proje" },
+    { key: "yukleme_ili", label: "Yükleme İl", type: "text", group: "Lokasyon / Evrak" },
+    { key: "teslim_ili", label: "Son Teslim İl", type: "text", group: "Lokasyon / Evrak" },
+    { key: "irsaliye_no", label: "İrsaliye No", type: "text", group: "Lokasyon / Evrak" },
+];
+
+const SELECT_COL_WIDTH = 42;
+const ACTIONS_COL_WIDTH = 96;
 
 function CellValue({ col, row }) {
     if (col.key === "eta_durum") return <EtaBadge delayed={row.eta_gecikme} />;
@@ -237,6 +385,23 @@ function CellValue({ col, row }) {
     }
 
     return val ? <span>{val}</span> : <span className="muted">—</span>;
+}
+
+// Sıralama için satırdan karşılaştırılabilir bir değer üretir.
+function getSortValue(row, col) {
+    if (col.key === "eta_durum") return row.eta_gecikme ? 1 : 0;
+    if (col.type === "tonaj") return isTonajli(row) ? 1 : 0;
+    if (col.type === "ikaz") return isIkazli(row) ? 1 : 0;
+    if (col.type === "date") return parseDate(row[col.key])?.getTime() ?? -Infinity;
+    if (col.type === "last") return normalizeTR(getLastValue(row[col.key]));
+    if (col.type === "gun" || col.type === "gecikme") {
+        const num = Number(row[col.key]);
+        return Number.isFinite(num) ? num : -Infinity;
+    }
+
+    const val = row[col.key];
+    if (val === null || val === undefined || val === "") return "";
+    return normalizeTR(String(val));
 }
 
 function diffText(startValue, endValue) {
@@ -416,42 +581,166 @@ function RowDetails({ row }) {
     );
 }
 
-async function enrichEta(row) {
-    let etaReferansGun = row.eta_referans_gun || null;
-    let etaGerceklesenGun = row.eta_gerceklesen_gun ?? getActualEtaDays(row);
-    let etaGecikme = Boolean(row.eta_gecikme);
-    let etaGecikmeSuresi = row.eta_gecikme_suresi ?? null;
+/* ------------------------------ Düzenleme Modalı ------------------------------ */
 
-    if (!etaReferansGun) {
-        const cikis = normalizeTR(getLastValue(row.yukleme_ili));
-        const varis = normalizeTR(getLastValue(row.teslim_ili));
+function EditSeferModal({ row, saving, onClose, onSave }) {
+    const groupedFields = useMemo(() => {
+        return EDIT_FIELDS.reduce((acc, field) => {
+            const group = field.group || "Genel";
+            if (!acc[group]) acc[group] = [];
+            acc[group].push(field);
+            return acc;
+        }, {});
+    }, []);
 
-        if (cikis && varis) {
-            const { data } = await supabase
-                .from("eta_referanslari")
-                .select("*")
-                .ilike("cikis", `${cikis}%`)
-                .ilike("varis", `${varis}%`)
-                .maybeSingle();
+    const [form, setForm] = useState(() => {
+        const initial = {};
 
-            if (data) etaReferansGun = data["gün"];
-        }
+        EDIT_FIELDS.forEach((field) => {
+            initial[field.key] = row?.[field.key] ?? "";
+        });
+
+        initial.tonaj_durumu = isTonajli(row);
+        initial.aciklama = row?.aciklama || "";
+
+        return initial;
+    });
+
+    if (!row) return null;
+
+    function updateField(key, value) {
+        setForm((prev) => ({ ...prev, [key]: value }));
     }
 
-    const etaDays = parseGunValue(etaReferansGun);
-
-    if (etaGerceklesenGun && etaDays) {
-        etaGecikme = etaGerceklesenGun > etaDays;
-        etaGecikmeSuresi = etaGecikme ? Number((etaGerceklesenGun - etaDays).toFixed(2)) : 0;
+    function normalizeNumber(value) {
+        if (value === "" || value === null || value === undefined) return null;
+        const parsed = Number(String(value).replace(",", "."));
+        return Number.isFinite(parsed) ? parsed : null;
     }
 
-    return {
-        ...row,
-        eta_referans_gun: etaReferansGun,
-        eta_gerceklesen_gun: etaGerceklesenGun,
-        eta_gecikme: etaGecikme,
-        eta_gecikme_suresi: etaGecikmeSuresi,
-    };
+    function handleSubmit(e) {
+        e.preventDefault();
+
+        const payload = {};
+
+        EDIT_FIELDS.forEach((field) => {
+            const value = form[field.key];
+
+            if (field.type === "number") {
+                payload[field.key] = normalizeNumber(value);
+            } else {
+                payload[field.key] = String(value ?? "").trim();
+            }
+        });
+
+        payload.tonaj_durumu = form.tonaj_durumu ? TONAJ_ACIKLAMA : "";
+        payload.aciklama = String(form.aciklama ?? "").trim();
+
+        onSave(payload);
+    }
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="edit-modal edit-modal-wide" onClick={(e) => e.stopPropagation()}>
+                <div className="edit-modal-header">
+                    <div>
+                        <span className="edit-modal-eyebrow">Sefer Düzenle</span>
+                        <h3>{row.sefer_no || "Sefer"}</h3>
+                    </div>
+
+                    <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Kapat">
+                        <IconX />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                    <div className="edit-form-sections">
+                        {Object.entries(groupedFields).map(([groupName, fields]) => (
+                            <section className="edit-section" key={groupName}>
+                                <div className="edit-section-title">{groupName}</div>
+
+                                <div className="edit-form-grid edit-form-grid-wide">
+                                    {fields.map((field) => (
+                                        <label className="edit-field" key={field.key}>
+                                            <span>{field.label}</span>
+                                            <input
+                                                type={field.type}
+                                                step={field.type === "number" ? "0.01" : undefined}
+                                                value={form[field.key] ?? ""}
+                                                onChange={(e) => updateField(field.key, e.target.value)}
+                                            />
+                                        </label>
+                                    ))}
+                                </div>
+                            </section>
+                        ))}
+
+                        <section className="edit-section">
+                            <div className="edit-section-title">Durum / İkaz</div>
+
+                            <label className="edit-field edit-toggle-field edit-field-full">
+                                <span>Tonaj Durumu</span>
+
+                                <button
+                                    type="button"
+                                    className={`toggle-switch ${form.tonaj_durumu ? "is-on" : ""}`}
+                                    onClick={() => updateField("tonaj_durumu", !form.tonaj_durumu)}
+                                >
+                                    <i />
+                                </button>
+
+                                <span className="toggle-hint">
+                                    {form.tonaj_durumu ? "Tonajlı" : "Tonajsız"}
+                                </span>
+                            </label>
+
+                            <label className="edit-field edit-field-full">
+                                <span>Açıklama / İkaz</span>
+                                <textarea
+                                    rows={4}
+                                    value={form.aciklama}
+                                    onChange={(e) => updateField("aciklama", e.target.value)}
+                                    placeholder="İkaz veya not girin. Boş bırakılırsa ikaz kalkar."
+                                />
+                            </label>
+                        </section>
+                    </div>
+
+                    <div className="edit-modal-footer">
+                        <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>
+                            Vazgeç
+                        </button>
+
+                        <button type="submit" className="btn-primary" disabled={saving}>
+                            {saving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+/* --------------------------------- Toast Alanı --------------------------------- */
+
+function ToastStack({ toasts, onDismiss }) {
+    if (!toasts.length) return null;
+
+    return (
+        <div className="toast-stack">
+            {toasts.map((toast) => (
+                <div className={`toast toast-${toast.type}`} key={toast.id}>
+                    <span className="toast-icon">
+                        {toast.type === "success" ? <IconCheckCircle /> : <IconAlertCircle />}
+                    </span>
+                    <span className="toast-message">{toast.message}</span>
+                    <button type="button" className="toast-close" onClick={() => onDismiss(toast.id)} aria-label="Kapat">
+                        <IconX />
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
 }
 
 // Bir sütunun geçerli filtre değerine göre satırı eşleştirir.
@@ -493,9 +782,54 @@ function matchColumnFilter(row, col, filterValue) {
     return normalizeTR(String(val ?? "")).includes(normalizeTR(filterValue));
 }
 
+function matchGlobalSearch(row, query) {
+    if (!query) return true;
+    const needle = normalizeTR(query);
+    return GLOBAL_SEARCH_KEYS.some((key) => normalizeTR(String(row[key] ?? "")).includes(needle));
+}
+
+async function enrichEta(row) {
+    let etaReferansGun = row.eta_referans_gun || null;
+    let etaGerceklesenGun = row.eta_gerceklesen_gun ?? getActualEtaDays(row);
+    let etaGecikme = Boolean(row.eta_gecikme);
+    let etaGecikmeSuresi = row.eta_gecikme_suresi ?? null;
+
+    if (!etaReferansGun) {
+        const cikis = normalizeTR(getLastValue(row.yukleme_ili));
+        const varis = normalizeTR(getLastValue(row.teslim_ili));
+
+        if (cikis && varis) {
+            const { data } = await supabase
+                .from("eta_referanslari")
+                .select("*")
+                .ilike("cikis", `${cikis}%`)
+                .ilike("varis", `${varis}%`)
+                .maybeSingle();
+
+            if (data) etaReferansGun = data["gün"];
+        }
+    }
+
+    const etaDays = parseGunValue(etaReferansGun);
+
+    if (etaGerceklesenGun && etaDays) {
+        etaGecikme = etaGerceklesenGun > etaDays;
+        etaGecikmeSuresi = etaGecikme ? Number((etaGerceklesenGun - etaDays).toFixed(2)) : 0;
+    }
+
+    return {
+        ...row,
+        eta_referans_gun: etaReferansGun,
+        eta_gerceklesen_gun: etaGerceklesenGun,
+        eta_gecikme: etaGecikme,
+        eta_gecikme_suresi: etaGecikmeSuresi,
+    };
+}
+
 function TamamlananSeferler() {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -503,6 +837,12 @@ function TamamlananSeferler() {
     const [expandedRows, setExpandedRows] = useState({});
     const [showFilters, setShowFilters] = useState(false);
     const [columnFilters, setColumnFilters] = useState({});
+    const [globalSearch, setGlobalSearch] = useState("");
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+    const [selectedIds, setSelectedIds] = useState({});
+    const [editingRow, setEditingRow] = useState(null);
+    const [savingEdit, setSavingEdit] = useState(false);
+    const [toasts, setToasts] = useState([]);
     const resizingRef = useRef(null);
 
     const [columnWidths, setColumnWidths] = useState(() => {
@@ -540,6 +880,58 @@ function TamamlananSeferler() {
         }
     });
 
+    /* ------------------------------- Toast yardımcıları ------------------------------- */
+
+    const addToast = useCallback((message, type = "info") => {
+        const id = `${Date.now()}-${Math.random()}`;
+        setToasts((prev) => [...prev, { id, message, type }]);
+        setTimeout(() => {
+            setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, 3600);
+    }, []);
+
+    const dismissToast = useCallback((id) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, []);
+
+    /* --------------------------------- Veri yükleme --------------------------------- */
+
+    const loadData = useCallback(
+        async ({ silent = false } = {}) => {
+            if (silent) setRefreshing(true);
+            else setLoading(true);
+
+            try {
+                const { data, error } = await supabase
+                    .from("tamamlanan_seferler")
+                    .select("*")
+                    .order("sefer_tarihi", { ascending: false });
+
+                if (error) throw error;
+
+                const enriched = [];
+                for (const row of data || []) {
+                    enriched.push(await enrichEta(row));
+                }
+
+                setRows(enriched);
+                if (silent) addToast("Liste güncellendi.", "success");
+            } catch (err) {
+                console.error("Tamamlanan seferler alınamadı:", err);
+                addToast(`Veriler alınamadı: ${err.message || "Bilinmeyen hata"}`, "error");
+            } finally {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        },
+        [addToast]
+    );
+
+    useEffect(() => {
+        loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const toggleExpanded = useCallback((id) => {
         setExpandedRows((prev) => ({
             ...prev,
@@ -561,32 +953,27 @@ function TamamlananSeferler() {
 
     const clearColumnFilters = useCallback(() => setColumnFilters({}), []);
 
-    useEffect(() => {
-        async function loadData() {
-            setLoading(true);
+    /* -------------------------------- Seçim yönetimi -------------------------------- */
 
-            try {
-                const { data, error } = await supabase
-                    .from("tamamlanan_seferler")
-                    .select("*")
-                    .order("sefer_tarihi", { ascending: false });
+    const toggleSelectRow = useCallback((key) => {
+        setSelectedIds((prev) => {
+            const next = { ...prev };
+            if (next[key]) delete next[key];
+            else next[key] = true;
+            return next;
+        });
+    }, []);
 
-                if (error) throw error;
+    const clearSelection = useCallback(() => setSelectedIds({}), []);
 
-                const enriched = [];
-                for (const row of data || []) {
-                    enriched.push(await enrichEta(row));
-                }
+    /* -------------------------------- Sıralama yönetimi -------------------------------- */
 
-                setRows(enriched);
-            } catch (err) {
-                console.error("Tamamlanan seferler alınamadı:", err);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        loadData();
+    const requestSort = useCallback((key) => {
+        setSortConfig((prev) => {
+            if (prev.key !== key) return { key, direction: "asc" };
+            if (prev.direction === "asc") return { key, direction: "desc" };
+            return { key: null, direction: null };
+        });
     }, []);
 
     const delayedCount = useMemo(() => {
@@ -601,6 +988,13 @@ function TamamlananSeferler() {
         return rows.filter(isIkazli).length;
     }, [rows]);
 
+    const avgDelayDays = useMemo(() => {
+        const delayed = rows.filter((r) => r.eta_gecikme && r.eta_gecikme_suresi);
+        if (!delayed.length) return 0;
+        const total = delayed.reduce((sum, r) => sum + Number(r.eta_gecikme_suresi || 0), 0);
+        return Number((total / delayed.length).toFixed(1));
+    }, [rows]);
+
     // Araç statü sütunu için mevcut verideki benzersiz değerlerden dinamik seçenek listesi.
     const aracStatuOptions = useMemo(() => {
         return Array.from(new Set(rows.map((r) => r.arac_statu).filter(Boolean))).sort((a, b) =>
@@ -613,7 +1007,7 @@ function TamamlananSeferler() {
         [columnFilters]
     );
 
-    const activeFilterCount = activeColumnFilterEntries.length;
+    const activeFilterCount = activeColumnFilterEntries.length + (globalSearch ? 1 : 0);
 
     const filteredRows = useMemo(() => {
         return rows.filter((row) => {
@@ -629,6 +1023,8 @@ function TamamlananSeferler() {
 
             if (onlyEtaMismatch && !row.eta_gecikme) return false;
 
+            if (!matchGlobalSearch(row, globalSearch)) return false;
+
             for (const [key, value] of activeColumnFilterEntries) {
                 const col = DEFAULT_COLUMNS.find((c) => c.key === key);
                 if (col && !matchColumnFilter(row, col, value)) return false;
@@ -636,7 +1032,55 @@ function TamamlananSeferler() {
 
             return true;
         });
-    }, [rows, startDate, endDate, onlyEtaMismatch, activeColumnFilterEntries]);
+    }, [rows, startDate, endDate, onlyEtaMismatch, activeColumnFilterEntries, globalSearch]);
+
+    const sortedRows = useMemo(() => {
+        if (!sortConfig.key) return filteredRows;
+
+        const col = DEFAULT_COLUMNS.find((c) => c.key === sortConfig.key);
+        if (!col) return filteredRows;
+
+        const copy = [...filteredRows];
+        const dir = sortConfig.direction === "asc" ? 1 : -1;
+
+        copy.sort((a, b) => {
+            const va = getSortValue(a, col);
+            const vb = getSortValue(b, col);
+            if (va < vb) return -1 * dir;
+            if (va > vb) return 1 * dir;
+            return 0;
+        });
+
+        return copy;
+    }, [filteredRows, sortConfig]);
+
+    const selectedCount = useMemo(
+        () => Object.values(selectedIds).filter(Boolean).length,
+        [selectedIds]
+    );
+
+    const allVisibleSelected = useMemo(() => {
+        if (!sortedRows.length) return false;
+        return sortedRows.every((row) => selectedIds[getRowKey(row)]);
+    }, [sortedRows, selectedIds]);
+
+    const toggleSelectAllVisible = useCallback(() => {
+        setSelectedIds((prev) => {
+            if (allVisibleSelected) {
+                const next = { ...prev };
+                sortedRows.forEach((row) => delete next[getRowKey(row)]);
+                return next;
+            }
+
+            const next = { ...prev };
+            sortedRows.forEach((row) => {
+                next[getRowKey(row)] = true;
+            });
+            return next;
+        });
+    }, [allVisibleSelected, sortedRows]);
+
+    /* --------------------------------- Excel dışa aktarım --------------------------------- */
 
     function createExcelHeaderStyle(bg = "1E293B") {
         return {
@@ -681,13 +1125,8 @@ function TamamlananSeferler() {
         }
     }
 
-    function exportAllToExcel() {
-        if (!filteredRows.length) {
-            alert("Excel'e aktarılacak kayıt bulunamadı.");
-            return;
-        }
-
-        const reportRows = filteredRows.map((row) => ({
+    function buildReportRow(row, forcedStatusLabel) {
+        return {
             "Sefer No": row.sefer_no || "",
             "Sefer Tarihi": formatDate(row.sefer_tarihi),
             "Araç Statü": row.arac_statu || "",
@@ -704,25 +1143,33 @@ function TamamlananSeferler() {
             "ETA Referans Gün": row.eta_referans_gun || "",
             "Gerçekleşen Gün": row.eta_gerceklesen_gun || "",
             "Gecikme Süresi": row.eta_gecikme_suresi || "",
-            "ETA Durum": row.eta_gecikme ? "Gecikti" : "Normal",
+            "ETA Durum": forcedStatusLabel || (row.eta_gecikme ? "Gecikti" : "Normal"),
             "Tonaj": isTonajli(row) ? "Tonajlı" : "",
             "İkaz": isIkazli(row) ? "İkazlı" : "",
             "Açıklama": row.aciklama || "",
-        }));
+        };
+    }
 
+    function exportRowsToExcel(sourceRows, { title, filenamePrefix, sheetName, forcedStatusLabel, emptyMessage }) {
+        if (!sourceRows.length) {
+            addToast(emptyMessage || "Excel'e aktarılacak kayıt bulunamadı.", "error");
+            return false;
+        }
+
+        const reportRows = sourceRows.map((row) => buildReportRow(row, forcedStatusLabel));
         const worksheet = XLSX.utils.json_to_sheet(reportRows, { origin: "A6" });
+        const dateFilterLine =
+            startDate || endDate
+                ? `Tarih Filtresi: ${startDate || "Başlangıç yok"} - ${endDate || "Bitiş yok"}`
+                : "Tarih Filtresi: Tüm tarih aralığı";
 
         XLSX.utils.sheet_add_aoa(
             worksheet,
             [
-                ["TAMAMLANAN SEFERLER RAPORU"],
+                [title],
                 [`Rapor Tarihi: ${formatDate(new Date())}`],
-                [`Toplam Sefer: ${filteredRows.length}`],
-                [
-                    startDate || endDate
-                        ? `Tarih Filtresi: ${startDate || "Başlangıç yok"} - ${endDate || "Bitiş yok"}`
-                        : "Tarih Filtresi: Tüm tarih aralığı",
-                ],
+                [`Toplam Kayıt: ${sourceRows.length}`],
+                [dateFilterLine],
                 [""],
             ],
             { origin: "A1" }
@@ -765,110 +1212,89 @@ function TamamlananSeferler() {
         styleExcelWorksheet(worksheet, 5);
 
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Tamamlanan Seferler");
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
         XLSX.writeFile(
             workbook,
-            `tamamlanan-seferler-${new Date().toISOString().slice(0, 10)}.xlsx`,
+            `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.xlsx`,
             { cellStyles: true }
         );
+
+        addToast(`${sourceRows.length} kayıt Excel'e aktarıldı.`, "success");
+        return true;
+    }
+
+    function exportAllToExcel() {
+        exportRowsToExcel(sortedRows, {
+            title: "TAMAMLANAN SEFERLER RAPORU",
+            filenamePrefix: "tamamlanan-seferler",
+            sheetName: "Tamamlanan Seferler",
+        });
     }
 
     function exportEtaMismatchToExcel() {
-        const etaRows = filteredRows.filter((row) => row.eta_gecikme);
+        const etaRows = sortedRows.filter((row) => row.eta_gecikme);
 
-        if (!etaRows.length) {
-            alert("Excel'e aktarılacak ETA uyumsuzluğu bulunamadı.");
-            return false;
-        }
-
-        const reportRows = etaRows.map((row) => ({
-            "Sefer No": row.sefer_no || "",
-            "Sefer Tarihi": formatDate(row.sefer_tarihi),
-            "Araç Statü": row.arac_statu || "",
-            "Plaka": row.plaka || "",
-            "Treyler": row.treyler || "",
-            "Sürücü": row.surucu_ad_soyad || "",
-            "Müşteri": row.musteri_adi || "",
-            "Sipariş No": row.musteri_siparis_no || "",
-            "Hizmet": row.hizmet_adi || "",
-            "Proje": row.proje_adi || "",
-            "Yükleme İl": row.yukleme_ili || "",
-            "Son Teslim İl": row.teslim_ili || "",
-            "İrsaliye No": row.irsaliye_no || "",
-            "ETA Referans Gün": row.eta_referans_gun || "",
-            "Gerçekleşen Gün": row.eta_gerceklesen_gun || "",
-            "Gecikme Süresi": row.eta_gecikme_suresi || "",
-            "ETA Durum": "Uyumsuz / Gecikti",
-            "Tonaj": isTonajli(row) ? "Tonajlı" : "",
-            "İkaz": isIkazli(row) ? "İkazlı" : "",
-            "Açıklama": row.aciklama || "",
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(reportRows, { origin: "A6" });
-
-        XLSX.utils.sheet_add_aoa(
-            worksheet,
-            [
-                ["ETA UYUMSUZLUK RAPORU"],
-                [`Rapor Tarihi: ${formatDate(new Date())}`],
-                [`Toplam Uyumsuz Sefer: ${etaRows.length}`],
-                [
-                    startDate || endDate
-                        ? `Tarih Filtresi: ${startDate || "Başlangıç yok"} - ${endDate || "Bitiş yok"}`
-                        : "Tarih Filtresi: Tüm tarih aralığı",
-                ],
-                [""],
-            ],
-            { origin: "A1" }
-        );
-
-        worksheet["!merges"] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 19 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 19 } },
-            { s: { r: 2, c: 0 }, e: { r: 2, c: 19 } },
-            { s: { r: 3, c: 0 }, e: { r: 3, c: 19 } },
-            { s: { r: 4, c: 0 }, e: { r: 4, c: 19 } },
-        ];
-
-        worksheet["!cols"] = [
-            { wch: 15 }, { wch: 15 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 24 },
-            { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 26 }, { wch: 26 },
-            { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 40 },
-        ];
-
-        worksheet["!rows"] = [
-            { hpt: 34 },
-            { hpt: 24 },
-            { hpt: 24 },
-            { hpt: 24 },
-            { hpt: 10 },
-            { hpt: 30 },
-        ];
-
-        worksheet["!autofilter"] = {
-            ref: `A6:T${reportRows.length + 6}`,
-        };
-
-        worksheet["A1"].s = {
-            font: { bold: true, sz: 22, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "0F172A" } },
-            alignment: { horizontal: "center", vertical: "center" },
-        };
-
-        styleExcelWorksheet(worksheet, 5);
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "ETA Raporu");
-
-        XLSX.writeFile(
-            workbook,
-            `eta-uyumsuzluk-raporu-${new Date().toISOString().slice(0, 10)}.xlsx`,
-            { cellStyles: true }
-        );
-
-        return true;
+        return exportRowsToExcel(etaRows, {
+            title: "ETA UYUMSUZLUK RAPORU",
+            filenamePrefix: "eta-uyumsuzluk-raporu",
+            sheetName: "ETA Raporu",
+            forcedStatusLabel: "Uyumsuz / Gecikti",
+            emptyMessage: "Excel'e aktarılacak ETA uyumsuzluğu bulunamadı.",
+        });
     }
+
+    function exportSelectedToExcel() {
+        const selectedRows = sortedRows.filter((row) => selectedIds[getRowKey(row)]);
+
+        const success = exportRowsToExcel(selectedRows, {
+            title: "SEÇİLİ SEFERLER RAPORU",
+            filenamePrefix: "secili-seferler",
+            sheetName: "Seçili Seferler",
+            emptyMessage: "Aktarılacak seçili sefer bulunamadı.",
+        });
+
+        if (success) clearSelection();
+    }
+
+    /* ---------------------------------- Düzenleme ---------------------------------- */
+
+    const handleSaveEdit = useCallback(
+        async (formValues) => {
+            if (!editingRow) return;
+
+            setSavingEdit(true);
+            const idKey = editingRow.id !== undefined && editingRow.id !== null ? "id" : "sefer_no";
+            const idValue = editingRow.id ?? editingRow.sefer_no;
+
+            try {
+                const { data, error } = await supabase
+                    .from("tamamlanan_seferler")
+                    .update(formValues)
+                    .eq(idKey, idValue)
+                    .select()
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                const targetKey = getRowKey(editingRow);
+                setRows((prev) =>
+                    prev.map((r) =>
+                        getRowKey(r) === targetKey ? { ...r, ...formValues, ...(data || {}) } : r
+                    )
+                );
+
+                addToast("Sefer bilgileri güncellendi.", "success");
+                setEditingRow(null);
+            } catch (err) {
+                console.error("Sefer güncellenemedi:", err);
+                addToast(`Güncelleme başarısız: ${err.message || "Bilinmeyen hata"}`, "error");
+            } finally {
+                setSavingEdit(false);
+            }
+        },
+        [editingRow, addToast]
+    );
 
     const orderedColumns = useMemo(() => {
         const map = new Map(DEFAULT_COLUMNS.map((col) => [col.key, col]));
@@ -882,7 +1308,7 @@ function TamamlananSeferler() {
     }, [orderedColumns, visibleColumnKeys]);
 
     const columnsWithLayout = useMemo(() => {
-        let stickyLeft = 0;
+        let stickyLeft = SELECT_COL_WIDTH;
 
         return visibleOrderedColumns.map((col) => {
             const width = columnWidths[col.key] || col.width;
@@ -896,6 +1322,8 @@ function TamamlananSeferler() {
             return nextCol;
         });
     }, [visibleOrderedColumns, columnWidths]);
+
+    const totalColumnCount = columnsWithLayout.length + 2; // seçim + işlemler
 
     const toggleColumn = useCallback((key) => {
         const col = DEFAULT_COLUMNS.find((x) => x.key === key);
@@ -1107,6 +1535,8 @@ function TamamlananSeferler() {
 
     return (
         <div className="tamamlanan-page">
+            <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
             <div className="tamamlanan-header">
                 <div className="tamamlanan-title-area">
                     <span className="tamamlanan-eyebrow">Operasyon Yönetimi</span>
@@ -1115,23 +1545,33 @@ function TamamlananSeferler() {
 
                 <div className="tamamlanan-stats">
                     <div className="stat-card">
+                        <span className="stat-icon-wrap"><IconTruck /></span>
                         <strong>{filteredRows.length}</strong>
                         <span>Toplam Sefer</span>
                     </div>
 
                     <div className="stat-card danger">
+                        <span className="stat-icon-wrap"><IconClock /></span>
                         <strong>{delayedCount}</strong>
                         <span>ETA Gecikmiş</span>
                     </div>
 
                     <div className="stat-card warning">
+                        <span className="stat-icon-wrap"><IconWeight /></span>
                         <strong>{tonajCount}</strong>
                         <span>Tonajlı</span>
                     </div>
 
                     <div className="stat-card danger">
+                        <span className="stat-icon-wrap"><IconAlertTriangle /></span>
                         <strong>{ikazCount}</strong>
                         <span>İkazlı</span>
+                    </div>
+
+                    <div className="stat-card info">
+                        <span className="stat-icon-wrap"><IconTrendUp /></span>
+                        <strong>{avgDelayDays}</strong>
+                        <span>Ort. Gecikme (Gün)</span>
                     </div>
                 </div>
             </div>
@@ -1141,6 +1581,38 @@ function TamamlananSeferler() {
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
+
+                <div className={`global-search-wrap ${globalSearch ? "is-active" : ""}`}>
+                    <span className="filter-search-icon">
+                        <IconSearch />
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="Tüm sütunlarda ara..."
+                        value={globalSearch}
+                        onChange={(e) => setGlobalSearch(e.target.value)}
+                    />
+                    {globalSearch && (
+                        <button
+                            type="button"
+                            className="filter-clear-btn"
+                            onClick={() => setGlobalSearch("")}
+                            aria-label="Aramayı temizle"
+                        >
+                            <IconX />
+                        </button>
+                    )}
+                </div>
+
+                <button
+                    className="listele-btn refresh-btn"
+                    type="button"
+                    onClick={() => loadData({ silent: true })}
+                    disabled={refreshing || loading}
+                >
+                    <IconRefresh spinning={refreshing} />
+                    Yenile
+                </button>
 
                 <button
                     className={`listele-btn ${onlyEtaMismatch ? "danger-btn" : ""}`}
@@ -1189,9 +1661,31 @@ function TamamlananSeferler() {
                 </button>
             </div>
 
+            {selectedCount > 0 && (
+                <div className="bulk-actions-bar">
+                    <span className="bulk-actions-label">
+                        <b>{selectedCount}</b> sefer seçildi
+                    </span>
+                    <button type="button" className="bulk-action-btn" onClick={exportSelectedToExcel}>
+                        Seçilenleri Excel'e Aktar
+                    </button>
+                    <button type="button" className="bulk-clear-btn" onClick={clearSelection}>
+                        Seçimi Temizle
+                    </button>
+                </div>
+            )}
+
             {showFilters && activeFilterCount > 0 && (
                 <div className="active-filters-bar">
                     <span className="active-filters-label">Aktif filtreler:</span>
+                    {globalSearch && (
+                        <span className="filter-chip">
+                            Genel Arama: <b>{globalSearch}</b>
+                            <button type="button" onClick={() => setGlobalSearch("")} aria-label="Aramayı kaldır">
+                                <IconX />
+                            </button>
+                        </span>
+                    )}
                     {activeColumnFilterEntries.map(([key, value]) => {
                         const col = DEFAULT_COLUMNS.find((c) => c.key === key);
                         return (
@@ -1203,7 +1697,14 @@ function TamamlananSeferler() {
                             </span>
                         );
                     })}
-                    <button type="button" className="clear-all-filters-btn" onClick={clearColumnFilters}>
+                    <button
+                        type="button"
+                        className="clear-all-filters-btn"
+                        onClick={() => {
+                            clearColumnFilters();
+                            setGlobalSearch("");
+                        }}
+                    >
                         Tümünü Temizle
                     </button>
                 </div>
@@ -1213,31 +1714,59 @@ function TamamlananSeferler() {
                 <div className="table-wrapper">
                     <table className="tamamlanan-table">
                         <colgroup>
+                            <col style={{ width: SELECT_COL_WIDTH, minWidth: SELECT_COL_WIDTH }} />
                             {columnsWithLayout.map((col) => (
                                 <col key={col.key} style={{ width: col.width, minWidth: col.width }} />
                             ))}
+                            <col style={{ width: ACTIONS_COL_WIDTH, minWidth: ACTIONS_COL_WIDTH }} />
                         </colgroup>
 
                         <thead>
                             <tr>
-                                {columnsWithLayout.map((col) => (
-                                    <th
-                                        key={col.key}
-                                        className={[
-                                            col.sticky ? "sticky-col th-sticky" : "",
-                                            "resizable-th",
-                                            columnFilters[col.key] ? "has-column-filter" : "",
-                                        ].filter(Boolean).join(" ")}
-                                        style={col.sticky ? { left: col.left } : undefined}
-                                    >
-                                        <span>{col.label}</span>
-                                        <span className="column-resizer" onMouseDown={(e) => startResize(e, col)} />
-                                    </th>
-                                ))}
+                                <th className="sticky-col th-sticky select-col-th" style={{ left: 0 }}>
+                                    <input
+                                        type="checkbox"
+                                        className="row-checkbox"
+                                        checked={allVisibleSelected}
+                                        onChange={toggleSelectAllVisible}
+                                        aria-label="Tümünü seç"
+                                    />
+                                </th>
+
+                                {columnsWithLayout.map((col) => {
+                                    const isSorted = sortConfig.key === col.key;
+                                    return (
+                                        <th
+                                            key={col.key}
+                                            className={[
+                                                col.sticky ? "sticky-col th-sticky" : "",
+                                                "resizable-th",
+                                                "sortable-th",
+                                                columnFilters[col.key] ? "has-column-filter" : "",
+                                                isSorted ? "is-sorted" : "",
+                                            ].filter(Boolean).join(" ")}
+                                            style={col.sticky ? { left: col.left } : undefined}
+                                        >
+                                            <span className="th-label-btn" onClick={() => requestSort(col.key)}>
+                                                <span>{col.label}</span>
+                                                <span className="sort-icon">
+                                                    <IconSort direction={isSorted ? sortConfig.direction : null} />
+                                                </span>
+                                            </span>
+                                            <span className="column-resizer" onMouseDown={(e) => startResize(e, col)} />
+                                        </th>
+                                    );
+                                })}
+
+                                <th className="actions-col-th sticky-right" style={{ right: 0 }}>
+                                    İşlemler
+                                </th>
                             </tr>
 
                             {showFilters && (
                                 <tr className="filter-row">
+                                    <th className="sticky-col select-col-th" style={{ left: 0, top: 40 }} />
+
                                     {columnsWithLayout.map((col) => (
                                         <th
                                             key={`filter-${col.key}`}
@@ -1251,22 +1780,38 @@ function TamamlananSeferler() {
                                             {renderFilterCell(col)}
                                         </th>
                                     ))}
+
+                                    <th className="actions-col-th sticky-right filter-th" style={{ right: 0, top: 40 }}>
+                                        <span className="filter-cell-hint muted-hint">Filtre yok</span>
+                                    </th>
                                 </tr>
                             )}
                         </thead>
 
                         <tbody>
-                            {loading && (
-                                <tr>
-                                    <td colSpan={columnsWithLayout.length} className="empty-cell">
-                                        Yükleniyor...
-                                    </td>
-                                </tr>
-                            )}
+                            {loading &&
+                                Array.from({ length: 8 }).map((_, i) => (
+                                    <tr className="skeleton-row" key={`skeleton-${i}`}>
+                                        <td className="sticky-col" style={{ left: 0 }}>
+                                            <div className="skeleton-bar" style={{ width: 16 }} />
+                                        </td>
+                                        {columnsWithLayout.map((col) => (
+                                            <td key={col.key} className={col.sticky ? "sticky-col" : ""} style={col.sticky ? { left: col.left } : undefined}>
+                                                <div
+                                                    className="skeleton-bar"
+                                                    style={{ width: `${45 + ((i * 13 + col.width) % 40)}%` }}
+                                                />
+                                            </td>
+                                        ))}
+                                        <td className="sticky-right" style={{ right: 0 }}>
+                                            <div className="skeleton-bar" style={{ width: 28 }} />
+                                        </td>
+                                    </tr>
+                                ))}
 
-                            {!loading && filteredRows.length === 0 && (
+                            {!loading && sortedRows.length === 0 && (
                                 <tr>
-                                    <td colSpan={columnsWithLayout.length} className="empty-cell">
+                                    <td colSpan={totalColumnCount} className="empty-cell">
                                         {activeFilterCount > 0 || onlyEtaMismatch || startDate || endDate
                                             ? "Filtrelere uyan sefer bulunamadı."
                                             : "Tamamlanan sefer bulunamadı."}
@@ -1274,15 +1819,26 @@ function TamamlananSeferler() {
                                 </tr>
                             )}
 
-                            {!loading && filteredRows.map((row) => {
-                                const rowId = row.id || row.sefer_no;
+                            {!loading && sortedRows.map((row) => {
+                                const rowId = getRowKey(row);
+                                const isSelected = Boolean(selectedIds[rowId]);
 
                                 return (
                                     <Fragment key={rowId}>
                                         <tr
-                                            className={`${row.eta_gecikme ? "is-delayed" : ""} clickable-row ${expandedRows[rowId] ? "is-expanded" : ""}`}
+                                            className={`${row.eta_gecikme ? "is-delayed" : ""} clickable-row ${expandedRows[rowId] ? "is-expanded" : ""} ${isSelected ? "is-selected" : ""}`}
                                             onClick={() => toggleExpanded(rowId)}
                                         >
+                                            <td className="sticky-col select-col-td" style={{ left: 0 }} onClick={(e) => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    className="row-checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleSelectRow(rowId)}
+                                                    aria-label="Satırı seç"
+                                                />
+                                            </td>
+
                                             {columnsWithLayout.map((col) => (
                                                 <td
                                                     key={col.key}
@@ -1292,11 +1848,23 @@ function TamamlananSeferler() {
                                                     <CellValue col={col} row={row} />
                                                 </td>
                                             ))}
+
+                                            <td className="actions-col-td sticky-right" style={{ right: 0 }} onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    type="button"
+                                                    className="edit-icon-btn"
+                                                    onClick={() => setEditingRow(row)}
+                                                    title="Seferi düzenle"
+                                                >
+                                                    <IconEdit />
+                                                    Düzenle
+                                                </button>
+                                            </td>
                                         </tr>
 
                                         {expandedRows[rowId] && (
                                             <tr className="detail-row">
-                                                <td colSpan={columnsWithLayout.length}>
+                                                <td colSpan={totalColumnCount}>
                                                     <RowDetails row={row} />
                                                 </td>
                                             </tr>
@@ -1317,6 +1885,15 @@ function TamamlananSeferler() {
                     onReorderColumns={reorderColumns}
                     onReset={resetColumnLayout}
                     onClose={() => setShowSutunDuzeni(false)}
+                />
+            )}
+
+            {editingRow && (
+                <EditSeferModal
+                    row={editingRow}
+                    saving={savingEdit}
+                    onClose={() => setEditingRow(null)}
+                    onSave={handleSaveEdit}
                 />
             )}
         </div>

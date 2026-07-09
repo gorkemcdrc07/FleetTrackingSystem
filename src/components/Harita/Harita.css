@@ -1,0 +1,593 @@
+﻿.leaflet-container {
+    width: 100%;
+    height: 100%;
+}
+
+.map-popup {
+    width: 300px;
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.popup-plate {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.popup-status {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+    .popup-status.moving {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .popup-status.idle {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .popup-status.park {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+.popup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+    .popup-grid span {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .popup-grid strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 14px;
+    }
+
+.popup-address {
+    margin-top: 18px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.map-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+    .map-filters input {
+        flex: 1;
+        min-width: 240px;
+        height: 46px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        padding: 0 16px;
+        outline: none;
+        font-size: 14px;
+    }
+
+    .map-filters select {
+        height: 46px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        padding: 0 14px;
+        background: white;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+.arac-takibi-page {
+    padding: 24px;
+    background: #f4f6fb;
+    min-height: 100vh;
+}
+
+.arac-takibi-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+    .arac-takibi-header span {
+        color: #4f5df7;
+        font-weight: 800;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    .arac-takibi-header h1 {
+        margin: 6px 0;
+        font-size: 30px;
+        color: #0f172a;
+    }
+
+    .arac-takibi-header p {
+        margin: 0;
+        color: #64748b;
+    }
+
+    .arac-takibi-header button {
+        height: 44px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 12px;
+        background: #0f172a;
+        color: white;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+.arac-takibi-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 18px;
+}
+
+.arac-listesi {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 14px;
+    height: 720px;
+    overflow: auto;
+}
+
+.arac-listesi-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    color: #0f172a;
+}
+
+    .arac-listesi-head span {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+.arac-list-item {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+    .arac-list-item.active {
+        border-color: #4f5df7;
+        background: #eef2ff;
+    }
+
+    .arac-list-item strong {
+        color: #0f172a;
+    }
+
+    .arac-list-item span {
+        font-weight: 700;
+        color: #16a34a;
+    }
+
+    .arac-list-item small {
+        color: #64748b;
+    }
+
+.arac-harita-alani {
+    height: 720px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+.arac-ozet-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+    .arac-ozet-grid div {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 18px;
+    }
+
+    .arac-ozet-grid span {
+        display: block;
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+
+    .arac-ozet-grid strong {
+        font-size: 28px;
+        color: #0f172a;
+    }
+
+.arac-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+}
+
+.mini-status {
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 999px;
+    padding: 5px 8px;
+}
+
+    .mini-status.moving {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .mini-status.idle {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .mini-status.park {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+.arac-list-item em {
+    font-style: normal;
+    font-weight: 800;
+    color: #16a34a;
+}
+
+.arac-detay-bar {
+    margin-top: 18px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+    .arac-detay-bar span {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .arac-detay-bar strong {
+        color: #0f172a;
+    }
+
+.vehicle-marker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 86px;
+    padding: 5px 9px 5px 6px;
+    border-radius: 999px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .28);
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 12px;
+    transform: translateY(-2px);
+}
+
+.vehicle-marker-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vehicle-marker-plate {
+    white-space: nowrap;
+    letter-spacing: .02em;
+}
+
+.vehicle-marker.moving {
+    background: #16a34a;
+}
+
+.vehicle-marker.idle {
+    background: #f59e0b;
+}
+
+.vehicle-marker.park {
+    background: #64748b;
+}
+
+.vehicle-marker.selected {
+    transform: scale(1.08) translateY(-4px);
+    box-shadow: 0 16px 38px rgba(79, 70, 229, .38);
+    outline: 3px solid rgba(79, 70, 229, .22);
+}
+.popup-map-link {
+    margin-top: 14px;
+    height: 40px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #ffffff !important;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+    .popup-map-link:hover {
+        background: #1e293b;
+    }
+
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+    background: rgba(79, 70, 229, .18);
+    border-radius: 999px;
+}
+
+    .marker-cluster-small div,
+    .marker-cluster-medium div,
+    .marker-cluster-large div {
+        background: #4f46e5;
+        color: white;
+        font-weight: 900;
+        border-radius: 999px;
+        box-shadow: 0 12px 30px rgba(79, 70, 229, .35);
+    }
+
+.vehicle-marker-svg {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: white;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    padding: 5px 10px 5px 5px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .28);
+    font-weight: 900;
+    color: #0f172a;
+    transition: .2s ease;
+}
+
+.vehicle-svg-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vehicle-svg-plate {
+    white-space: nowrap;
+    font-size: 12px;
+    letter-spacing: .02em;
+}
+
+.vehicle-marker-svg.selected {
+    transform: scale(1.1);
+    outline: 3px solid rgba(79, 70, 229, .28);
+    box-shadow: 0 18px 42px rgba(79, 70, 229, .4);
+}
+
+.vehicle-marker-svg.moving {
+    border-color: #bbf7d0;
+}
+
+.vehicle-marker-svg.idle {
+    border-color: #fde68a;
+}
+
+.vehicle-marker-svg.park {
+    border-color: #cbd5e1;
+}
+.harita-shell {
+    position: relative;
+    width: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    background: white;
+}
+
+.harita-map {
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+}
+
+.harita-toolbar {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: 0 14px 34px rgba(15,23,42,.16);
+    backdrop-filter: blur(12px);
+}
+
+    .harita-toolbar div {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .harita-toolbar strong {
+        font-size: 13px;
+        color: #0f172a;
+    }
+
+    .harita-toolbar span {
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .harita-toolbar select {
+        height: 34px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: white;
+        font-size: 13px;
+        padding: 0 8px;
+        outline: none;
+    }
+.arac-detay-actions button {
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 12px;
+    background: #4f46e5;
+    color: white;
+    border: 0;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.arac-detay-actions {
+    gap: 8px;
+}
+.arac-drawer-status {
+    display: inline-flex;
+    margin-top: 8px;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+    .arac-drawer-status.moving {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .arac-drawer-status.idle {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .arac-drawer-status.park {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+.mini-copy-btn {
+    margin-top: 10px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 0 10px;
+}
+.arac-data-age {
+    margin-bottom: 16px;
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+    .arac-data-age.fresh {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .arac-data-age.warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .arac-data-age.old {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .arac-data-age.unknown {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+.arac-tech-card {
+    margin-top: 18px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+}
+
+    .arac-tech-card h3 {
+        margin: 0 0 4px;
+        color: #0f172a;
+    }
+
+    .arac-tech-card div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 10px;
+    }
+
+    .arac-tech-card span {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .arac-tech-card strong {
+        color: #0f172a;
+    }
+
+@media (max-width: 900px) {
+    .arac-ozet-grid,
+    .arac-detay-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1100px) {
+    .arac-takibi-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .arac-listesi {
+        height: 360px;
+    }
+}
