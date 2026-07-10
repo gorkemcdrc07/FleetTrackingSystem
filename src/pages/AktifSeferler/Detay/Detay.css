@@ -242,6 +242,126 @@
         color: #0f172a;
         font-size: 26px;
     }
+.rota-gecmisi-head small {
+    display: block;
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.rota-gecmisi-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 13px 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+}
+
+    .rota-gecmisi-summary span {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .rota-gecmisi-summary strong {
+        color: #0f172a;
+        font-size: 20px;
+    }
+
+.rota-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.rota-item-content {
+    min-width: 0;
+}
+
+    .rota-item-content strong,
+    .rota-item-content span,
+    .rota-item-content small {
+        display: block;
+    }
+
+    .rota-item-content span {
+        margin-top: 4px;
+    }
+
+    .rota-item-content small {
+        margin-top: 6px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+.rota-item-side {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+    .rota-item-side time {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .rota-item-side a {
+        padding: 6px 9px;
+        border-radius: 9px;
+        background: #e0e7ff;
+        color: #3730a3;
+        font-size: 11px;
+        font-weight: 900;
+        text-decoration: none;
+    }
+
+        .rota-item-side a:hover {
+            background: #c7d2fe;
+        }
+
+.mobiliz-error strong,
+.mobiliz-error span,
+.mobiliz-empty strong,
+.mobiliz-empty span {
+    display: block;
+}
+
+.mobiliz-error span,
+.mobiliz-empty span {
+    margin-top: 5px;
+}
+
+.mobiliz-error button,
+.mobiliz-empty button {
+    margin-top: 12px;
+    border: 0;
+    border-radius: 11px;
+    padding: 9px 12px;
+    background: #111827;
+    color: white;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+@media (max-width: 700px) {
+    .rota-item {
+        flex-direction: column;
+    }
+
+    .rota-item-side {
+        width: 100%;
+        align-items: flex-start;
+    }
+}
 
 @media (max-width: 900px) {
     .eta-grid {

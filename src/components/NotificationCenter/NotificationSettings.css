@@ -1,0 +1,81 @@
+﻿.notification-settings {
+    padding: 14px;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+}
+
+.notification-settings-row {
+    display: grid;
+    grid-template-columns: 1fr 135px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+    .notification-settings-row label,
+    .notification-switch span {
+        color: #334155;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .notification-settings-row select {
+        height: 40px;
+        border: 1px solid #dbe3ef;
+        border-radius: 13px;
+        padding: 0 11px;
+        background: white;
+        color: #0f172a;
+        font-weight: 800;
+        outline: none;
+    }
+
+        .notification-settings-row select:focus {
+            border-color: #818cf8;
+        }
+
+.notification-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 0;
+    cursor: pointer;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+    .notification-switch:first-of-type {
+        margin-top: 4px;
+    }
+
+    .notification-switch input {
+        appearance: none;
+        width: 42px;
+        height: 24px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        position: relative;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+        .notification-switch input::before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            top: 3px;
+            left: 3px;
+            border-radius: 50%;
+            background: white;
+            transition: 0.2s ease;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+        }
+
+        .notification-switch input:checked {
+            background: #4f46e5;
+        }
+
+            .notification-switch input:checked::before {
+                transform: translateX(18px);
+            }

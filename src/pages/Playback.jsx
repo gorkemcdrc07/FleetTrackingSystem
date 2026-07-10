@@ -72,8 +72,10 @@ function getPoint(item) {
 
 function formatDate(value) {
     if (!value) return "-";
+
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
+
     return date.toLocaleString("tr-TR");
 }
 
@@ -131,6 +133,22 @@ function detectStops(route) {
     return stops;
 }
 
+function getVehicleStatus(vehicle) {
+    const speed = Number(vehicle?.speed || vehicle?.velocity || 0);
+
+    if (speed > 0) return "Hareket Halinde";
+    if (vehicle?.ignition || vehicle?.engine) return "Rölantide";
+    return "Park Halinde";
+}
+
+function getVehicleAddress(vehicle) {
+    return vehicle?.address || vehicle?.location || vehicle?.city || "Adres bilgisi yok";
+}
+
+function getVehicleSpeed(vehicle) {
+    return Number(vehicle?.speed || vehicle?.velocity || 0);
+}
+
 function MapFocus({ route, selectedPoint }) {
     const map = useMap();
 
@@ -152,12 +170,12 @@ function MapFocus({ route, selectedPoint }) {
 
 export default function Playback() {
     const timerRef = useRef(null);
+    const autoLoadRef = useRef(false);
 
     const [vehicles, setVehicles] = useState([]);
+    const [selectedVehicleFromDrawer, setSelectedVehicleFromDrawer] = useState(null);
     const [plate, setPlate] = useState("");
-    const [date, setDate] = useState(() =>
-        new Date().toISOString().slice(0, 10)
-    );
+    const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [route, setRoute] = useState([]);
     const [index, setIndex] = useState(0);
     const [speed, setSpeed] = useState(1);
@@ -166,6 +184,21 @@ export default function Playback() {
     const [error, setError] = useState("");
 
     const selectedPoint = route[index] || null;
+
+    const completedRoute = useMemo(() => {
+        if (!route.length) return [];
+        return route.slice(0, index + 1);
+    }, [route, index]);
+
+    const remainingRoute = useMemo(() => {
+        if (!route.length) return [];
+        return route.slice(index);
+    }, [route, index]);
+
+    const progressPercent = useMemo(() => {
+        if (route.length <= 1) return 0;
+        return Math.round((index / (route.length - 1)) * 100);
+    }, [route.length, index]);
 
     const totalKm = useMemo(() => {
         if (route.length < 2) return 0;
@@ -191,10 +224,12 @@ export default function Playback() {
     async function loadVehicles() {
         try {
             const list = await mobilizService.araclar();
-            setVehicles(Array.isArray(list) ? list : []);
+            const vehicleList = Array.isArray(list) ? list : [];
 
-            if (!plate && Array.isArray(list) && list[0]?.plate) {
-                setPlate(list[0].plate);
+            setVehicles(vehicleList);
+
+            if (!plate && !autoLoadRef.current && vehicleList[0]?.plate) {
+                setPlate(vehicleList[0].plate);
             }
         } catch (err) {
             console.error(err);
@@ -202,8 +237,8 @@ export default function Playback() {
         }
     }
 
-    async function loadPlayback() {
-        if (!plate || !date) return;
+    async function loadPlayback(targetPlate = plate, targetDate = date) {
+        if (!targetPlate || !targetDate) return;
 
         try {
             setLoading(true);
@@ -211,10 +246,10 @@ export default function Playback() {
             setPlaying(false);
             setIndex(0);
 
-            const start = `${date}T00:00:00+0000`;
-            const end = `${date}T23:59:59+0000`;
+            const start = `${targetDate}T00:00:00+0000`;
+            const end = `${targetDate}T23:59:59+0000`;
 
-            const data = await mobilizService.rotaDetayi(plate, start, end);
+            const data = await mobilizService.rotaDetayi(targetPlate, start, end);
 
             const points = data
                 .map(getPoint)
@@ -245,8 +280,35 @@ export default function Playback() {
     }
 
     useEffect(() => {
+        try {
+            const raw = localStorage.getItem("fts_playback_vehicle");
+
+            if (!raw) return;
+
+            const vehicle = JSON.parse(raw);
+
+            if (vehicle?.plate) {
+                autoLoadRef.current = true;
+                setSelectedVehicleFromDrawer(vehicle);
+                setPlate(vehicle.plate);
+            }
+
+            localStorage.removeItem("fts_playback_vehicle");
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    useEffect(() => {
         loadVehicles();
     }, []);
+
+    useEffect(() => {
+        if (!autoLoadRef.current || !plate || !date) return;
+
+        autoLoadRef.current = false;
+        loadPlayback(plate, date);
+    }, [plate, date]);
 
     useEffect(() => {
         clearInterval(timerRef.current);
@@ -276,17 +338,47 @@ export default function Playback() {
                     <p>Araçların geçmiş konumlarını harita üzerinde oynat.</p>
                 </div>
 
-                <button onClick={loadPlayback} disabled={loading || !plate}>
+                <button onClick={() => loadPlayback()} disabled={loading || !plate}>
                     {loading ? "Rota Yükleniyor..." : "Rotayı Getir"}
                 </button>
             </div>
+
+            {selectedVehicleFromDrawer && (
+                <div className="playback-selected-vehicle">
+                    <div>
+                        <span>Seçili Araç</span>
+                        <strong>{selectedVehicleFromDrawer.plate}</strong>
+                        <small>{getVehicleStatus(selectedVehicleFromDrawer)}</small>
+                    </div>
+
+                    <div>
+                        <span>Mevcut Hız</span>
+                        <strong>{getVehicleSpeed(selectedVehicleFromDrawer)} km/h</strong>
+                        <small>
+                            {selectedVehicleFromDrawer.ignition ||
+                                selectedVehicleFromDrawer.engine
+                                ? "Kontak Açık"
+                                : "Kontak Kapalı"}
+                        </small>
+                    </div>
+
+                    <div>
+                        <span>Son Konum</span>
+                        <strong>{getVehicleAddress(selectedVehicleFromDrawer)}</strong>
+                        <small>Drawer üzerinden aktarıldı</small>
+                    </div>
+                </div>
+            )}
 
             <div className="playback-toolbar">
                 <label>
                     Araç
                     <select
                         value={plate}
-                        onChange={(e) => setPlate(e.target.value)}
+                        onChange={(e) => {
+                            setPlate(e.target.value);
+                            setSelectedVehicleFromDrawer(null);
+                        }}
                     >
                         {vehicles.map((vehicle) => (
                             <option
@@ -311,7 +403,7 @@ export default function Playback() {
                 <label>
                     Hız
                     <div className="speed-buttons">
-                        {[1, 2, 4, 8].map((item) => (
+                        {[1, 2, 4, 8, 16].map((item) => (
                             <button
                                 key={item}
                                 type="button"
@@ -339,11 +431,25 @@ export default function Playback() {
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
 
-                        {route.length > 1 && (
+                        {remainingRoute.length > 1 && (
                             <Polyline
-                                positions={route.map((p) => [p.lat, p.lng])}
+                                positions={remainingRoute.map((p) => [p.lat, p.lng])}
                                 weight={6}
-                                opacity={0.9}
+                                opacity={0.45}
+                                pathOptions={{
+                                    color: "#2563eb",
+                                }}
+                            />
+                        )}
+
+                        {completedRoute.length > 1 && (
+                            <Polyline
+                                positions={completedRoute.map((p) => [p.lat, p.lng])}
+                                weight={7}
+                                opacity={0.95}
+                                pathOptions={{
+                                    color: "#64748b",
+                                }}
                             />
                         )}
 
@@ -365,8 +471,7 @@ export default function Playback() {
                                 icon={endIcon}
                             >
                                 <Popup>
-                                    Bitiş:{" "}
-                                    {formatDate(route[route.length - 1].date)}
+                                    Bitiş: {formatDate(route[route.length - 1].date)}
                                 </Popup>
                             </Marker>
                         )}
@@ -404,6 +509,20 @@ export default function Playback() {
 
                         <MapFocus route={route} selectedPoint={selectedPoint} />
                     </MapContainer>
+
+                    <div className="playback-map-floating">
+                        <span>Canlı Playback</span>
+                        <strong>{plate || "-"}</strong>
+                        <p>{selectedPoint ? `${selectedPoint.speed} km/h` : "-"}</p>
+
+                        <div className="playback-progress">
+                            <div style={{ width: `${progressPercent}%` }} />
+                        </div>
+
+                        <small>
+                            {route.length ? index + 1 : 0} / {route.length} nokta
+                        </small>
+                    </div>
                 </section>
 
                 <aside className="playback-side">
@@ -469,7 +588,7 @@ export default function Playback() {
                                 onClick={() => setIndex(0)}
                                 disabled={route.length === 0}
                             >
-                                Baştan
+                                ⏮ Baştan
                             </button>
 
                             <button
@@ -487,7 +606,7 @@ export default function Playback() {
                                 onClick={() => setPlaying((prev) => !prev)}
                                 disabled={route.length <= 1}
                             >
-                                {playing ? "Duraklat" : "Oynat"}
+                                {playing ? "⏸ Duraklat" : "▶ Oynat"}
                             </button>
 
                             <button
@@ -511,6 +630,11 @@ export default function Playback() {
                             onChange={(e) => setIndex(Number(e.target.value))}
                             disabled={route.length === 0}
                         />
+
+                        <div className="playback-range-dates">
+                            <span>{formatDate(route[0]?.date)}</span>
+                            <span>{formatDate(route[route.length - 1]?.date)}</span>
+                        </div>
                     </section>
 
                     <section>

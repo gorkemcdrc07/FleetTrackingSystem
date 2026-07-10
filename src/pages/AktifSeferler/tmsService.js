@@ -1,6 +1,22 @@
-﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+﻿const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://filo-backend-57wx.onrender.com";
+
+function normalizeDocumentNo(value) {
+    return String(value || "")
+        .trim()
+        .toLocaleUpperCase("tr-TR");
+}
+
+function isSFRDocument(item) {
+    return normalizeDocumentNo(item?.DocumentNo).startsWith("SFR");
+}
 
 export async function syncFromTMS({ start, end }) {
+    if (!start || !end) {
+        throw new Error("TMS sorgusu için başlangıç ve bitiş tarihi zorunludur.");
+    }
+
     const body = {
         startDate: start,
         endDate: end,
@@ -11,75 +27,272 @@ export async function syncFromTMS({ start, end }) {
         TMSDespatchId: 0,
         VehicleId: 0,
         DocumentPrint: "",
-        WorkingTypesId: Array.from({ length: 80 }, (_, i) => i + 1),
+        WorkingTypesId: Array.from({ length: 80 }, (_, index) => index + 1),
     };
 
-    console.log("TMS REQUEST BODY:", JSON.stringify(body));
+    const requestUrl = `${API_BASE_URL}/api/proxy/tmsdespatches`;
 
-    const res = await fetch(`${API_BASE_URL}/api/proxy/tmsdespatches`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-        body: JSON.stringify(body),
-    });
+    console.log("TMS REQUEST URL:", requestUrl);
+    console.log("TMS REQUEST BODY:", body);
 
-    const text = await res.text();
+    let response;
 
-    console.log("TMS STATUS:", res.status);
-    console.log("TMS RESPONSE:", text);
+    try {
+        response = await fetch(requestUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+    } catch (networkError) {
+        console.error("TMS BAĞLANTI HATASI:", networkError);
 
-    if (!res.ok) {
         throw new Error(
-            `API Hatası: ${res.status} ${res.statusText} — ${text || "Sunucu hatası"}`
+            `TMS backend sunucusuna bağlanılamadı: ${networkError?.message || "Bilinmeyen bağlantı hatası"
+            }`
         );
     }
 
-    const json = JSON.parse(text);
+    const responseText = await response.text();
 
-    return Array.isArray(json?.Data) ? json.Data : [];
+    console.log("TMS STATUS:", response.status);
+    console.log("TMS STATUS TEXT:", response.statusText);
+
+    /*
+     * Gelen cevap çok büyük olabileceği için tamamını Console'a basmıyoruz.
+     * Bu, tarayıcıyı gereksiz yere yavaşlatabilir.
+     */
+    console.log(
+        "TMS RESPONSE ÖN İZLEME:",
+        responseText ? responseText.slice(0, 1000) : "Boş cevap"
+    );
+
+    let responseJson = null;
+
+    if (responseText) {
+        try {
+            responseJson = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error("TMS JSON PARSE HATASI:", parseError);
+            console.error(
+                "TMS HAM CEVAP ÖN İZLEME:",
+                responseText.slice(0, 1000)
+            );
+
+            throw new Error(
+                `TMS sunucusu geçersiz cevap döndürdü. HTTP ${response.status
+                }: ${responseText.slice(0, 500)}`
+            );
+        }
+    }
+
+    if (!response.ok) {
+        const errorDetail =
+            responseJson?.detail ||
+            responseJson?.error ||
+            responseJson?.message ||
+            responseText ||
+            "Bilinmeyen sunucu hatası";
+
+        throw new Error(
+            `TMS API hatası — HTTP ${response.status}: ${String(
+                errorDetail
+            ).slice(0, 1000)}`
+        );
+    }
+
+    const allRows = Array.isArray(responseJson?.Data)
+        ? responseJson.Data
+        : Array.isArray(responseJson?.data)
+            ? responseJson.data
+            : Array.isArray(responseJson)
+                ? responseJson
+                : [];
+
+    /*
+     * Yalnızca DocumentNo değeri SFR ile başlayan kayıtları alıyoruz.
+     */
+    const sfrRows = allRows.filter(isSFRDocument);
+
+    console.log("TMS TOPLAM KAYIT SAYISI:", allRows.length);
+    console.log("SFR KAYIT SAYISI:", sfrRows.length);
+
+    return sfrRows;
 }
 
 export function mapTMSRows(list) {
-    const mapOrders = (orders, field) =>
-        Array.isArray(orders)
-            ? orders
-                .filter((o) => o && typeof o === "object")
-                .map((o) => o[field] ?? "")
-                .filter(Boolean)
-                .join("; ")
-            : "";
+    const safeString = (value) => {
+        if (value === null || value === undefined) {
+            return "";
+        }
 
-    return (list || []).map((s, idx) => {
-        const tmsOrders = Array.isArray(s.TMSOrders) ? s.TMSOrders : [];
+        return String(value).trim();
+    };
+
+    const safeNumber = (value) => {
+        if (
+            value === null ||
+            value === undefined ||
+            String(value).trim() === ""
+        ) {
+            return null;
+        }
+
+        const numberValue = Number(value);
+
+        return Number.isFinite(numberValue)
+            ? numberValue
+            : null;
+    };
+
+    const mapOrders = (orders, field) => {
+        if (!Array.isArray(orders)) {
+            return "";
+        }
+
+        return orders
+            .filter(
+                (order) =>
+                    order &&
+                    typeof order === "object"
+            )
+            .map((order) => safeString(order[field]))
+            .filter(Boolean)
+            .join("; ");
+    };
+
+    if (!Array.isArray(list)) {
+        console.warn(
+            "mapTMSRows liste bekliyordu ancak farklı veri geldi:",
+            list
+        );
+
+        return [];
+    }
+
+    /*
+     * İkinci güvenlik filtresi:
+     * syncFromTMS dışında bir yerden veri gönderilirse de
+     * SFR olmayan kayıtların map edilmesini engeller.
+     */
+    const sfrList = list.filter(isSFRDocument);
+
+    return sfrList.map((item, index) => {
+        const tmsOrders = Array.isArray(item?.TMSOrders)
+            ? item.TMSOrders
+            : [];
+
+        const tmsDespatchId = item?.TMSDespatchId;
+        const documentNo = normalizeDocumentNo(item?.DocumentNo);
 
         return {
-            id: s?.TMSDespatchId || s?.DocumentNo || idx,
-            sefer_no: s?.DocumentNo?.trim() ?? "",
-            arac_statu: s?.VehicleStatus ?? "",
-            plaka: s?.PlateNumber ?? "",
-            treyler: s?.TrailerPlateNumber ?? "",
-            surucu_ad_soyad: s?.FullName ?? "",
-            surucu_tckn: s?.CitizenNumber ?? "",
-            surucu_telefon: s?.PhoneNumber ?? "",
-            musteri_adi: s?.CustomerFullTitle ?? "",
-            musteri_siparis_no: s?.CustomerOrderNumber ?? "",
-            hizmet_adi: s?.ServiceName ?? "",
-            proje_adi: mapOrders(tmsOrders, "ProjectName"),
-            yukleme_noktasi: mapOrders(tmsOrders, "PickupAddressCode"),
-            yukleme_ili: mapOrders(tmsOrders, "PickupCityName"),
-            yukleme_ilcesi: mapOrders(tmsOrders, "PickupCountyName"),
-            teslim_alan_firma: mapOrders(tmsOrders, "DeliveryCurrentAccountName"),
-            teslim_noktasi: mapOrders(tmsOrders, "DeliveryAddressCode"),
-            teslim_ili: mapOrders(tmsOrders, "DeliveryCityName"),
-            teslim_ilcesi: mapOrders(tmsOrders, "DeliveryCountyName"),
-            irsaliye_no: s?.TMSDespatchWaybillNumber ?? "",
-            sefer_tarihi: s?.DespatchDate ?? "",
-            atama_yapan_kullanici: s?.TMSDespatchCreatedBy ?? "",
-            atama_tarihi: s?.TMSDespatchCreatedDate ?? "",
-            vehicle_working_type_name: s?.VehicleWorkingTypeName ?? "",
-            vehicle_working_type_id: s?.VehicleWorkingTypeId ?? null,
+            id:
+                tmsDespatchId ||
+                documentNo ||
+                `tms-${index}`,
+
+            sefer_no: documentNo,
+
+            arac_statu: safeString(
+                item?.VehicleStatus
+            ),
+
+            plaka: safeString(
+                item?.PlateNumber
+            ),
+
+            treyler: safeString(
+                item?.TrailerPlateNumber
+            ),
+
+            surucu_ad_soyad: safeString(
+                item?.FullName
+            ),
+
+            surucu_tckn: safeString(
+                item?.CitizenNumber
+            ),
+
+            surucu_telefon: safeString(
+                item?.PhoneNumber
+            ),
+
+            musteri_adi: safeString(
+                item?.CustomerFullTitle
+            ),
+
+            musteri_siparis_no: safeString(
+                item?.CustomerOrderNumber
+            ),
+
+            hizmet_adi: safeString(
+                item?.ServiceName
+            ),
+
+            proje_adi: mapOrders(
+                tmsOrders,
+                "ProjectName"
+            ),
+
+            yukleme_noktasi: mapOrders(
+                tmsOrders,
+                "PickupAddressCode"
+            ),
+
+            yukleme_ili: mapOrders(
+                tmsOrders,
+                "PickupCityName"
+            ),
+
+            yukleme_ilcesi: mapOrders(
+                tmsOrders,
+                "PickupCountyName"
+            ),
+
+            teslim_alan_firma: mapOrders(
+                tmsOrders,
+                "DeliveryCurrentAccountName"
+            ),
+
+            teslim_noktasi: mapOrders(
+                tmsOrders,
+                "DeliveryAddressCode"
+            ),
+
+            teslim_ili: mapOrders(
+                tmsOrders,
+                "DeliveryCityName"
+            ),
+
+            teslim_ilcesi: mapOrders(
+                tmsOrders,
+                "DeliveryCountyName"
+            ),
+
+            irsaliye_no: safeString(
+                item?.TMSDespatchWaybillNumber
+            ),
+
+            sefer_tarihi:
+                item?.DespatchDate || null,
+
+            atama_yapan_kullanici: safeString(
+                item?.TMSDespatchCreatedBy
+            ),
+
+            atama_tarihi:
+                item?.TMSDespatchCreatedDate || null,
+
+            vehicle_working_type_name: safeString(
+                item?.VehicleWorkingTypeName
+            ),
+
+            vehicle_working_type_id: safeNumber(
+                item?.VehicleWorkingTypeId
+            ),
+
             reel_durum: "YENİ",
         };
     });

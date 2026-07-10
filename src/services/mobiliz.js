@@ -1,86 +1,58 @@
-import axios from "axios";
+import { apiUrl } from "../config/api";
 
-const API_BASE_URL =
-    import.meta.env.VITE_MOBILIZ_API_URL || "http://localhost:5000/api/mobiliz";
+const MOBILIZ_API_URL = apiUrl("/api/mobiliz");
 
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 30000,
-});
+async function request(path, options = {}) {
+    const response = await fetch(`${MOBILIZ_API_URL}${path}`, {
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+        },
+        ...options,
+    });
 
-function unwrap(response) {
-    if (Array.isArray(response)) return response;
-    return response?.data || response?.Data || response?.result || [];
+    const text = await response.text();
+
+    let data = null;
+
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch {
+        data = text;
+    }
+
+    if (!response.ok) {
+        const message =
+            data?.error ||
+            data?.message ||
+            `Mobiliz isteði baþarýsýz oldu. HTTP ${response.status}`;
+
+        throw new Error(message);
+    }
+
+    return data;
 }
 
 export const mobilizService = {
-    async sonKonum(plaka) {
-        const { data } = await api.get("/activity-last", {
-            params: plaka ? { plate: plaka } : {},
+    araclar() {
+        return request("/activity-last");
+    },
+
+    rotaDetayi(plate, startTime, endTime) {
+        const params = new URLSearchParams({
+            plate,
+            startTime,
+            endTime,
         });
 
-        return unwrap(data);
+        return request(`/activity-detail?${params.toString()}`);
     },
 
-    async araclar() {
-        const { data } = await api.get("/vehicles");
-        return unwrap(data);
-    },
+    locations(params = {}) {
+        const searchParams = new URLSearchParams(params);
 
-    async filolar() {
-        const { data } = await api.get("/fleets");
-        return unwrap(data);
-    },
-
-    async gruplar() {
-        const { data } = await api.get("/groups");
-        return unwrap(data);
-    },
-
-    async konumGecmisi(plaka, start, end) {
-        const { data } = await api.get("/locations", {
-            params: {
-                plate: plaka,
-                start,
-                end,
-            },
-        });
-
-        return unwrap(data);
-    },
-
-    async rotaDetayi(plaka, start, end) {
-        const { data } = await api.get("/activity-detail", {
-            params: {
-                plate: plaka,
-                startTime: start,
-                endTime: end,
-            },
-        });
-
-        return unwrap(data);
-    },
-    async gunlukOzet(plaka, start, end) {
-        const { data } = await api.get("/daily-summary", {
-            params: {
-                plate: plaka,
-                start,
-                end,
-            },
-        });
-
-        return unwrap(data);
-    },
-
-    async aktiviteToplam(plaka, start, end) {
-        const { data } = await api.get("/activity-total", {
-            params: {
-                plate: plaka,
-                start,
-                end,
-            },
-        });
-
-        return unwrap(data);
+        return request(`/locations?${searchParams.toString()}`);
     },
 };
+
+export default mobilizService;

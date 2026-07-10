@@ -1,0 +1,197 @@
+﻿.notification-toasts {
+    position: fixed;
+    top: 86px;
+    right: 22px;
+    z-index: 99999;
+    width: min(390px, calc(100vw - 32px));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.notification-toast {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 34px;
+    align-items: start;
+    gap: 10px;
+    padding: 13px;
+    border: 1px solid #e2e8f0;
+    border-left: 5px solid #94a3b8;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    pointer-events: auto;
+    animation: notificationToastIn 0.28s ease;
+}
+
+    .notification-toast.critical {
+        border-left-color: #dc2626;
+        background: linear-gradient( 90deg, rgba(220, 38, 38, 0.06), transparent 55% ), rgba(255, 255, 255, 0.98);
+    }
+
+    .notification-toast.warning {
+        border-left-color: #f59e0b;
+        background: linear-gradient( 90deg, rgba(245, 158, 11, 0.07), transparent 55% ), rgba(255, 255, 255, 0.98);
+    }
+
+    .notification-toast.danger {
+        border-left-color: #ef4444;
+        background: linear-gradient( 90deg, rgba(239, 68, 68, 0.06), transparent 55% ), rgba(255, 255, 255, 0.98);
+    }
+
+/* Ana içerik butonu */
+
+.notification-toast-main {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 43px minmax(0, 1fr);
+    align-items: start;
+    gap: 11px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+    .notification-toast-main:hover {
+        transform: none;
+        box-shadow: none;
+        background: transparent;
+    }
+
+/* İkon */
+
+.notification-toast-icon {
+    flex: 0 0 auto;
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 13px;
+    background: #ffffff;
+    font-size: 18px;
+}
+
+/* Yazı alanı */
+
+.notification-toast-content {
+    min-width: 0;
+    width: 100%;
+}
+
+    .notification-toast-content > span {
+        display: block;
+        margin-bottom: 3px;
+        overflow: hidden;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .notification-toast-content > strong {
+        display: block;
+        margin: 0 0 4px;
+        overflow: hidden;
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 950;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .notification-toast-content > p {
+        display: -webkit-box;
+        margin: 0;
+        overflow: hidden;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+/* Kapatma butonu */
+
+.notification-toast-close {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-family: inherit;
+    font-size: 18px !important;
+    font-weight: 500;
+    line-height: 1 !important;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+    .notification-toast-close:hover {
+        border-color: #fecaca !important;
+        background: #fff1f2 !important;
+        color: #dc2626 !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+@keyframes notificationToastIn {
+    from {
+        opacity: 0;
+        transform: translateX(28px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@media (max-width: 700px) {
+    .notification-toasts {
+        top: 74px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+    }
+
+    .notification-toast {
+        grid-template-columns: minmax(0, 1fr) 32px;
+    }
+
+    .notification-toast-main {
+        grid-template-columns: 39px minmax(0, 1fr);
+    }
+
+    .notification-toast-icon {
+        width: 39px;
+        height: 39px;
+    }
+}

@@ -74,6 +74,20 @@ function parseGunValue(value) {
     return Number.isFinite(num) ? num : null;
 }
 
+function toDatetimeLocalValue(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d)) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromDatetimeLocalValue(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d) ? null : d.toISOString();
+}
+
 function getActualEtaDays(row) {
     const rota = Array.isArray(row.rota_detaylari) ? row.rota_detaylari : [];
     if (!rota.length) return null;
@@ -322,8 +336,16 @@ const EDIT_FIELDS = [
     { key: "yukleme_ili", label: "Yükleme İl", type: "text", group: "Lokasyon / Evrak" },
     { key: "teslim_ili", label: "Son Teslim İl", type: "text", group: "Lokasyon / Evrak" },
     { key: "irsaliye_no", label: "İrsaliye No", type: "text", group: "Lokasyon / Evrak" },
+    { key: "atama_yapan_kullanici", label: "Atayan Kullanıcı", type: "text", group: "Atama Bilgileri" },
+    { key: "atama_tarihi", label: "Atama Tarihi", type: "datetime", group: "Atama Bilgileri" },
+    { key: "tamamlanma_tarihi", label: "Tamamlanma Tarihi", type: "datetime", group: "Atama Bilgileri" },
+    {
+        key: "rota_detaylari",
+        label: "Rota Detayları",
+        type: "routeDetails",
+        group: "Rota Bilgileri",
+    },
 ];
-
 const SELECT_COL_WIDTH = 42;
 const ACTIONS_COL_WIDTH = 96;
 
@@ -597,7 +619,17 @@ function EditSeferModal({ row, saving, onClose, onSave }) {
         const initial = {};
 
         EDIT_FIELDS.forEach((field) => {
-            initial[field.key] = row?.[field.key] ?? "";
+            const rawValue = row?.[field.key];
+
+            if (field.type === "datetime") {
+                initial[field.key] = toDatetimeLocalValue(rawValue);
+            } else if (field.type === "routeDetails") {
+                initial[field.key] = Array.isArray(rawValue)
+                    ? rawValue.map((item) => ({ ...item }))
+                    : [];
+            } else {
+                initial[field.key] = rawValue ?? "";
+            }
         });
 
         initial.tonaj_durumu = isTonajli(row);
@@ -610,6 +642,70 @@ function EditSeferModal({ row, saving, onClose, onSave }) {
 
     function updateField(key, value) {
         setForm((prev) => ({ ...prev, [key]: value }));
+    }
+
+    function getExistingRouteKey(item, keys, fallbackKey) {
+        return keys.find((key) => Object.prototype.hasOwnProperty.call(item || {}, key)) || fallbackKey;
+    }
+
+    function updateRouteItem(index, updater) {
+        setForm((prev) => {
+            const rota = Array.isArray(prev.rota_detaylari)
+                ? prev.rota_detaylari.map((item) => ({ ...item }))
+                : [];
+
+            if (!rota[index]) return prev;
+
+            rota[index] = updater(rota[index]);
+
+            return {
+                ...prev,
+                rota_detaylari: rota,
+            };
+        });
+    }
+
+    function updateRouteText(index, keys, fallbackKey, value) {
+        updateRouteItem(index, (item) => {
+            const targetKey = getExistingRouteKey(item, keys, fallbackKey);
+            return {
+                ...item,
+                [targetKey]: value,
+            };
+        });
+    }
+
+    function updateRouteDate(index, keys, fallbackKey, value) {
+        updateRouteItem(index, (item) => {
+            const targetKey = getExistingRouteKey(item, keys, fallbackKey);
+            return {
+                ...item,
+                [targetKey]: fromDatetimeLocalValue(value),
+            };
+        });
+    }
+
+    function addRouteItem() {
+        setForm((prev) => ({
+            ...prev,
+            rota_detaylari: [
+                ...(Array.isArray(prev.rota_detaylari) ? prev.rota_detaylari : []),
+                {
+                    tip: "",
+                    il: "",
+                    giris: null,
+                    cikis: null,
+                },
+            ],
+        }));
+    }
+
+    function removeRouteItem(index) {
+        setForm((prev) => ({
+            ...prev,
+            rota_detaylari: (Array.isArray(prev.rota_detaylari) ? prev.rota_detaylari : [])
+                .filter((_, itemIndex) => itemIndex !== index),
+        }));
     }
 
     function normalizeNumber(value) {
@@ -628,6 +724,10 @@ function EditSeferModal({ row, saving, onClose, onSave }) {
 
             if (field.type === "number") {
                 payload[field.key] = normalizeNumber(value);
+            } else if (field.type === "datetime") {
+                payload[field.key] = fromDatetimeLocalValue(value);
+            } else if (field.type === "routeDetails") {
+                payload[field.key] = Array.isArray(value) ? value : [];
             } else {
                 payload[field.key] = String(value ?? "").trim();
             }
@@ -638,7 +738,6 @@ function EditSeferModal({ row, saving, onClose, onSave }) {
 
         onSave(payload);
     }
-
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="edit-modal edit-modal-wide" onClick={(e) => e.stopPropagation()}>
@@ -660,17 +759,170 @@ function EditSeferModal({ row, saving, onClose, onSave }) {
                                 <div className="edit-section-title">{groupName}</div>
 
                                 <div className="edit-form-grid edit-form-grid-wide">
-                                    {fields.map((field) => (
-                                        <label className="edit-field" key={field.key}>
-                                            <span>{field.label}</span>
-                                            <input
-                                                type={field.type}
-                                                step={field.type === "number" ? "0.01" : undefined}
-                                                value={form[field.key] ?? ""}
-                                                onChange={(e) => updateField(field.key, e.target.value)}
-                                            />
-                                        </label>
-                                    ))}
+                                    {fields.map((field) => {
+                                        if (field.type === "routeDetails") {
+                                            const rota = Array.isArray(form[field.key])
+                                                ? form[field.key]
+                                                : [];
+
+                                            return (
+                                                <div className="edit-field edit-field-full" key={field.key}>
+                                                    <div className="route-edit-header">
+                                                        <div>
+                                                            <span>{field.label}</span>
+                                                            <small>{rota.length} durak</small>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            className="route-add-btn"
+                                                            onClick={addRouteItem}
+                                                        >
+                                                            + Durak Ekle
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="route-edit-table-wrap">
+                                                        <table className="route-edit-table route-edit-table-inputs">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>#</th>
+                                                                    <th>Tür</th>
+                                                                    <th>Lokasyon</th>
+                                                                    <th>Giriş</th>
+                                                                    <th>Çıkış</th>
+                                                                    <th>Süre</th>
+                                                                    <th>İşlem</th>
+                                                                </tr>
+                                                            </thead>
+
+                                                            <tbody>
+                                                                {!rota.length && (
+                                                                    <tr>
+                                                                        <td colSpan={7} className="route-edit-empty">
+                                                                            Rota detayı bulunamadı. “Durak Ekle” ile yeni kayıt oluşturabilirsiniz.
+                                                                        </td>
+                                                                    </tr>
+                                                                )}
+
+                                                                {rota.map((item, index) => {
+                                                                    const typeKey = getExistingRouteKey(item, ["tip", "type", "tur"], "tip");
+                                                                    const locationKey = getExistingRouteKey(item, ["il", "sehir", "lokasyon", "adres"], "il");
+                                                                    const inKey = getExistingRouteKey(
+                                                                        item,
+                                                                        ["giris", "varis", "gerceklesen_varis", "planlanan_varis"],
+                                                                        "giris"
+                                                                    );
+                                                                    const outKey = getExistingRouteKey(
+                                                                        item,
+                                                                        ["cikis", "gerceklesen_cikis", "planlanan_cikis"],
+                                                                        "cikis"
+                                                                    );
+                                                                    const inTime = item[inKey];
+                                                                    const outTime = item[outKey];
+
+                                                                    return (
+                                                                        <tr key={`${field.key}-${index}`}>
+                                                                            <td className="route-edit-index">{index + 1}</td>
+
+                                                                            <td>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={item[typeKey] ?? ""}
+                                                                                    onChange={(e) =>
+                                                                                        updateRouteText(
+                                                                                            index,
+                                                                                            ["tip", "type", "tur"],
+                                                                                            "tip",
+                                                                                            e.target.value
+                                                                                        )
+                                                                                    }
+                                                                                    placeholder="Yükleme / Teslim"
+                                                                                />
+                                                                            </td>
+
+                                                                            <td>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={item[locationKey] ?? ""}
+                                                                                    onChange={(e) =>
+                                                                                        updateRouteText(
+                                                                                            index,
+                                                                                            ["il", "sehir", "lokasyon", "adres"],
+                                                                                            "il",
+                                                                                            e.target.value
+                                                                                        )
+                                                                                    }
+                                                                                    placeholder="İl veya lokasyon"
+                                                                                />
+                                                                            </td>
+
+                                                                            <td>
+                                                                                <input
+                                                                                    type="datetime-local"
+                                                                                    value={toDatetimeLocalValue(inTime)}
+                                                                                    onChange={(e) =>
+                                                                                        updateRouteDate(
+                                                                                            index,
+                                                                                            ["giris", "varis", "gerceklesen_varis", "planlanan_varis"],
+                                                                                            "giris",
+                                                                                            e.target.value
+                                                                                        )
+                                                                                    }
+                                                                                />
+                                                                            </td>
+
+                                                                            <td>
+                                                                                <input
+                                                                                    type="datetime-local"
+                                                                                    value={toDatetimeLocalValue(outTime)}
+                                                                                    onChange={(e) =>
+                                                                                        updateRouteDate(
+                                                                                            index,
+                                                                                            ["cikis", "gerceklesen_cikis", "planlanan_cikis"],
+                                                                                            "cikis",
+                                                                                            e.target.value
+                                                                                        )
+                                                                                    }
+                                                                                />
+                                                                            </td>
+
+                                                                            <td className="route-duration-cell">
+                                                                                {diffText(inTime, outTime)}
+                                                                            </td>
+
+                                                                            <td className="route-action-cell">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="route-delete-btn"
+                                                                                    onClick={() => removeRouteItem(index)}
+                                                                                    aria-label={`${index + 1}. durağı sil`}
+                                                                                    title="Durağı sil"
+                                                                                >
+                                                                                    Sil
+                                                                                </button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <label className="edit-field" key={field.key}>
+                                                <span>{field.label}</span>
+                                                <input
+                                                    type={field.type === "datetime" ? "datetime-local" : field.type}
+                                                    step={field.type === "number" ? "0.01" : undefined}
+                                                    value={form[field.key] ?? ""}
+                                                    onChange={(e) => updateField(field.key, e.target.value)}
+                                                />
+                                            </label>
+                                        );
+                                    })}
                                 </div>
                             </section>
                         ))}

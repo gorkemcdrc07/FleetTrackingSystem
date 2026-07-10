@@ -1,93 +1,174 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Detay.css";
 import CanliHarita from "./CanliHarita";
+import { apiUrl } from "../../../config/api";
 
-const API_URL = "http://localhost:5000/api/mobiliz/activity-last";
+const API_URL = apiUrl("/api/mobiliz/activity-last");
 
 function normalizePlate(value) {
-    return String(value || "").replace(/\s/g, "").toUpperCase();
+    return String(value || "")
+        .replace(/\s/g, "")
+        .toUpperCase();
 }
 
 function formatDate(value) {
     if (!value) return "-";
 
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
 
     return date.toLocaleString("tr-TR");
+}
+
+function getResponseList(json) {
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json?.data)) return json.data;
+    if (Array.isArray(json?.result)) return json.result;
+    if (Array.isArray(json?.items)) return json.items;
+
+    return [];
 }
 
 export default function MobilizBilgileri({ plaka }) {
     const [loading, setLoading] = useState(true);
     const [vehicle, setVehicle] = useState(null);
     const [error, setError] = useState("");
+    const [lastRefresh, setLastRefresh] = useState(null);
 
-    async function loadVehicle() {
+    const loadVehicle = useCallback(async () => {
+        if (!plaka) {
+            setVehicle(null);
+            setError("Plaka bilgisi bulunamadı.");
+            setLoading(false);
+            return;
+        }
+
         try {
-            if (!vehicle) setLoading(true);
-
+            setLoading((current) => current || !vehicle);
             setError("");
 
-            const res = await fetch(API_URL);
-            const json = await res.json();
+            const response = await fetch(API_URL, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
 
-            if (!res.ok) {
-                throw new Error(json?.message || "Mobiliz verisi alınamadı.");
+            const contentType = response.headers.get("content-type") || "";
+
+            let json;
+
+            if (contentType.includes("application/json")) {
+                json = await response.json();
+            } else {
+                const text = await response.text();
+
+                throw new Error(
+                    text || `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
+                );
             }
 
-            const list = Array.isArray(json) ? json : json.data || [];
+            if (!response.ok) {
+                throw new Error(
+                    json?.message ||
+                    json?.error ||
+                    `Mobiliz isteği başarısız oldu. HTTP ${response.status}`
+                );
+            }
+
+            const list = getResponseList(json);
 
             const found = list.find(
-                (item) => normalizePlate(item.plate) === normalizePlate(plaka)
+                (item) =>
+                    normalizePlate(
+                        item?.plate ||
+                        item?.licensePlate ||
+                        item?.plateNo
+                    ) === normalizePlate(plaka)
             );
 
             setVehicle(found || null);
+            setLastRefresh(new Date());
         } catch (err) {
-            console.error(err);
-            setError("Mobiliz servisine ulaşılamadı.");
+            console.error("Mobiliz araç bilgisi alınamadı:", err);
+
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Mobiliz servisine ulaşılamadı."
+            );
         } finally {
             setLoading(false);
         }
-    }
+    }, [plaka, vehicle]);
 
     useEffect(() => {
         loadVehicle();
 
-        const timer = setInterval(loadVehicle, 30000);
+        const timer = window.setInterval(() => {
+            loadVehicle();
+        }, 30000);
 
-        return () => clearInterval(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [plaka]);
+        return () => {
+            window.clearInterval(timer);
+        };
+    }, [loadVehicle]);
 
     const vehicleInfo = useMemo(() => {
         if (!vehicle) return null;
 
-        const hiz = Number(vehicle.speed || vehicle.velocity || 0);
+        const hiz = Number(vehicle?.speed || vehicle?.velocity || 0);
 
         return {
-            plaka: vehicle.plate || plaka || "-",
+            plaka:
+                vehicle?.plate ||
+                vehicle?.licensePlate ||
+                vehicle?.plateNo ||
+                plaka ||
+                "-",
+
             hiz,
-            kontak: Boolean(vehicle.ignition || vehicle.engine),
-            latitude: vehicle.latitude || vehicle.lat || vehicle.y || "",
+
+            kontak: Boolean(
+                vehicle?.ignition ||
+                vehicle?.engine ||
+                vehicle?.contact
+            ),
+
+            latitude:
+                vehicle?.latitude ??
+                vehicle?.lat ??
+                vehicle?.y ??
+                "",
+
             longitude:
-                vehicle.longitude ||
-                vehicle.lng ||
-                vehicle.lon ||
-                vehicle.x ||
+                vehicle?.longitude ??
+                vehicle?.lng ??
+                vehicle?.lon ??
+                vehicle?.x ??
                 "",
+
             adres:
-                vehicle.address ||
-                vehicle.location ||
-                vehicle.city ||
+                vehicle?.address ||
+                vehicle?.location ||
+                vehicle?.city ||
                 "Adres bilgisi yok",
+
             sonGuncelleme:
-                vehicle.gpsDate ||
-                vehicle.activityDate ||
-                vehicle.dataTime ||
-                vehicle.lastDataTime ||
-                vehicle.date ||
+                vehicle?.gpsDate ||
+                vehicle?.activityDate ||
+                vehicle?.dataTime ||
+                vehicle?.lastDataTime ||
+                vehicle?.date ||
                 "",
-            uydu: vehicle.satelliteCount || vehicle.satellites || "-",
+
+            uydu:
+                vehicle?.satelliteCount ??
+                vehicle?.satellites ??
+                "-",
         };
     }, [vehicle, plaka]);
 
@@ -95,6 +176,7 @@ export default function MobilizBilgileri({ plaka }) {
         if (!vehicleInfo) return "offline";
         if (vehicleInfo.hiz > 0) return "moving";
         if (vehicleInfo.kontak) return "idle";
+
         return "park";
     }, [vehicleInfo]);
 
@@ -107,13 +189,33 @@ export default function MobilizBilgileri({ plaka }) {
     }
 
     if (error) {
-        return <div className="mobiliz-error">{error}</div>;
+        return (
+            <div className="mobiliz-error">
+                <strong>Mobiliz verisi alınamadı.</strong>
+                <span>{error}</span>
+
+                <button
+                    type="button"
+                    onClick={loadVehicle}
+                >
+                    Tekrar Dene
+                </button>
+            </div>
+        );
     }
 
     if (!vehicle || !vehicleInfo) {
         return (
             <div className="mobiliz-empty">
-                Bu plaka Mobiliz sisteminde bulunamadı.
+                <strong>Bu plaka Mobiliz sisteminde bulunamadı.</strong>
+                <span>{plaka || "-"}</span>
+
+                <button
+                    type="button"
+                    onClick={loadVehicle}
+                >
+                    Yeniden Kontrol Et
+                </button>
             </div>
         );
     }
@@ -124,6 +226,17 @@ export default function MobilizBilgileri({ plaka }) {
                 <div>
                     <h2>Araç Kontrol Merkezi</h2>
                     <span>{vehicleInfo.plaka}</span>
+
+                    {lastRefresh && (
+                        <small>
+                            Son yenileme:{" "}
+                            {lastRefresh.toLocaleTimeString("tr-TR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                            })}
+                        </small>
+                    )}
                 </div>
 
                 <div className={`mobiliz-status ${status}`}>
@@ -147,15 +260,21 @@ export default function MobilizBilgileri({ plaka }) {
 
                 <div className="mobiliz-card">
                     <span>🔑 Kontak</span>
-                    <strong>{vehicleInfo.kontak ? "Açık" : "Kapalı"}</strong>
+                    <strong>
+                        {vehicleInfo.kontak ? "Açık" : "Kapalı"}
+                    </strong>
                 </div>
 
                 <div className="mobiliz-card">
                     <span>📡 GPS</span>
                     <strong>
-                        {vehicleInfo.latitude || "-"}
+                        {vehicleInfo.latitude !== ""
+                            ? vehicleInfo.latitude
+                            : "-"}
                         <br />
-                        {vehicleInfo.longitude || "-"}
+                        {vehicleInfo.longitude !== ""
+                            ? vehicleInfo.longitude
+                            : "-"}
                     </strong>
                 </div>
 
@@ -166,7 +285,9 @@ export default function MobilizBilgileri({ plaka }) {
 
                 <div className="mobiliz-card">
                     <span>🕒 Son Güncelleme</span>
-                    <strong>{formatDate(vehicleInfo.sonGuncelleme)}</strong>
+                    <strong>
+                        {formatDate(vehicleInfo.sonGuncelleme)}
+                    </strong>
                 </div>
 
                 <div className="mobiliz-card">

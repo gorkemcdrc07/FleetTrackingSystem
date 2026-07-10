@@ -16,12 +16,17 @@ import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
 import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
 import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
 import Hamaliye from "./Hakedisler/Hamaliye";
+
 import YonetimPaneli from "./Yonetici/YonetimPaneli";
+
 import Alarmlar from "./Alarmlar";
 import Dashboard from "./Dashboard";
 import Playback from "./Playback";
 import Geofence from "./Geofence";
 import OperasyonMerkezi from "./OperasyonMerkezi";
+
+import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
+import NotificationToasts from "../components/NotificationCenter/NotificationToasts";
 
 type HomeProps = {
     onLogout: () => void;
@@ -37,7 +42,10 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Kullanıcı İşlemleri",
         icon: "👤",
-        items: ["Aktif Seferler", "Tamamlanan Seferler"],
+        items: [
+            "Aktif Seferler",
+            "Tamamlanan Seferler",
+        ],
     },
     {
         title: "Araç Yönetimi",
@@ -54,7 +62,11 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Raporlar",
         icon: "📊",
-        items: ["Kullanıcı KPİ", "Yüklemede Bekleme", "Teslimde Bekleme"],
+        items: [
+            "Kullanıcı KPİ",
+            "Yüklemede Bekleme",
+            "Teslimde Bekleme",
+        ],
     },
     {
         title: "Hakedişler",
@@ -78,17 +90,30 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Görevler",
         icon: "✅",
-        items: ["Tüm Görevler", "Görev Ata", "Bana Gelen Görevler"],
+        items: [
+            "Tüm Görevler",
+            "Görev Ata",
+            "Bana Gelen Görevler",
+        ],
     },
 ];
 
 function getAktifKullanici() {
     try {
         return (
-            JSON.parse(localStorage.getItem("fts_user") || "null") ||
-            JSON.parse(localStorage.getItem("kullanici") || "null") ||
-            JSON.parse(localStorage.getItem("aktifKullanici") || "null") ||
-            JSON.parse(localStorage.getItem("user") || "null") ||
+            JSON.parse(
+                localStorage.getItem("fts_user") || "null"
+            ) ||
+            JSON.parse(
+                localStorage.getItem("kullanici") || "null"
+            ) ||
+            JSON.parse(
+                localStorage.getItem("aktifKullanici") ||
+                "null"
+            ) ||
+            JSON.parse(
+                localStorage.getItem("user") || "null"
+            ) ||
             null
         );
     } catch {
@@ -97,7 +122,8 @@ function getAktifKullanici() {
 }
 
 function Home({ onLogout }: HomeProps) {
-    const [activePage, setActivePage] = useState("Dashboard");
+    const [activePage, setActivePage] =
+        useState("Dashboard");
 
     const aktifKullanici = getAktifKullanici();
 
@@ -108,27 +134,81 @@ function Home({ onLogout }: HomeProps) {
         aktifKullanici?.email ||
         "Kullanıcı";
 
-    const kullaniciRol = aktifKullanici?.rol || "Kullanıcı";
+    const kullaniciRol =
+        aktifKullanici?.rol || "Kullanıcı";
 
-    const avatarLetter = String(kullaniciAdi || "K")
+    const avatarLetter = String(
+        kullaniciAdi || "K"
+    )
         .charAt(0)
         .toUpperCase();
 
-    const renderPage = () => {
-        if (activePage === "Dashboard") return <Dashboard />;
+    function handleNotificationVehicleOpen(
+        plate: string
+    ) {
+        if (!plate) return;
 
-        if (activePage === "Aktif Seferler") return <AktifSeferler />;
+        localStorage.setItem(
+            "fts_focus_plate",
+            plate
+        );
+
+        setActivePage("Operasyon Merkezi");
+    }
+
+    function handleNavigate(page: string) {
+        setActivePage(page);
+    }
+
+    const renderPage = () => {
+        if (activePage === "Dashboard") {
+            return (
+                <Dashboard
+                    onNavigate={handleNavigate}
+                />
+            );
+        }
+
+        if (activePage === "Aktif Seferler") {
+            return <AktifSeferler />;
+        }
+
         if (activePage === "Tamamlanan Seferler") {
             return <TamamlananSeferler />;
         }
 
-        if (activePage === "Araç Durumları") return <AracDurumlari />;
+        if (activePage === "Araç Durumları") {
+            return <AracDurumlari />;
+        }
 
-        if (activePage === "Araç Takibi") return <AracTakibi />;
-        if (activePage === "Playback") return <Playback />;
-        if (activePage === "Geofence") return <Geofence />;
-        if (activePage === "Alarm Merkezi") return <Alarmlar />;
-        if (activePage === "Operasyon Merkezi") return <OperasyonMerkezi />;
+        if (activePage === "Araç Takibi") {
+            return (
+                <AracTakibi
+                    onNavigate={handleNavigate}
+                />
+            );
+        }
+
+        if (activePage === "Playback") {
+            return <Playback />;
+        }
+
+        if (activePage === "Geofence") {
+            return <Geofence />;
+        }
+
+        if (activePage === "Alarm Merkezi") {
+            return <Alarmlar />;
+        }
+
+        if (activePage === "Operasyon Merkezi") {
+            return (
+                <OperasyonMerkezi
+                    onNavigate={handleNavigate}
+                />
+            );
+        }
+
         if (activePage === "Yüklemede Bekleme") {
             return <YuklemedeBekleme />;
         }
@@ -137,9 +217,14 @@ function Home({ onLogout }: HomeProps) {
             return <TeslimdeBekleme />;
         }
 
-        if (activePage === "Kullanıcı KPİ") return <KullaniciKPI />;
+        if (activePage === "Kullanıcı KPİ") {
+            return <KullaniciKPI />;
+        }
 
-        if (activePage === "Plaka Kira & Sürücü Tutarları") {
+        if (
+            activePage ===
+            "Plaka Kira & Sürücü Tutarları"
+        ) {
             return <AracFiyatYonetimi />;
         }
 
@@ -151,19 +236,26 @@ function Home({ onLogout }: HomeProps) {
             return <PepsiYakitHakedis />;
         }
 
-        if (activePage === "Hamaliye") return <Hamaliye />;
+        if (activePage === "Hamaliye") {
+            return <Hamaliye />;
+        }
 
-        if (activePage === "Yönetim Paneli") return <YonetimPaneli />;
+        if (activePage === "Yönetim Paneli") {
+            return <YonetimPaneli />;
+        }
 
         return (
             <section className="hero-panel">
                 <div>
-                    <span className="eyebrow">Aktif Sayfa</span>
+                    <span className="eyebrow">
+                        Aktif Sayfa
+                    </span>
 
                     <h1>{activePage}</h1>
 
                     <p>
-                        Seçilen modül için içerik alanı burada görüntülenecek.
+                        Seçilen modül için içerik alanı
+                        burada görüntülenecek.
                     </p>
                 </div>
 
@@ -178,52 +270,94 @@ function Home({ onLogout }: HomeProps) {
     return (
         <div className="home-container">
             <header className="topbar">
-                <div
+                <button
+                    type="button"
                     className="brand"
-                    onClick={() => setActivePage("Dashboard")}
+                    onClick={() =>
+                        setActivePage("Dashboard")
+                    }
                 >
-                    <div className="brand-logo">F</div>
+                    <div className="brand-logo">
+                        F
+                    </div>
 
                     <div className="brand-text">
                         <strong>FTS</strong>
-                        <span>Fleet Tracking System</span>
+                        <span>
+                            Fleet Tracking System
+                        </span>
                     </div>
-                </div>
+                </button>
 
                 <nav className="nav-menu">
                     {menuGroups.map((group) => (
-                        <div className="nav-group" key={group.title}>
-                            <button className="nav-button" type="button">
-                                <span className="nav-icon">{group.icon}</span>
+                        <div
+                            className="nav-group"
+                            key={group.title}
+                        >
+                            <button
+                                className="nav-button"
+                                type="button"
+                            >
+                                <span className="nav-icon">
+                                    {group.icon}
+                                </span>
 
                                 {group.title}
 
-                                <span className="nav-arrow">⌄</span>
+                                <span className="nav-arrow">
+                                    ⌄
+                                </span>
                             </button>
 
                             <div className="mega-menu">
                                 <div className="mega-header">
-                                    <div className="mega-icon">{group.icon}</div>
+                                    <div className="mega-icon">
+                                        {group.icon}
+                                    </div>
 
                                     <div>
-                                        <h3>{group.title}</h3>
-                                        <p>{group.items.length} işlem</p>
+                                        <h3>
+                                            {group.title}
+                                        </h3>
+
+                                        <p>
+                                            {
+                                                group.items
+                                                    .length
+                                            }{" "}
+                                            işlem
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="mega-list">
-                                    {group.items.map((item) => (
-                                        <button
-                                            key={item}
-                                            type="button"
-                                            className={`mega-item ${activePage === item ? "active" : ""
-                                                }`}
-                                            onClick={() => setActivePage(item)}
-                                        >
-                                            <span>{item}</span>
-                                            <small>→</small>
-                                        </button>
-                                    ))}
+                                    {group.items.map(
+                                        (item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                className={`mega-item ${activePage ===
+                                                        item
+                                                        ? "active"
+                                                        : ""
+                                                    }`}
+                                                onClick={() =>
+                                                    setActivePage(
+                                                        item
+                                                    )
+                                                }
+                                            >
+                                                <span>
+                                                    {item}
+                                                </span>
+
+                                                <small>
+                                                    →
+                                                </small>
+                                            </button>
+                                        )
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -231,35 +365,63 @@ function Home({ onLogout }: HomeProps) {
                 </nav>
 
                 <div className="top-actions">
-                    <button className="notification-btn" type="button">
-                        🔔
-                        <span />
-                    </button>
+                    <NotificationCenter
+                        onOpenVehicle={
+                            handleNotificationVehicleOpen
+                        }
+                    />
 
                     <div className="profile">
-                        <div className="avatar">{avatarLetter}</div>
+                        <div className="avatar">
+                            {avatarLetter}
+                        </div>
 
                         <div>
-                            <strong>{kullaniciAdi}</strong>
-                            <span>{kullaniciRol}</span>
+                            <strong>
+                                {kullaniciAdi}
+                            </strong>
+
+                            <span>
+                                {kullaniciRol}
+                            </span>
                         </div>
                     </div>
 
                     <button
+                        type="button"
                         className="admin-btn"
-                        onClick={() => setActivePage("Yönetim Paneli")}
+                        onClick={() =>
+                            setActivePage(
+                                "Yönetim Paneli"
+                            )
+                        }
                     >
                         <MdAdminPanelSettings className="admin-icon" />
-                        <span>Yönetim Paneli</span>
+
+                        <span>
+                            Yönetim Paneli
+                        </span>
                     </button>
 
-                    <button onClick={onLogout} className="logout-btn">
+                    <button
+                        type="button"
+                        onClick={onLogout}
+                        className="logout-btn"
+                    >
                         Çıkış
                     </button>
                 </div>
             </header>
 
-            <main className="main-content">{renderPage()}</main>
+            <main className="main-content">
+                {renderPage()}
+            </main>
+
+            <NotificationToasts
+                onOpenVehicle={
+                    handleNotificationVehicleOpen
+                }
+            />
         </div>
     );
 }

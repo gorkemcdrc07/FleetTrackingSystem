@@ -1,11 +1,14 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Detay.css";
+import { apiUrl } from "../../../config/api";
 
-const API_URL = "http://localhost:5000/api/mobiliz/locations";
+const API_URL = apiUrl("/api/mobiliz/locations");
+
+function pad(value) {
+    return String(value).padStart(2, "0");
+}
 
 function formatDateForMobiliz(date) {
-    const pad = (n) => String(n).padStart(2, "0");
-
     return (
         `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
         `T${pad(date.getHours())}:${pad(date.getMinutes())}+0300`
@@ -13,88 +16,241 @@ function formatDateForMobiliz(date) {
 }
 
 function normalizePlate(value) {
-    return String(value || "").replace(/\s/g, "").toUpperCase();
+    return String(value || "")
+        .replace(/\s/g, "")
+        .toUpperCase();
 }
 
 function formatDate(value) {
     if (!value) return "-";
 
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
 
     return date.toLocaleString("tr-TR");
+}
+
+function getResponseList(json) {
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json?.data)) return json.data;
+    if (Array.isArray(json?.Data)) return json.Data;
+    if (Array.isArray(json?.result)) return json.result;
+    if (Array.isArray(json?.items)) return json.items;
+
+    return [];
+}
+
+function getLatitude(item) {
+    return (
+        item?.latitude ??
+        item?.lat ??
+        item?.y ??
+        null
+    );
+}
+
+function getLongitude(item) {
+    return (
+        item?.longitude ??
+        item?.lng ??
+        item?.lon ??
+        item?.x ??
+        null
+    );
+}
+
+function getLocationDate(item) {
+    return (
+        item?.gpsDate ||
+        item?.date ||
+        item?.activityDate ||
+        item?.dataTime ||
+        item?.lastDataTime ||
+        null
+    );
+}
+
+function getAddress(item) {
+    return (
+        item?.address ||
+        item?.location ||
+        item?.city ||
+        "Adres bilgisi yok"
+    );
 }
 
 export default function RotaGecmisi({ plaka }) {
     const [loading, setLoading] = useState(false);
     const [locations, setLocations] = useState([]);
     const [error, setError] = useState("");
+    const [lastRefresh, setLastRefresh] = useState(null);
 
-    const tarihAraligi = useMemo(() => {
-        const end = new Date();
-        const start = new Date();
-        start.setHours(start.getHours() - 24);
+    const normalizedPlate = useMemo(
+        () => normalizePlate(plaka),
+        [plaka]
+    );
 
-        return {
-            start: formatDateForMobiliz(start),
-            end: formatDateForMobiliz(end),
-        };
-    }, []);
-
-    async function loadLocations() {
-        try {
-            setLoading(true);
-            setError("");
-
-            const params = new URLSearchParams({
-                plate: normalizePlate(plaka),
-                start: tarihAraligi.start,
-                end: tarihAraligi.end,
-            });
-
-            const res = await fetch(`${API_URL}?${params.toString()}`);
-            const json = await res.json();
-
-            if (!res.ok) {
-                throw new Error(json?.message || "Rota geçmişi alınamadı.");
+    const loadLocations = useCallback(
+        async (signal) => {
+            if (!normalizedPlate) {
+                setLocations([]);
+                setError("Plaka bilgisi bulunamadı.");
+                return;
             }
 
-            const data = Array.isArray(json)
-                ? json
-                : json.data || json.Data || [];
+            try {
+                setLoading(true);
+                setError("");
 
-            setLocations(data);
-        } catch (err) {
-            console.error(err);
-            setError(
-                "Mobiliz rota geçmişi alınamadı. Parametre adları dokümana göre güncellenebilir."
-            );
-        } finally {
-            setLoading(false);
-        }
-    }
+                // Her yenilemede gerçek son 24 saat yeniden hesaplanır.
+                const endDate = new Date();
+                const startDate = new Date(
+                    endDate.getTime() - 24 * 60 * 60 * 1000
+                );
+
+                const params = new URLSearchParams({
+                    plate: normalizedPlate,
+                    start: formatDateForMobiliz(startDate),
+                    end: formatDateForMobiliz(endDate),
+                });
+
+                const response = await fetch(
+                    `${API_URL}?${params.toString()}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Accept: "application/json",
+                        },
+                        signal,
+                    }
+                );
+
+                const contentType =
+                    response.headers.get("content-type") || "";
+
+                let json;
+
+                if (contentType.includes("application/json")) {
+                    json = await response.json();
+                } else {
+                    const text = await response.text();
+
+                    throw new Error(
+                        text ||
+                        `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
+                    );
+                }
+
+                if (!response.ok) {
+                    throw new Error(
+                        json?.message ||
+                        json?.error ||
+                        `Rota geçmişi isteği başarısız oldu. HTTP ${response.status}`
+                    );
+                }
+
+                const data = getResponseList(json)
+                    .filter(Boolean)
+                    .sort((a, b) => {
+                        const aTime = new Date(
+                            getLocationDate(a) || 0
+                        ).getTime();
+
+                        const bTime = new Date(
+                            getLocationDate(b) || 0
+                        ).getTime();
+
+                        return bTime - aTime;
+                    });
+
+                setLocations(data);
+                setLastRefresh(new Date());
+            } catch (err) {
+                if (err?.name === "AbortError") return;
+
+                console.error(
+                    "Mobiliz rota geçmişi alınamadı:",
+                    err
+                );
+
+                setLocations([]);
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Mobiliz rota geçmişi alınamadı."
+                );
+            } finally {
+                if (!signal?.aborted) {
+                    setLoading(false);
+                }
+            }
+        },
+        [normalizedPlate]
+    );
 
     useEffect(() => {
-        if (!plaka) return;
+        const controller = new AbortController();
+
+        loadLocations(controller.signal);
+
+        return () => {
+            controller.abort();
+        };
+    }, [loadLocations]);
+
+    function handleRefresh() {
         loadLocations();
-    }, [plaka]);
+    }
 
     return (
         <div className="rota-gecmisi">
             <div className="rota-gecmisi-head">
                 <div>
                     <h2>🛣️ Rota Geçmişi</h2>
+
                     <p>
-                        {plaka} için son 24 saatlik Mobiliz konum hareketleri.
+                        {plaka || "-"} için son 24 saatlik Mobiliz
+                        konum hareketleri.
                     </p>
+
+                    {lastRefresh && (
+                        <small>
+                            Son yenileme:{" "}
+                            {lastRefresh.toLocaleTimeString("tr-TR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                            })}
+                        </small>
+                    )}
                 </div>
 
-                <button onClick={loadLocations} disabled={loading}>
+                <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={loading || !normalizedPlate}
+                >
                     {loading ? "Yükleniyor..." : "Yenile"}
                 </button>
             </div>
 
-            {error && <div className="mobiliz-error">{error}</div>}
+            {error && (
+                <div className="mobiliz-error">
+                    <strong>Rota geçmişi alınamadı.</strong>
+                    <span>{error}</span>
+
+                    <button
+                        type="button"
+                        onClick={handleRefresh}
+                        disabled={loading}
+                    >
+                        Tekrar Dene
+                    </button>
+                </div>
+            )}
 
             {!error && loading && (
                 <div className="mobiliz-loading">
@@ -104,38 +260,76 @@ export default function RotaGecmisi({ plaka }) {
 
             {!error && !loading && locations.length === 0 && (
                 <div className="mobiliz-empty">
-                    Bu araç için rota geçmişi bulunamadı.
+                    <strong>Rota geçmişi bulunamadı.</strong>
+                    <span>
+                        Bu araç için son 24 saatte konum kaydı
+                        bulunmuyor.
+                    </span>
                 </div>
             )}
 
             {!error && !loading && locations.length > 0 && (
-                <div className="rota-listesi">
-                    {locations.slice(0, 100).map((item, index) => (
-                        <div
-                            className="rota-item"
-                            key={item.id || `${index}-${item.latitude}-${item.longitude}`}
-                        >
-                            <div>
-                                <strong>{index + 1}. Konum</strong>
-                                <span>
-                                    {item.address ||
-                                        item.location ||
-                                        item.city ||
-                                        "Adres yok"}
-                                </span>
-                            </div>
+                <>
+                    <div className="rota-gecmisi-summary">
+                        <span>Toplam Konum</span>
+                        <strong>{locations.length}</strong>
+                    </div>
 
-                            <small>
-                                {formatDate(
-                                    item.gpsDate ||
-                                    item.date ||
-                                    item.activityDate ||
-                                    item.dataTime
-                                )}
-                            </small>
-                        </div>
-                    ))}
-                </div>
+                    <div className="rota-listesi">
+                        {locations.slice(0, 100).map((item, index) => {
+                            const latitude = getLatitude(item);
+                            const longitude = getLongitude(item);
+                            const locationDate = getLocationDate(item);
+
+                            const mapsUrl =
+                                latitude !== null &&
+                                    longitude !== null
+                                    ? `https://www.google.com/maps?q=${latitude},${longitude}`
+                                    : null;
+
+                            return (
+                                <div
+                                    className="rota-item"
+                                    key={
+                                        item?.id ||
+                                        `${index}-${latitude}-${longitude}-${locationDate}`
+                                    }
+                                >
+                                    <div className="rota-item-content">
+                                        <strong>
+                                            {index + 1}. Konum
+                                        </strong>
+
+                                        <span>{getAddress(item)}</span>
+
+                                        {latitude !== null &&
+                                            longitude !== null && (
+                                                <small>
+                                                    {latitude}, {longitude}
+                                                </small>
+                                            )}
+                                    </div>
+
+                                    <div className="rota-item-side">
+                                        <time>
+                                            {formatDate(locationDate)}
+                                        </time>
+
+                                        {mapsUrl && (
+                                            <a
+                                                href={mapsUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                Haritada Aç
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
             )}
         </div>
     );

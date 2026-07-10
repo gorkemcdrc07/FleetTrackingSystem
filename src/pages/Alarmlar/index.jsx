@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import "./Alarmlar.css";
+import { notificationEngine } from "../../services/notificationEngine";
+import { apiUrl } from "../../config/api";
 
-const API_URL = "http://localhost:5000/api/mobiliz/activity-last";
+const API_URL = apiUrl("/api/mobiliz/activity-last");
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
 
 function getSpeed(vehicle) {
@@ -205,6 +207,8 @@ export default function Alarmlar() {
 
             setVehicles(data);
             setGeofenceEvents(loadGeofenceEvents());
+            notificationEngine.processVehicles(data);
+            notificationEngine.processGeofenceEvents();
             setLastRefresh(new Date());
         } catch (err) {
             console.error("Alarm verisi alınamadı:", err);

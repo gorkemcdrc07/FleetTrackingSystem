@@ -1650,8 +1650,12 @@ function AktifSeferler() {
             await supabasedenListele();
         } catch (err) {
             console.error("TMS çekme / kayıt hatası:", err);
-            alert("TMS verileri alınırken veya Supabase'e kaydedilirken hata oluştu.");
-        } finally {
+
+            alert(
+                `Hata:\n\n${err.message}`
+            );
+        }
+        finally {
             setSyncing(false);
         }
     }, [startDate, endDate, supabasedenListele]);

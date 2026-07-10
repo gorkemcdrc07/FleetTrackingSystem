@@ -1,20 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Harita from "../../components/Harita/Harita";
 import Filtreler from "../../components/Harita/Filtreler";
-import AracDetayPaneli from "./AracDetayPaneli";
+import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 import "../../components/Harita/Harita.css";
+import { apiUrl } from "../../config/api";
 
-const API_URL = "http://localhost:5000/api/mobiliz/activity-last";
+const API_URL = apiUrl("/api/mobiliz/activity-last");
 
 function normalizePlate(value) {
-    return String(value || "").replace(/\s/g, "").toUpperCase();
+    return String(value || "")
+        .replace(/\s/g, "")
+        .toUpperCase();
+}
+
+function getPlate(vehicle) {
+    return (
+        vehicle?.plate ||
+        vehicle?.licensePlate ||
+        vehicle?.plateNo ||
+        "-"
+    );
+}
+
+function getSpeed(vehicle) {
+    return Number(vehicle?.speed || vehicle?.velocity || 0);
 }
 
 function getStatus(vehicle) {
-    const speed = Number(vehicle?.speed || vehicle?.velocity || 0);
+    const speed = getSpeed(vehicle);
 
     if (speed > 0) return "moving";
     if (vehicle?.ignition || vehicle?.engine) return "idle";
+
     return "park";
 }
 
@@ -23,36 +40,75 @@ function getStatusText(vehicle) {
 
     if (status === "moving") return "Hareket Halinde";
     if (status === "idle") return "Rölantide";
+
     return "Park Halinde";
 }
 
 function getCoordinate(vehicle) {
     return {
-        latitude: vehicle?.latitude || vehicle?.lat || vehicle?.y || "",
+        latitude:
+            vehicle?.latitude ??
+            vehicle?.lat ??
+            vehicle?.y ??
+            "",
+
         longitude:
-            vehicle?.longitude ||
-            vehicle?.lng ||
-            vehicle?.lon ||
-            vehicle?.x ||
+            vehicle?.longitude ??
+            vehicle?.lng ??
+            vehicle?.lon ??
+            vehicle?.x ??
             "",
     };
+}
+
+function getAddress(vehicle) {
+    return (
+        vehicle?.address ||
+        vehicle?.location ||
+        vehicle?.city ||
+        "Konum bilgisi yok"
+    );
+}
+
+function getLastDate(vehicle) {
+    return (
+        vehicle?.gpsDate ||
+        vehicle?.activityDate ||
+        vehicle?.dataTime ||
+        vehicle?.lastDataTime ||
+        vehicle?.date ||
+        ""
+    );
 }
 
 function formatDate(value) {
     if (!value) return "-";
 
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
 
     return date.toLocaleString("tr-TR");
 }
 
-export default function AracTakibi() {
+function getResponseList(json) {
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json?.data)) return json.data;
+    if (Array.isArray(json?.result)) return json.result;
+    if (Array.isArray(json?.items)) return json.items;
+
+    return [];
+}
+
+export default function AracTakibi({ onNavigate }) {
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [lastRefresh, setLastRefresh] = useState(null);
 
     const [filters, setFilters] = useState({
         search: "",
@@ -61,86 +117,174 @@ export default function AracTakibi() {
         group: "",
     });
 
-    async function loadVehicles() {
+    const loadVehicles = useCallback(async (signal) => {
         try {
             setLoading(true);
             setError("");
 
-            const res = await fetch(API_URL);
-            const json = await res.json();
+            const response = await fetch(API_URL, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                },
+                signal,
+            });
 
-            if (!res.ok) {
-                throw new Error(json?.message || "Mobiliz verisi alınamadı.");
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            let json;
+
+            if (contentType.includes("application/json")) {
+                json = await response.json();
+            } else {
+                const text = await response.text();
+
+                throw new Error(
+                    text ||
+                    `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
+                );
             }
 
-            const data = Array.isArray(json) ? json : json.data || [];
+            if (!response.ok) {
+                throw new Error(
+                    json?.message ||
+                    json?.error ||
+                    `Mobiliz isteği başarısız oldu. HTTP ${response.status}`
+                );
+            }
+
+            const data = getResponseList(json);
 
             setVehicles(data);
 
-            setSelectedVehicle((prev) => {
-                if (!prev) return data[0] || null;
+            setSelectedVehicle((previous) => {
+                if (!previous) {
+                    return data[0] || null;
+                }
+
+                const previousPlate = normalizePlate(
+                    getPlate(previous)
+                );
 
                 return (
                     data.find(
                         (item) =>
-                            normalizePlate(item.plate) ===
-                            normalizePlate(prev.plate)
+                            normalizePlate(getPlate(item)) ===
+                            previousPlate
                     ) ||
                     data[0] ||
                     null
                 );
             });
+
+            setLastRefresh(new Date());
         } catch (err) {
-            console.error(err);
-            setError("Mobiliz araç verileri alınamadı.");
+            if (err?.name === "AbortError") return;
+
+            console.error("Mobiliz araç verileri alınamadı:", err);
+
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Mobiliz araç verileri alınamadı."
+            );
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    }
+    }, []);
 
     useEffect(() => {
-        loadVehicles();
+        const controller = new AbortController();
 
-        const timer = setInterval(loadVehicles, 30000);
+        loadVehicles(controller.signal);
 
-        return () => clearInterval(timer);
-    }, []);
+        const timer = window.setInterval(() => {
+            loadVehicles();
+        }, 30000);
+
+        return () => {
+            controller.abort();
+            window.clearInterval(timer);
+        };
+    }, [loadVehicles]);
 
     const filteredVehicles = useMemo(() => {
         return vehicles.filter((vehicle) => {
-            const plateMatch = normalizePlate(vehicle.plate).includes(
-                normalizePlate(filters.search)
-            );
+            const plateMatch = normalizePlate(
+                getPlate(vehicle)
+            ).includes(normalizePlate(filters.search));
 
             const statusMatch =
                 filters.status === "all" ||
                 getStatus(vehicle) === filters.status;
 
             const fleetMatch =
-                !filters.fleet || vehicle.fleetName === filters.fleet;
+                !filters.fleet ||
+                vehicle?.fleetName === filters.fleet;
 
             const groupMatch =
-                !filters.group || vehicle.groupName === filters.group;
+                !filters.group ||
+                vehicle?.groupName === filters.group;
 
-            return plateMatch && statusMatch && fleetMatch && groupMatch;
+            return (
+                plateMatch &&
+                statusMatch &&
+                fleetMatch &&
+                groupMatch
+            );
         });
     }, [vehicles, filters]);
 
     const summary = useMemo(() => {
         return {
             total: vehicles.length,
-            moving: vehicles.filter((v) => getStatus(v) === "moving").length,
-            idle: vehicles.filter((v) => getStatus(v) === "idle").length,
-            park: vehicles.filter((v) => getStatus(v) === "park").length,
+            moving: vehicles.filter(
+                (vehicle) => getStatus(vehicle) === "moving"
+            ).length,
+            idle: vehicles.filter(
+                (vehicle) => getStatus(vehicle) === "idle"
+            ).length,
+            park: vehicles.filter(
+                (vehicle) => getStatus(vehicle) === "park"
+            ).length,
         };
     }, [vehicles]);
 
     const selectedCoordinate = getCoordinate(selectedVehicle);
 
     const selectedMapsUrl =
-        selectedCoordinate.latitude && selectedCoordinate.longitude
+        selectedCoordinate.latitude !== "" &&
+            selectedCoordinate.longitude !== ""
             ? `https://www.google.com/maps?q=${selectedCoordinate.latitude},${selectedCoordinate.longitude}`
             : "";
+
+    function handleSelectVehicle(vehicle) {
+        setSelectedVehicle(vehicle);
+        setDrawerOpen(true);
+    }
+
+    function handleGoPlayback(vehicle) {
+        localStorage.setItem(
+            "fts_playback_vehicle",
+            JSON.stringify(vehicle)
+        );
+
+        setDrawerOpen(false);
+        onNavigate?.("Playback");
+    }
+
+    function handleOpenOperations(vehicle) {
+        localStorage.setItem(
+            "fts_focus_plate",
+            getPlate(vehicle)
+        );
+
+        setDrawerOpen(false);
+        onNavigate?.("Operasyon Merkezi");
+    }
 
     return (
         <div className="arac-takibi-page premium">
@@ -148,10 +292,28 @@ export default function AracTakibi() {
                 <div>
                     <span>Mobiliz Entegrasyonu</span>
                     <h1>Araç Takibi</h1>
-                    <p>Canlı araç konumları, hız ve kontak durumları.</p>
+
+                    <p>
+                        Canlı araç konumları, hız ve kontak durumları.
+                    </p>
+
+                    {lastRefresh && (
+                        <small>
+                            Son yenileme:{" "}
+                            {lastRefresh.toLocaleTimeString("tr-TR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                            })}
+                        </small>
+                    )}
                 </div>
 
-                <button onClick={loadVehicles} disabled={loading}>
+                <button
+                    type="button"
+                    onClick={() => loadVehicles()}
+                    disabled={loading}
+                >
                     {loading ? "Yükleniyor..." : "Yenile"}
                 </button>
             </div>
@@ -178,7 +340,20 @@ export default function AracTakibi() {
                 </div>
             </div>
 
-            {error && <div className="mobiliz-error">{error}</div>}
+            {error && (
+                <div className="mobiliz-error">
+                    <strong>Araç verileri alınamadı.</strong>
+                    <span>{error}</span>
+
+                    <button
+                        type="button"
+                        onClick={() => loadVehicles()}
+                        disabled={loading}
+                    >
+                        Tekrar Dene
+                    </button>
+                </div>
+            )}
 
             <Filtreler
                 vehicles={vehicles}
@@ -193,49 +368,63 @@ export default function AracTakibi() {
                         <span>{filteredVehicles.length} kayıt</span>
                     </div>
 
-                    {filteredVehicles.map((vehicle) => (
-                        <button
-                            key={vehicle.id || vehicle.plate}
-                            className={
-                                selectedVehicle?.plate === vehicle.plate
-                                    ? "arac-list-item active"
-                                    : "arac-list-item"
-                            }
-                            onClick={() => {
-                                setSelectedVehicle(vehicle);
-                                setDrawerOpen(true);
-                            }}
-                        >
-                            <div className="arac-item-top">
-                                <strong>{vehicle.plate}</strong>
+                    {filteredVehicles.length === 0 ? (
+                        <div className="mobiliz-empty">
+                            Filtreye uygun araç bulunamadı.
+                        </div>
+                    ) : (
+                        filteredVehicles.map((vehicle) => {
+                            const plate = getPlate(vehicle);
 
-                                <span className={`mini-status ${getStatus(vehicle)}`}>
-                                    {getStatusText(vehicle)}
-                                </span>
-                            </div>
+                            return (
+                                <button
+                                    key={vehicle?.id || plate}
+                                    type="button"
+                                    className={
+                                        normalizePlate(
+                                            getPlate(selectedVehicle)
+                                        ) === normalizePlate(plate)
+                                            ? "arac-list-item active"
+                                            : "arac-list-item"
+                                    }
+                                    onClick={() =>
+                                        handleSelectVehicle(vehicle)
+                                    }
+                                >
+                                    <div className="arac-item-top">
+                                        <strong>{plate}</strong>
 
-                            <small>
-                                {vehicle.address ||
-                                    vehicle.location ||
-                                    vehicle.city ||
-                                    "Konum bilgisi yok"}
-                            </small>
+                                        <span
+                                            className={`mini-status ${getStatus(
+                                                vehicle
+                                            )}`}
+                                        >
+                                            {getStatusText(vehicle)}
+                                        </span>
+                                    </div>
 
-                            <em>
-                                {vehicle.speed || vehicle.velocity || 0} km/h
-                            </em>
-                        </button>
-                    ))}
+                                    <small>
+                                        {getAddress(vehicle)}
+                                    </small>
+
+                                    <em>
+                                        {getSpeed(vehicle)} km/h
+                                    </em>
+                                </button>
+                            );
+                        })
+                    )}
                 </aside>
 
                 <div className="arac-harita-alani premium">
                     <Harita
                         vehicles={filteredVehicles}
-                        selectedPlate={selectedVehicle?.plate}
-                        onVehicleClick={(vehicle) => {
-                            setSelectedVehicle(vehicle);
-                            setDrawerOpen(true);
-                        }}
+                        selectedPlate={
+                            selectedVehicle
+                                ? getPlate(selectedVehicle)
+                                : undefined
+                        }
+                        onVehicleClick={handleSelectVehicle}
                         height="720px"
                         zoom={6}
                     />
@@ -246,28 +435,30 @@ export default function AracTakibi() {
                 <div className="arac-detay-bar premium">
                     <div>
                         <span>Seçili Araç</span>
-                        <strong>{selectedVehicle.plate}</strong>
+                        <strong>
+                            {getPlate(selectedVehicle)}
+                        </strong>
                     </div>
 
                     <div>
                         <span>Durum</span>
-                        <strong>{getStatusText(selectedVehicle)}</strong>
+                        <strong>
+                            {getStatusText(selectedVehicle)}
+                        </strong>
                     </div>
 
                     <div>
                         <span>Hız</span>
                         <strong>
-                            {selectedVehicle.speed ||
-                                selectedVehicle.velocity ||
-                                0}{" "}
-                            km/h
+                            {getSpeed(selectedVehicle)} km/h
                         </strong>
                     </div>
 
                     <div>
                         <span>Kontak</span>
                         <strong>
-                            {selectedVehicle.ignition || selectedVehicle.engine
+                            {selectedVehicle?.ignition ||
+                                selectedVehicle?.engine
                                 ? "Açık"
                                 : "Kapalı"}
                         </strong>
@@ -276,19 +467,20 @@ export default function AracTakibi() {
                     <div>
                         <span>Koordinat</span>
                         <strong>
-                            {selectedCoordinate.latitude || "-"}
+                            {selectedCoordinate.latitude !== ""
+                                ? selectedCoordinate.latitude
+                                : "-"}
                             <br />
-                            {selectedCoordinate.longitude || "-"}
+                            {selectedCoordinate.longitude !== ""
+                                ? selectedCoordinate.longitude
+                                : "-"}
                         </strong>
                     </div>
 
                     <div>
                         <span>Adres</span>
                         <strong>
-                            {selectedVehicle.address ||
-                                selectedVehicle.location ||
-                                selectedVehicle.city ||
-                                "-"}
+                            {getAddress(selectedVehicle)}
                         </strong>
                     </div>
 
@@ -296,10 +488,7 @@ export default function AracTakibi() {
                         <span>Son Veri</span>
                         <strong>
                             {formatDate(
-                                selectedVehicle.gpsDate ||
-                                selectedVehicle.activityDate ||
-                                selectedVehicle.dataTime ||
-                                selectedVehicle.lastDataTime
+                                getLastDate(selectedVehicle)
                             )}
                         </strong>
                     </div>
@@ -325,9 +514,12 @@ export default function AracTakibi() {
                 </div>
             )}
 
-            <AracDetayPaneli
-                vehicle={drawerOpen ? selectedVehicle : null}
+            <VehicleDrawer
+                open={drawerOpen}
+                vehicle={selectedVehicle}
                 onClose={() => setDrawerOpen(false)}
+                onGoPlayback={handleGoPlayback}
+                onOpenOperations={handleOpenOperations}
             />
         </div>
     );

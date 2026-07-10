@@ -1,0 +1,31 @@
+﻿.ui-vehicle-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 78px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+    .ui-vehicle-status.moving {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .ui-vehicle-status.idle {
+        background: #ffedd5;
+        color: #9a3412;
+    }
+
+    .ui-vehicle-status.park {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+    .ui-vehicle-status.offline {
+        background: #fee2e2;
+        color: #991b1b;
+    }
