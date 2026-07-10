@@ -25,7 +25,7 @@ async function request(path, options = {}) {
         const message =
             data?.error ||
             data?.message ||
-            `Mobiliz isteği başarısız oldu. HTTP ${response.status}`;
+            `Mobiliz isteÄŸi baÅŸarÄ±sÄ±z oldu. HTTP ${response.status}`;
 
         throw new Error(message);
     }

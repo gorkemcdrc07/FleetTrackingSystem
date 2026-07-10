@@ -685,7 +685,7 @@
             border-left-color: #dc2626;
         }
 
-        /* Baþlýk */
+        /* BaÅŸlÄ±k */
 
         .dash-alarm > span,
         .operation-item > span {
@@ -731,7 +731,7 @@
             overflow-wrap: anywhere;
         }
 
-        /* Açýklama */
+        /* AÃ§Ä±klama */
 
         .dash-alarm > p,
         .operation-item > p {
@@ -754,7 +754,7 @@
             font-weight: 850;
         }
 
-    /* Kritik araç kartlarý */
+    /* Kritik araÃ§ kartlarÄ± */
 
     .dashboard-critical-list > button {
         display: grid;
@@ -824,7 +824,7 @@
         white-space: nowrap;
     }
 
-/* Panel baþlýklarý */
+/* Panel baÅŸlÄ±klarÄ± */
 
 .dash-panel > h2,
 .dash-panel-title-row h2 {
@@ -835,7 +835,7 @@
     letter-spacing: -0.02em;
 }
 
-/* Scroll alanlarý */
+/* Scroll alanlarÄ± */
 
 .dash-alarm-list,
 .operation-feed,
