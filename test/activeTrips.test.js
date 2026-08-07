@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createRouteDetails, prepareActiveTrips } from "../src/domain/activeTrips.js";
+import { createRouteDetails, prepareActiveTrips, splitTripValues } from "../src/domain/activeTrips.js";
+
+test("aktif sefer çoklu alanlarını güvenle parçalara ayırır", () => {
+    assert.deepEqual(splitTripValues(" Depo ; ; Mağaza "), ["Depo", "Mağaza"]);
+    assert.deepEqual(splitTripValues(null), []);
+});
 
 test("rota detaylarında yinelenen yükleme noktalarını kaldırır", () => {
     const result = createRouteDetails({

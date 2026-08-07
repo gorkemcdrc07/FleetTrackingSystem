@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deactivateActiveTrip, moveTripToCompleted, updateActiveTrip } from "../../services/tripRepository";
-import { createRouteDetails as createRotaDetaylari } from "../../domain/activeTrips";
+import { createRouteDetails as createRotaDetaylari, splitTripValues as split } from "../../domain/activeTrips";
 import { useActiveTrips } from "./useActiveTrips";
 import "./ActiveTrips.css";
 import TripDetails from "./TripDetails";
