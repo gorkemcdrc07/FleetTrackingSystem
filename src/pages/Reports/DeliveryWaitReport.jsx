@@ -1,7 +1,6 @@
 ﻿import { Fragment, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { normalizeRouteDetails } from "../../domain/reportTrips";
 import { listReportTrips } from "../../services/reportRepository";
@@ -307,6 +306,8 @@ export default function DeliveryWaitReport() {
     }, [rows]);
 
     const exportExcel = async () => {
+        const excelModule = await import("exceljs");
+        const ExcelJS = excelModule.default || excelModule;
         if (!rows.length) return;
 
         const wb = new ExcelJS.Workbook();
