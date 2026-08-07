@@ -1,6 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncFromTMS, mapTMSRows } from "./tmsService";
 import { supabase } from "../../supabaseClient";
+import { getExcludedTripNumbers, listActiveTrips, moveTripToCompleted, saveActiveTrips } from "../../services/tripRepository";
 import "./AktifSeferler.css";
 import Detaylar from "./detaylar";
 import SutunDuzeni from "./Gorunum/SutunDuzeni";
@@ -1484,18 +1485,7 @@ function AktifSeferler() {
                 tonaj_durumu: row.tonaj_durumu || null,
             };
 
-            const { error: insertError } = await supabase
-                .from("tamamlanan_seferler")
-                .upsert(payload, { onConflict: "sefer_no" });
-
-            if (insertError) throw insertError;
-
-            const { error: deleteError } = await supabase
-                .from("aktif_seferler")
-                .delete()
-                .eq("sefer_no", row.sefer_no);
-
-            if (deleteError) throw deleteError;
+            await moveTripToCompleted(payload);
 
             setRows((prev) => prev.filter((item) => item.sefer_no !== row.sefer_no));
             setCompletionCandidate(null);
@@ -1533,17 +1523,7 @@ function AktifSeferler() {
         setLoading(true);
 
         try {
-            const { data, error } = await supabase
-                .from("aktif_seferler")
-                .select("*")
-                .eq("pasif", false)
-                .gte("sefer_tarihi", startDate)
-                .lte("sefer_tarihi", endDate)
-                .order("sefer_tarihi", { ascending: false });
-
-            if (error) throw error;
-
-            setRows(data || []);
+            setRows(await listActiveTrips({ startDate, endDate }));
         } catch (err) {
             console.error("Supabase listeleme hatası:", err);
             alert("Kayıtlı veriler alınırken hata oluştu.");
@@ -1561,24 +1541,7 @@ function AktifSeferler() {
                 end: `${endDate}T23:59:59`,
             });
 
-            const { data: completedRows, error: completedError } = await supabase
-                .from("tamamlanan_seferler")
-                .select("sefer_no");
-
-            if (completedError) throw completedError;
-
-            const completedSet = new Set((completedRows || []).map((x) => x.sefer_no));
-
-            const { data: passiveRows, error: passiveError } = await supabase
-                .from("aktif_seferler")
-                .select("sefer_no")
-                .eq("pasif", true);
-
-            if (passiveError) throw passiveError;
-
-            const passiveSet = new Set(
-                (passiveRows || []).map((x) => x.sefer_no)
-            );
+            const { completed: completedSet, passive: passiveSet } = await getExcludedTripNumbers();
 
             const ALLOWED_WORKING_TYPES = [
                 "FİLO",
@@ -1638,14 +1601,7 @@ function AktifSeferler() {
                     ham_veri: r,
                 }));
 
-            const { error: saveError } = await supabase
-                .from("aktif_seferler")
-                .upsert(mappedRows, {
-                    onConflict: "sefer_no",
-                    ignoreDuplicates: true,
-                });
-
-            if (saveError) throw saveError;
+            await saveActiveTrips(mappedRows);
 
             await supabasedenListele();
         } catch (err) {
