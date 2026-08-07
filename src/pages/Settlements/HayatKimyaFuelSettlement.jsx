@@ -1,6 +1,8 @@
 ﻿import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { supabase } from "../../supabaseClient";
+import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
+import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
+import { listVehiclePricing } from "../../services/vehiclePricingRepository";
 import { islemLogla } from "../../utils/islemLogla";
 import "./HayatKimyaFuelSettlement.css";
 
@@ -145,11 +147,9 @@ export default function HayatKimyaFuelSettlement() {
     const canCalculate = yakitReady && seferReady && !loading;
 
     async function loadAracFiyatlari() {
-        const { data, error } = await supabase.from("arac_fiyat_yonetimi").select("*");
-        if (error) throw error;
-
-        setAracFiyatRows(data || []);
-        return data || [];
+        const data = await listVehiclePricing();
+        setAracFiyatRows(data);
+        return data;
     }
 
     async function processYakitRows(rawRows, sourceName = "Yapıştırılan Veri") {
@@ -175,15 +175,7 @@ export default function HayatKimyaFuelSettlement() {
                 })
                 .filter((x) => x.plaka);
 
-            await supabase
-                .from("hayat_kimya_yakit_tmp")
-                .delete()
-                .neq("id", "00000000-0000-0000-0000-000000000000");
-
-            if (parsed.length) {
-                const { error } = await supabase.from("hayat_kimya_yakit_tmp").insert(parsed);
-                if (error) throw error;
-            }
+            await replaceTemporarySettlementRows(SETTLEMENT_DATASETS.HAYAT_KIMYA_FUEL, parsed);
 
             setYakitRows(parsed);
             setPasteOpen(false);
@@ -226,15 +218,7 @@ export default function HayatKimyaFuelSettlement() {
                 })
                 .filter((x) => x.plaka && x.toplam_km > 0);
 
-            await supabase
-                .from("hayat_kimya_sefer_tmp")
-                .delete()
-                .neq("id", "00000000-0000-0000-0000-000000000000");
-
-            if (parsed.length) {
-                const { error } = await supabase.from("hayat_kimya_sefer_tmp").insert(parsed);
-                if (error) throw error;
-            }
+            await replaceTemporarySettlementRows(SETTLEMENT_DATASETS.HAYAT_KIMYA_TRIPS, parsed);
 
             setSeferRows(parsed);
             await loadAracFiyatlari();

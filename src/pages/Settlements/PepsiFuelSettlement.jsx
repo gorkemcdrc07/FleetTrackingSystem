@@ -1,6 +1,7 @@
 ﻿import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { supabase } from "../../supabaseClient";
+import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
+import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
 import { islemLogla } from "../../utils/islemLogla";
 import "./PepsiFuelSettlement.css";
 
@@ -212,15 +213,7 @@ export default function PepsiFuelSettlement() {
                 })
                 .filter((x) => x.plaka && x.yakit_litresi > 0);
 
-            await supabase
-                .from("frigo_yakit_tmp")
-                .delete()
-                .neq("id", "00000000-0000-0000-0000-000000000000");
-
-            if (parsed.length) {
-                const { error } = await supabase.from("frigo_yakit_tmp").insert(parsed);
-                if (error) throw error;
-            }
+            await replaceTemporarySettlementRows(SETTLEMENT_DATASETS.PEPSI_FUEL, parsed);
 
             setYakitRows(parsed);
             setPasteOpen(false);
@@ -262,15 +255,7 @@ export default function PepsiFuelSettlement() {
                 })
                 .filter((x) => x.plaka && x.toplam_km > 0);
 
-            await supabase
-                .from("frigo_sefer_tmp")
-                .delete()
-                .neq("id", "00000000-0000-0000-0000-000000000000");
-
-            if (parsed.length) {
-                const { error } = await supabase.from("frigo_sefer_tmp").insert(parsed);
-                if (error) throw error;
-            }
+            await replaceTemporarySettlementRows(SETTLEMENT_DATASETS.PEPSI_TRIPS, parsed);
 
             setSeferRows(parsed);
             setPasteOpen(false);
