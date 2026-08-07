@@ -1,87 +1,14 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { syncFromTMS, mapTMSRows } from "./tmsService";
 import { supabase } from "../../supabaseClient";
-import { getExcludedTripNumbers, listActiveTrips, moveTripToCompleted, saveActiveTrips } from "../../services/tripRepository";
+import { moveTripToCompleted } from "../../services/tripRepository";
+import { createRouteDetails as createRotaDetaylari } from "../../domain/activeTrips";
+import { useActiveTrips } from "./useActiveTrips";
 import "./AktifSeferler.css";
 import Detaylar from "./detaylar";
 import SutunDuzeni from "./Gorunum/SutunDuzeni";
 import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
-
-function split(val) {
-    return String(val || "")
-        .split(";")
-        .map((x) => x.trim())
-        .filter(Boolean);
-}
-
-function normalizeKey(...values) {
-    return values
-        .filter(Boolean)
-        .join("|")
-        .toLocaleLowerCase("tr-TR")
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
-function uniqueStops(stops) {
-    const seen = new Set();
-
-    return stops.filter((stop) => {
-        const key = normalizeKey(stop.firma, stop.nokta, stop.il, stop.ilce);
-        if (!key) return false;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-}
-
-function createRotaDetaylari(row) {
-    const yuklemeNoktasi = split(row.yukleme_noktasi);
-    const yuklemeIl = split(row.yukleme_ili);
-    const yuklemeIlce = split(row.yukleme_ilcesi);
-
-    const teslimFirma = split(row.teslim_alan_firma);
-    const teslimNoktasi = split(row.teslim_noktasi);
-    const teslimIl = split(row.teslim_ili);
-    const teslimIlce = split(row.teslim_ilcesi);
-
-    const yukCount = Math.max(yuklemeNoktasi.length, yuklemeIl.length, yuklemeIlce.length);
-    const tesCount = Math.max(teslimFirma.length, teslimNoktasi.length, teslimIl.length, teslimIlce.length);
-
-    const yuklemeStops = uniqueStops(
-        Array.from({ length: yukCount }).map((_, i) => ({
-            tip: "yukleme",
-            sira: i + 1,
-            firma: null,
-            nokta: yuklemeNoktasi[i] || null,
-            il: yuklemeIl[i] || null,
-            ilce: yuklemeIlce[i] || null,
-            planlanan_varis: null,
-            gerceklesen_varis: null,
-            planlanan_cikis: null,
-            gerceklesen_cikis: null,
-        }))
-    );
-
-    const teslimStops = Array.from({ length: tesCount })
-        .map((_, i) => ({
-            tip: "teslim",
-            sira: yuklemeStops.length + i + 1,
-            firma: teslimFirma[i] || null,
-            nokta: teslimNoktasi[i] || null,
-            il: teslimIl[i] || null,
-            ilce: teslimIlce[i] || null,
-            planlanan_varis: null,
-            gerceklesen_varis: null,
-            planlanan_cikis: null,
-            gerceklesen_cikis: null,
-        }))
-        .filter((x) => x.firma || x.nokta || x.il || x.ilce);
-
-    return [...yuklemeStops, ...teslimStops];
-}
 
 function IconChevron({ open }) {
     return (
@@ -996,7 +923,6 @@ function ColumnFiltersPanel({ columns, rows, filters, onChange, onClearAll }) {
 }
 
 function AktifSeferler() {
-    const [rows, setRows] = useState([]);
     const [expandedId, setExpandedId] = useState(null);
     const [detailRow, setDetailRow] = useState(null);
     const [etaRow, setEtaRow] = useState(null);
@@ -1016,8 +942,13 @@ function AktifSeferler() {
     const [endDate, setEndDate] = useState(
         formatInputDate(today)
     );
-    const [loading, setLoading] = useState(false);
-    const [syncing, setSyncing] = useState(false);
+    const {
+        rows,
+        setRows,
+        loading,
+        syncing,
+        synchronize: tmsdenCekVeKaydet,
+    } = useActiveTrips({ startDate, endDate });
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
     const [showColumnFilters, setShowColumnFilters] = useState(false);
     const [toast, setToast] = useState(null);
@@ -1518,107 +1449,6 @@ function AktifSeferler() {
         persistColumnOrder(defaultOrder);
         persistVisibleColumns(defaultVisible);
     }, [persistColumnOrder, persistVisibleColumns]);
-
-    const supabasedenListele = useCallback(async () => {
-        setLoading(true);
-
-        try {
-            setRows(await listActiveTrips({ startDate, endDate }));
-        } catch (err) {
-            console.error("Supabase listeleme hatası:", err);
-            alert("Kayıtlı veriler alınırken hata oluştu.");
-        } finally {
-            setLoading(false);
-        }
-    }, [startDate, endDate]);
-
-    const tmsdenCekVeKaydet = useCallback(async () => {
-        setSyncing(true);
-
-        try {
-            const incoming = await syncFromTMS({
-                start: `${startDate}T00:00:00`,
-                end: `${endDate}T23:59:59`,
-            });
-
-            const { completed: completedSet, passive: passiveSet } = await getExcludedTripNumbers();
-
-            const ALLOWED_WORKING_TYPES = [
-                "FİLO",
-                "DENTAŞ ÇORLU KİRALIK",
-                "PEPSİ KİRALIK",
-            ];
-
-            const allMapped = mapTMSRows(incoming);
-
-            console.log("TMS GELEN:", incoming.length);
-            console.table(
-                allMapped.map((r) => ({
-                    sefer_no: r.sefer_no,
-                    tip: r.vehicle_working_type_name,
-                    tamamlandi: completedSet.has(r.sefer_no),
-                    pasif: passiveSet.has(r.sefer_no),
-                }))
-            );
-
-            const mappedRows = allMapped
-                .filter((r) =>
-                    ALLOWED_WORKING_TYPES.includes(
-                        String(r.vehicle_working_type_name || "")
-                            .toLocaleUpperCase("tr-TR")
-                            .trim()
-                    )
-                )
-                .filter((r) => !completedSet.has(r.sefer_no))
-                .filter((r) => !passiveSet.has(r.sefer_no))
-                .map((r) => ({
-                    sefer_no: r.sefer_no,
-                    sefer_tarihi: r.sefer_tarihi,
-                    arac_statu: r.arac_statu,
-                    plaka: r.plaka,
-                    treyler: r.treyler,
-                    surucu_ad_soyad: r.surucu_ad_soyad,
-                    surucu_tckn: r.surucu_tckn,
-                    surucu_telefon: r.surucu_telefon,
-                    musteri_adi: r.musteri_adi,
-                    musteri_siparis_no: r.musteri_siparis_no,
-                    hizmet_adi: r.hizmet_adi,
-                    proje_adi: r.proje_adi,
-                    yukleme_noktasi: r.yukleme_noktasi,
-                    yukleme_ili: r.yukleme_ili,
-                    yukleme_ilcesi: r.yukleme_ilcesi,
-                    teslim_alan_firma: r.teslim_alan_firma,
-                    teslim_noktasi: r.teslim_noktasi,
-                    teslim_ili: r.teslim_ili,
-                    teslim_ilcesi: r.teslim_ilcesi,
-                    irsaliye_no: r.irsaliye_no,
-                    aciklama: null,
-                    atama_yapan_kullanici: r.atama_yapan_kullanici,
-                    atama_tarihi: r.atama_tarihi,
-                    rota_detaylari: createRotaDetaylari(r),
-                    vehicle_working_type_name: r.vehicle_working_type_name,
-                    vehicle_working_type_id: r.vehicle_working_type_id,
-                    ham_veri: r,
-                }));
-
-            await saveActiveTrips(mappedRows);
-
-            await supabasedenListele();
-        } catch (err) {
-            console.error("TMS çekme / kayıt hatası:", err);
-
-            alert(
-                `Hata:\n\n${err.message}`
-            );
-        }
-        finally {
-            setSyncing(false);
-        }
-    }, [startDate, endDate, supabasedenListele]);
-
-    useEffect(() => {
-        supabasedenListele();
-    }, [supabasedenListele]);
 
     const startResize = useCallback((e, col) => {
         e.preventDefault();
