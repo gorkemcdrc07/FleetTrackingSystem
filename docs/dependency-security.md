@@ -2,7 +2,7 @@
 
 Review date: 2026-08-07
 
-`npm audit` reports 17 findings: 14 high, 3 moderate, 0 critical. The most relevant direct dependency findings are:
+The clean `npm ci` audit reports 7 findings: 5 high, 2 moderate, 0 critical. Advisory counts can change as the npm registry is updated; CI output is the source of truth for each revision. The most relevant dependency paths identified during review are:
 
 | Dependency | Usage | Status / action |
 | --- | --- | --- |
