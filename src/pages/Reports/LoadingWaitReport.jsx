@@ -3,15 +3,11 @@ import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { supabase } from "../../supabaseClient";
+import { normalizeRouteDetails } from "../../domain/reportTrips";
+import { listReportTrips } from "../../services/reportRepository";
 import "./LoadingWaitReport.css";
 
 dayjs.locale("tr");
-
-const TABLES = [
-    { name: "aktif_seferler", label: "Aktif Sefer" },
-    { name: "tamamlanan_seferler", label: "Tamamlanan Sefer" },
-];
 
 const MIN_WAIT_MINUTES = 240;
 
@@ -30,78 +26,6 @@ const minToHM = (m) => {
     if (r) return `${r} dk`;
     return "0 dk";
 };
-
-const normalizeRouteDetails = (value) => {
-    if (!value) return [];
-    if (Array.isArray(value)) return value;
-
-    if (typeof value === "string") {
-        try {
-            const parsed = JSON.parse(value);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    }
-
-    return [];
-};
-
-async function fetchAllRowsFromTable(tableName, startDate, endDate) {
-    const pageSize = 1000;
-    let from = 0;
-    let all = [];
-
-    while (true) {
-        const { data, error } = await supabase
-            .from(tableName)
-            .select(`
-                id,
-                sefer_no,
-                sefer_tarihi,
-                plaka,
-                treyler,
-                surucu_ad_soyad,
-                musteri_adi,
-                proje_adi,
-                arac_statu,
-                rota_detaylari
-            `)
-            .not("rota_detaylari", "is", null)
-            .gte("sefer_tarihi", startDate)
-            .lte("sefer_tarihi", endDate)
-            .order("sefer_tarihi", { ascending: false })
-            .range(from, from + pageSize - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-
-        all = all.concat(data);
-
-        if (data.length < pageSize) break;
-        from += pageSize;
-    }
-
-    return all;
-}
-
-async function fetchAllRows(startDate, endDate) {
-    let allRows = [];
-
-    for (const table of TABLES) {
-        const rows = await fetchAllRowsFromTable(table.name, startDate, endDate);
-
-        allRows = allRows.concat(
-            rows.map((row) => ({
-                ...row,
-                kaynak_tablo: table.name,
-                kaynak_tablo_label: table.label,
-            }))
-        );
-    }
-
-    return allRows;
-}
 
 function extractLoadingViolations(row) {
     const routeDetails = normalizeRouteDetails(row.rota_detaylari);
@@ -232,7 +156,7 @@ export default function LoadingWaitReport() {
                 return;
             }
 
-            const data = await fetchAllRows(startDate, endDate);
+            const data = await listReportTrips({ startDate, endDate });
             const grouped = buildGroupedRows(data);
 
             setRows(grouped);
