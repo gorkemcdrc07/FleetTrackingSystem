@@ -25,3 +25,11 @@ export function buildUserLookupAttempts(user) {
         username ? { field: "kullanici", value: username } : null,
     ].filter(Boolean);
 }
+
+export function getUserPrimaryMatch(user) {
+    if (user?.id !== undefined && user?.id !== null && user.id !== "") {
+        return { field: "id", value: user.id };
+    }
+    const username = user?.kullanici || user?.kullanici_adi || user?.username || user?.ad;
+    return username ? { field: "kullanici", value: username } : null;
+}

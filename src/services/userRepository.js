@@ -1,5 +1,5 @@
 import { supabase } from "../supabaseClient";
-import { buildUserLookupAttempts } from "../domain/userSession";
+import { buildUserLookupAttempts, getUserPrimaryMatch } from "../domain/userSession";
 
 const USERS_TABLE = "kullanicilar";
 const PUBLIC_USER_FIELDS = "id, kullanici, ad, rol, yetki, aktif";
@@ -19,6 +19,18 @@ export async function findUserByUsername(username) {
         .from(USERS_TABLE)
         .select(LOGIN_USER_FIELDS)
         .eq("kullanici", username)
+        .maybeSingle();
+    if (error) throw error;
+    return data || null;
+}
+
+export async function findUserByIdentity(user) {
+    const match = getUserPrimaryMatch(user);
+    if (!match) return null;
+    const { data, error } = await supabase
+        .from(USERS_TABLE)
+        .select(PUBLIC_USER_FIELDS)
+        .eq(match.field, match.value)
         .maybeSingle();
     if (error) throw error;
     return data || null;
