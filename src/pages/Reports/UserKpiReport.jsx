@@ -1,5 +1,13 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../supabaseClient";
+import {
+    filterActivityLogs,
+    getActionLabel,
+    getActivityUser,
+    groupActivityByType,
+    groupActivityByUser,
+    summarizeActivityLogs,
+} from "../../domain/userActivity";
+import { listUserActivityLogs } from "../../services/userActivityRepository";
 import "./UserKpiReport.css";
 
 function fmtDate(value) {
@@ -13,34 +21,13 @@ function fmtDate(value) {
     });
 }
 
-function getActionLabel(type) {
-    const map = {
-        SEFER_DETAY_ACMA: "Detay Açtı",
-        ETA_ACMA: "ETA Açtı",
-        TONAJ_BUTON: "Tonaj İşlemi",
-        IKAZ_BUTON: "İkaz İşlemi",
-        SEFER_DETAY_GUNCELLEME: "Sefer Detayı Güncelledi",
-        ROTA_SIRASI_VE_DETAY_GUNCELLEME: "Rota Sırası / Detay Güncelledi",
-
-        ARAC_EKLEME: "Araç Ekledi",
-        ARAC_DUZENLEME: "Araç Düzenledi",
-        ARAC_IZIN_EKLEME: "İzin Ekledi",
-        ARAC_IZIN_SILME: "İzin Sildi",
-        ARAC_KESINTI_EKLEME: "Kesinti Ekledi",
-        ARAC_KESINTI_SILME: "Kesinti Sildi",
-        ARAC_ISTEN_CIKARTMA: "Araç Çıkarttı",
-        ARAC_ANA_LISTEYE_ALMA: "Ana Listeye Aldı",
-    };
-
-    return map[type] || type || "Bilinmeyen İşlem";
-}
-
 export default function UserKpiReport() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [days, setDays] = useState("7");
     const [selectedUser, setSelectedUser] = useState("Tümü");
     const [selectedType, setSelectedType] = useState("Tümü");
+    const [error, setError] = useState("");
 
     useEffect(() => {
         loadLogs();
@@ -48,31 +35,27 @@ export default function UserKpiReport() {
 
     async function loadLogs() {
         setLoading(true);
+        setError("");
 
         const since = new Date();
         since.setDate(since.getDate() - Number(days));
 
-        const { data, error } = await supabase
-            .from("kullanici_islem_loglari")
-            .select("*")
-            .gte("created_at", since.toISOString())
-            .order("created_at", { ascending: false })
-            .limit(1000);
-
-        if (error) {
-            console.error("KPI logları alınamadı:", error);
+        try {
+            const data = await listUserActivityLogs({ since });
+            setLogs(data);
+        } catch (loadError) {
+            console.error("KPI logları alınamadı:", loadError);
             setLogs([]);
-        } else {
-            setLogs(data || []);
+            setError("Kullanıcı işlem kayıtları alınamadı. Lütfen tekrar deneyin.");
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     }
 
     const users = useMemo(() => {
         return [
             "Tümü",
-            ...Array.from(new Set(logs.map((x) => x.kullanici || x.kullanici_ad).filter(Boolean))),
+            ...Array.from(new Set(logs.map(getActivityUser))),
         ];
     }, [logs]);
 
@@ -84,88 +67,19 @@ export default function UserKpiReport() {
     }, [logs]);
 
     const filteredLogs = useMemo(() => {
-        return logs.filter((log) => {
-            const user = log.kullanici || log.kullanici_ad || "Bilinmeyen";
-
-            if (selectedUser !== "Tümü" && user !== selectedUser) return false;
-            if (selectedType !== "Tümü" && log.islem_tipi !== selectedType) return false;
-
-            return true;
-        });
+        return filterActivityLogs(logs, { user: selectedUser, type: selectedType });
     }, [logs, selectedUser, selectedType]);
 
     const summary = useMemo(() => {
-        const total = filteredLogs.length;
-
-        const uniqueUsers = new Set(
-            filteredLogs.map((x) => x.kullanici || x.kullanici_ad).filter(Boolean)
-        ).size;
-
-        const routeUpdates = filteredLogs.filter((x) =>
-            ["SEFER_DETAY_GUNCELLEME", "ROTA_SIRASI_VE_DETAY_GUNCELLEME"].includes(x.islem_tipi)
-        ).length;
-
-        const vehicleOps = filteredLogs.filter((x) =>
-            String(x.islem_tipi || "").startsWith("ARAC_")
-        ).length;
-
-        return { total, uniqueUsers, routeUpdates, vehicleOps };
+        return summarizeActivityLogs(filteredLogs);
     }, [filteredLogs]);
 
     const userStats = useMemo(() => {
-        const map = new Map();
-
-        filteredLogs.forEach((log) => {
-            const user = log.kullanici || log.kullanici_ad || "Bilinmeyen";
-
-            if (!map.has(user)) {
-                map.set(user, {
-                    kullanici: user,
-                    toplam: 0,
-                    sefer: 0,
-                    arac: 0,
-                    buton: 0,
-                    sonIslem: null,
-                });
-            }
-
-            const item = map.get(user);
-            item.toplam += 1;
-
-            if (String(log.islem_tipi || "").includes("SEFER") || String(log.islem_tipi || "").includes("ROTA")) {
-                item.sefer += 1;
-            }
-
-            if (String(log.islem_tipi || "").startsWith("ARAC_")) {
-                item.arac += 1;
-            }
-
-            if (
-                String(log.islem_tipi || "").includes("ACMA") ||
-                String(log.islem_tipi || "").includes("BUTON")
-            ) {
-                item.buton += 1;
-            }
-
-            if (!item.sonIslem || new Date(log.created_at) > new Date(item.sonIslem)) {
-                item.sonIslem = log.created_at;
-            }
-        });
-
-        return Array.from(map.values()).sort((a, b) => b.toplam - a.toplam);
+        return groupActivityByUser(filteredLogs);
     }, [filteredLogs]);
 
     const typeStats = useMemo(() => {
-        const map = new Map();
-
-        filteredLogs.forEach((log) => {
-            const key = log.islem_tipi || "BILINMEYEN";
-            map.set(key, (map.get(key) || 0) + 1);
-        });
-
-        return Array.from(map.entries())
-            .map(([type, count]) => ({ type, count }))
-            .sort((a, b) => b.count - a.count);
+        return groupActivityByType(filteredLogs);
     }, [filteredLogs]);
 
     return (
@@ -202,6 +116,8 @@ export default function UserKpiReport() {
                     <button onClick={loadLogs}>Yenile</button>
                 </div>
             </div>
+
+            {error && <div className="empty-box">{error}</div>}
 
             <div className="kpi-cards">
                 <div className="kpi-card">
