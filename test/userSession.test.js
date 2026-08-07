@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildUserLookupAttempts, createSessionUser, validateLoginUser } from "../src/domain/userSession.js";
+import { buildUserLookupAttempts, createSessionUser, getUserPrimaryMatch, validateLoginUser } from "../src/domain/userSession.js";
 
 test("giriş doğrulaması eksik, pasif ve hatalı şifreli kullanıcıları ayırır", () => {
     assert.deepEqual(validateLoginUser(null, "x"), { valid: false, reason: "not_found" });
@@ -26,4 +26,11 @@ test("kullanıcı tercihi aramasını yeni ve eski kimlik alanlarıyla sıralar"
         { field: "kullanici", value: "legacy" },
     ]);
     assert.deepEqual(buildUserLookupAttempts(null), []);
+});
+
+test("kullanıcı yetkisi sorgusunda id alanına, yoksa kullanıcı adına öncelik verir", () => {
+    assert.deepEqual(getUserPrimaryMatch({ id: "7", kullanici: "demo" }), { field: "id", value: "7" });
+    assert.deepEqual(getUserPrimaryMatch({ kullanici_adi: "legacy" }), { field: "kullanici", value: "legacy" });
+    assert.deepEqual(getUserPrimaryMatch({ username: "external" }), { field: "kullanici", value: "external" });
+    assert.equal(getUserPrimaryMatch(null), null);
 });

@@ -1,5 +1,4 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "../../supabaseClient";
 import { deactivateActiveTrip, moveTripToCompleted, updateActiveTrip } from "../../services/tripRepository";
 import { createRouteDetails as createRotaDetaylari } from "../../domain/activeTrips";
 import { useActiveTrips } from "./useActiveTrips";
@@ -9,7 +8,7 @@ import ColumnLayout from "./ViewSettings/ColumnLayout";
 import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
-import { findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
+import { findUserByIdentity, findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
 import { findEtaReference } from "../../services/etaReferenceRepository";
 
 function IconChevron({ open }) {
@@ -936,24 +935,7 @@ function ActiveTrips() {
                     return;
                 }
 
-                let query = supabase
-                    .from("kullanicilar")
-                    .select("id, kullanici, ad, rol, yetki, aktif");
-
-                if (localUser.id) {
-                    query = query.eq("id", localUser.id);
-                } else {
-                    query = query.eq(
-                        "kullanici",
-                        localUser.kullanici || localUser.kullanici_adi || localUser.username || localUser.ad
-                    );
-                }
-
-                const { data, error } = await query.maybeSingle();
-
-                if (error) throw error;
-
-                setAktifKullaniciDb(data);
+                setAktifKullaniciDb(await findUserByIdentity(localUser));
             } catch (error) {
                 console.error("Kullanıcı yetkisi alınamadı:", error);
             } finally {
