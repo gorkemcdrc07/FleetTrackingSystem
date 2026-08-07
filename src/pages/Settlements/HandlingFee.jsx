@@ -9,6 +9,7 @@ import {
     listHandlingFees,
     saveHandlingFee,
 } from "../../services/handlingFeeRepository";
+import { getCurrentUser } from "../../services/sessionStorage";
 import "./HandlingFee.css";
 
 const giderSecenekleri = [
@@ -29,20 +30,6 @@ const filterInitial = {
     maxAmount: "",
 };
 
-function getAktifKullanici() {
-    try {
-        return (
-            JSON.parse(localStorage.getItem("fts_user") || "null") ||
-            JSON.parse(localStorage.getItem("kullanici") || "null") ||
-            JSON.parse(localStorage.getItem("aktifKullanici") || "null") ||
-            JSON.parse(localStorage.getItem("user") || "null") ||
-            null
-        );
-    } catch {
-        return null;
-    }
-}
-
 function bugununTarihi() {
     return new Date().toISOString().slice(0, 10);
 }
@@ -58,7 +45,7 @@ function otomatikDonem() {
 }
 
 function getInitialForm() {
-    const aktifKullanici = getAktifKullanici();
+    const aktifKullanici = getCurrentUser();
 
     const kullaniciAdi =
         aktifKullanici?.ad ||
