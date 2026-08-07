@@ -7,7 +7,6 @@ import "./ActiveTrips.css";
 import TripDetails from "./TripDetails";
 import ColumnLayout from "./ViewSettings/ColumnLayout";
 import ETA from "./ETA/ETA";
-import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
 import { findUserByIdentity, findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
 import { findEtaReference } from "../../services/etaReferenceRepository";
@@ -1404,7 +1403,7 @@ function ActiveTrips() {
         return visibleRows.filter((row) => delayedEtaMap[row.id || row.sefer_no]);
     }, [visibleRows, delayedEtaMap]);
 
-    const exportEtaUyumsuzExcel = useCallback(() => {
+    const exportEtaUyumsuzExcel = useCallback(async () => {
         if (!etaUyumsuzRows.length) {
             setToast({
                 type: "error",
@@ -1433,7 +1432,8 @@ function ActiveTrips() {
             };
         });
 
-        const headers = Object.keys(excelRows[0]);
+        const xlsxModule = await import("xlsx");
+        const XLSX = xlsxModule.default || xlsxModule;
         const worksheet = XLSX.utils.json_to_sheet(excelRows);
 
         const workbook = XLSX.utils.book_new();

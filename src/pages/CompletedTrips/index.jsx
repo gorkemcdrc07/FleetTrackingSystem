@@ -7,7 +7,6 @@ import {
 } from "../../services/completedTripRepository";
 import "./CompletedTrips.css";
 import ColumnLayout from "../ActiveTrips/ViewSettings/ColumnLayout";
-import * as XLSX from "xlsx-js-style";
 
 function formatDate(value) {
     if (!value) return "—";
@@ -1340,7 +1339,7 @@ function CompletedTrips() {
         };
     }
 
-    function styleExcelWorksheet(worksheet, headerRowIndex = 0) {
+    function styleExcelWorksheet(XLSX, worksheet, headerRowIndex = 0) {
         if (!worksheet["!ref"]) return;
 
         const range = XLSX.utils.decode_range(worksheet["!ref"]);
@@ -1394,12 +1393,14 @@ function CompletedTrips() {
         };
     }
 
-    function exportRowsToExcel(sourceRows, { title, filenamePrefix, sheetName, forcedStatusLabel, emptyMessage }) {
+    async function exportRowsToExcel(sourceRows, { title, filenamePrefix, sheetName, forcedStatusLabel, emptyMessage }) {
         if (!sourceRows.length) {
             addToast(emptyMessage || "Excel'e aktarılacak kayıt bulunamadı.", "error");
             return false;
         }
 
+        const xlsxModule = await import("xlsx-js-style");
+        const XLSX = xlsxModule.default || xlsxModule;
         const reportRows = sourceRows.map((row) => buildReportRow(row, forcedStatusLabel));
         const worksheet = XLSX.utils.json_to_sheet(reportRows, { origin: "A6" });
         const dateFilterLine =
@@ -1453,7 +1454,7 @@ function CompletedTrips() {
             alignment: { horizontal: "center", vertical: "center" },
         };
 
-        styleExcelWorksheet(worksheet, 5);
+        styleExcelWorksheet(XLSX, worksheet, 5);
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
@@ -1488,10 +1489,10 @@ function CompletedTrips() {
         });
     }
 
-    function exportSelectedToExcel() {
+    async function exportSelectedToExcel() {
         const selectedRows = sortedRows.filter((row) => selectedIds[getRowKey(row)]);
 
-        const success = exportRowsToExcel(selectedRows, {
+        const success = await exportRowsToExcel(selectedRows, {
             title: "SEÇİLİ SEFERLER RAPORU",
             filenamePrefix: "secili-seferler",
             sheetName: "Seçili Seferler",
