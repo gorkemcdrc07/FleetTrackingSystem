@@ -1,5 +1,5 @@
 ﻿const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env?.VITE_API_BASE_URL ||
     "https://filo-backend-57wx.onrender.com";
 
 function normalizeDocumentNo(value) {
@@ -32,9 +32,6 @@ export async function syncFromTMS({ start, end }) {
 
     const requestUrl = `${API_BASE_URL}/api/proxy/tmsdespatches`;
 
-    console.log("TMS REQUEST URL:", requestUrl);
-    console.log("TMS REQUEST BODY:", body);
-
     let response;
 
     try {
@@ -47,8 +44,6 @@ export async function syncFromTMS({ start, end }) {
             body: JSON.stringify(body),
         });
     } catch (networkError) {
-        console.error("TMS BAĞLANTI HATASI:", networkError);
-
         throw new Error(
             `TMS backend sunucusuna bağlanılamadı: ${networkError?.message || "Bilinmeyen bağlantı hatası"
             }`
@@ -57,30 +52,12 @@ export async function syncFromTMS({ start, end }) {
 
     const responseText = await response.text();
 
-    console.log("TMS STATUS:", response.status);
-    console.log("TMS STATUS TEXT:", response.statusText);
-
-    /*
-     * Gelen cevap çok büyük olabileceği için tamamını Console'a basmıyoruz.
-     * Bu, tarayıcıyı gereksiz yere yavaşlatabilir.
-     */
-    console.log(
-        "TMS RESPONSE ÖN İZLEME:",
-        responseText ? responseText.slice(0, 1000) : "Boş cevap"
-    );
-
     let responseJson = null;
 
     if (responseText) {
         try {
             responseJson = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error("TMS JSON PARSE HATASI:", parseError);
-            console.error(
-                "TMS HAM CEVAP ÖN İZLEME:",
-                responseText.slice(0, 1000)
-            );
-
+        } catch {
             throw new Error(
                 `TMS sunucusu geçersiz cevap döndürdü. HTTP ${response.status
                 }: ${responseText.slice(0, 500)}`
@@ -115,9 +92,6 @@ export async function syncFromTMS({ start, end }) {
      * Yalnızca DocumentNo değeri SFR ile başlayan kayıtları alıyoruz.
      */
     const sfrRows = allRows.filter(isSFRDocument);
-
-    console.log("TMS TOPLAM KAYIT SAYISI:", allRows.length);
-    console.log("SFR KAYIT SAYISI:", sfrRows.length);
 
     return sfrRows;
 }
@@ -164,11 +138,6 @@ export function mapTMSRows(list) {
     };
 
     if (!Array.isArray(list)) {
-        console.warn(
-            "mapTMSRows liste bekliyordu ancak farklı veri geldi:",
-            list
-        );
-
         return [];
     }
 

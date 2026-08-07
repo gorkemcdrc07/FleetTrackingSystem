@@ -4,25 +4,8 @@ import Filtreler from "../../components/Harita/Filtreler";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 import "../../components/Harita/Harita.css";
 import { mobilizService } from "../../services/mobiliz";
-
-function normalizePlate(value) {
-    return String(value || "")
-        .replace(/\s/g, "")
-        .toUpperCase();
-}
-
-function getPlate(vehicle) {
-    return (
-        vehicle?.plate ||
-        vehicle?.licensePlate ||
-        vehicle?.plateNo ||
-        "-"
-    );
-}
-
-function getSpeed(vehicle) {
-    return Number(vehicle?.speed || vehicle?.velocity || 0);
-}
+import { STORAGE_KEYS, writeStorageJson, writeStorageText } from "../../services/browserStorage";
+import { getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
 
 function getStatus(vehicle) {
     const speed = getSpeed(vehicle);
@@ -224,20 +207,14 @@ export default function VehicleTracking({ onNavigate }) {
     }
 
     function handleGoPlayback(vehicle) {
-        localStorage.setItem(
-            "fts_playback_vehicle",
-            JSON.stringify(vehicle)
-        );
+        writeStorageJson(STORAGE_KEYS.playbackVehicle, vehicle);
 
         setDrawerOpen(false);
         onNavigate?.("Playback");
     }
 
     function handleOpenOperations(vehicle) {
-        localStorage.setItem(
-            "fts_focus_plate",
-            getPlate(vehicle)
-        );
+        writeStorageText(STORAGE_KEYS.focusPlate, getPlate(vehicle));
 
         setDrawerOpen(false);
         onNavigate?.("Operasyon Merkezi");

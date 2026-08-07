@@ -8,6 +8,7 @@ import NotificationToasts from "../components/NotificationCenter/NotificationToa
 import PageOutlet from "../navigation/PageOutlet";
 import { menuGroups, PAGE_IDS, pageLabels, resolvePageId, type PageId } from "../navigation/pages";
 import { getCurrentUser } from "../services/sessionStorage";
+import { STORAGE_KEYS, writeStorageText } from "../services/browserStorage";
 
 type HomeProps = {
     onLogout: () => void;
@@ -39,10 +40,7 @@ function Home({ onLogout }: HomeProps) {
     ) {
         if (!plate) return;
 
-        localStorage.setItem(
-            "fts_focus_plate",
-            plate
-        );
+        writeStorageText(STORAGE_KEYS.focusPlate, plate);
 
         setActivePage(PAGE_IDS.operationsCenter);
     }

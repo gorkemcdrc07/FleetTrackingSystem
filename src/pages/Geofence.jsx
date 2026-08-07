@@ -14,9 +14,8 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 import "./Geofence.css";
+import { readStorageArray, STORAGE_KEYS, writeStorageJson } from "../services/browserStorage";
 
-const STORAGE_KEY = "fts_geofences";
-const EVENT_STORAGE_KEY = "fts_geofence_events";
 const MAP_CENTER = [39.0, 35.0];
 
 const vehicleIcon = L.divIcon({
@@ -31,18 +30,14 @@ function createId() {
 }
 
 function loadGeofences() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    } catch {
-        return [];
-    }
+    return readStorageArray(STORAGE_KEYS.geofences);
 }
 
 function saveGeofences(items) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    writeStorageJson(STORAGE_KEYS.geofences, items);
 }
 function saveGeofenceEvents(events) {
-    localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
+    writeStorageJson(STORAGE_KEYS.geofenceEvents, events);
 }
 
 function getVehiclePoint(vehicle) {
