@@ -8,6 +8,7 @@ import "./Dashboard.css";
 
 import { notificationEngine } from "../../services/notificationEngine";
 import { mobilizService } from "../../services/mobiliz";
+import { getVehicleIgnition as getIgnition, getVehiclePlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
 
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
 const FOCUS_PLATE_KEY = "fts_focus_plate";
@@ -44,40 +45,6 @@ const DASHBOARD_FILTERS = [
         description: "Aktif bildirimi bulunan araçlar",
     },
 ];
-
-function normalizePlate(value) {
-    return String(value || "")
-        .replace(/\s/g, "")
-        .toUpperCase();
-}
-
-function getVehiclePlate(vehicle) {
-    return (
-        vehicle?.plate ||
-        vehicle?.licensePlate ||
-        vehicle?.plateNo ||
-        "-"
-    );
-}
-
-function getSpeed(vehicle) {
-    const value = Number(
-        vehicle?.speed ??
-        vehicle?.velocity ??
-        0
-    );
-
-    return Number.isFinite(value) ? value : 0;
-}
-
-function getIgnition(vehicle) {
-    return Boolean(
-        vehicle?.ignition ??
-        vehicle?.engine ??
-        vehicle?.contact ??
-        false
-    );
-}
 
 function getStatus(vehicle) {
     if (!vehicle) return "offline";

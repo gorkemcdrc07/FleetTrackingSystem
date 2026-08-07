@@ -2,15 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import "./Alarms.css";
 import { notificationEngine } from "../../services/notificationEngine";
 import { mobilizService } from "../../services/mobiliz";
-const GEOFENCE_EVENT_KEY = "fts_geofence_events";
-
-function getSpeed(vehicle) {
-    return Number(vehicle?.speed || vehicle?.velocity || 0);
-}
-
-function getPlate(vehicle) {
-    return vehicle?.plate || "-";
-}
+import { getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
+import { readStorageArray, readStorageJson, STORAGE_KEYS, writeStorageJson } from "../../services/browserStorage";
 
 function getAddress(vehicle) {
     return vehicle?.address || vehicle?.location || vehicle?.city || "-";
@@ -41,10 +34,6 @@ function getLastDate(vehicle) {
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function normalizePlate(value) {
-    return String(value || "").replace(/\s/g, "").toUpperCase();
-}
-
 function buildAlarm(vehicle, data) {
     const coord = getCoordinate(vehicle);
 
@@ -58,14 +47,7 @@ function buildAlarm(vehicle, data) {
 }
 
 function loadGeofenceEvents() {
-    try {
-        const raw = localStorage.getItem(GEOFENCE_EVENT_KEY);
-        const list = raw ? JSON.parse(raw) : [];
-
-        return Array.isArray(list) ? list : [];
-    } catch {
-        return [];
-    }
+    return readStorageArray(STORAGE_KEYS.geofenceEvents);
 }
 
 function createGeofenceAlarms(events = []) {
@@ -166,9 +148,7 @@ export default function Alarms() {
     const [lastRefresh, setLastRefresh] = useState(null);
     const [alarmSettings, setAlarmSettings] = useState(() => {
         try {
-            const saved = JSON.parse(
-                localStorage.getItem("fts_alarm_settings") || "null"
-            );
+            const saved = readStorageJson(STORAGE_KEYS.alarmSettings, null);
 
             return (
                 saved || {
@@ -189,10 +169,7 @@ export default function Alarms() {
     });
 
     useEffect(() => {
-        localStorage.setItem(
-            "fts_alarm_settings",
-            JSON.stringify(alarmSettings)
-        );
+        writeStorageJson(STORAGE_KEYS.alarmSettings, alarmSettings);
     }, [alarmSettings]);
 
     async function loadData() {

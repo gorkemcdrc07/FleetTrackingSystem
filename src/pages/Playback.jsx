@@ -17,6 +17,7 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { mobilizService } from "../services/mobiliz";
+import { readStorageJson, removeStorageItem, STORAGE_KEYS } from "../services/browserStorage";
 import "leaflet/dist/leaflet.css";
 import "./Playback.css";
 
@@ -281,11 +282,9 @@ export default function Playback() {
 
     useEffect(() => {
         try {
-            const raw = localStorage.getItem("fts_playback_vehicle");
+            const vehicle = readStorageJson(STORAGE_KEYS.playbackVehicle, null);
 
-            if (!raw) return;
-
-            const vehicle = JSON.parse(raw);
+            if (!vehicle) return;
 
             if (vehicle?.plate) {
                 autoLoadRef.current = true;
@@ -293,7 +292,7 @@ export default function Playback() {
                 setPlate(vehicle.plate);
             }
 
-            localStorage.removeItem("fts_playback_vehicle");
+            removeStorageItem(STORAGE_KEYS.playbackVehicle);
         } catch (err) {
             console.error(err);
         }
