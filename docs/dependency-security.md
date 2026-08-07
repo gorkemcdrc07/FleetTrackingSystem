@@ -2,7 +2,7 @@
 
 Review date: 2026-08-07
 
-The clean `npm ci` audit reports 7 findings: 5 high, 2 moderate, 0 critical. Advisory counts can change as the npm registry is updated; CI output is the source of truth for each revision. The most relevant dependency paths identified during review are:
+After non-breaking lockfile updates, `npm audit` reports 3 findings: 1 high, 2 moderate, 0 critical. Advisory counts can change as the npm registry is updated; CI output is the source of truth for each revision. The remaining findings are in `xlsx` and the `exceljs`/`uuid` chain and have no non-breaking automatic fix.
 
 | Dependency | Usage | Status / action |
 | --- | --- | --- |

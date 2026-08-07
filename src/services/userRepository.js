@@ -24,6 +24,25 @@ export async function findUserByUsername(username) {
     return data || null;
 }
 
+export async function findAuthProfileByUserId(userId) {
+    if (!userId) return null;
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, full_name, role, permissions, active")
+        .eq("id", userId)
+        .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return {
+        id: data.id,
+        kullanici: data.username,
+        ad: data.full_name,
+        rol: data.role,
+        yetki: data.permissions || {},
+        aktif: data.active,
+    };
+}
+
 export async function findUserByIdentity(user) {
     const match = getUserPrimaryMatch(user);
     if (!match) return null;
