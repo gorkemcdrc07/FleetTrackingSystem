@@ -1,7 +1,21 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { supabase } from "../../supabaseClient";
 import { islemLogla } from "../../utils/islemLogla";
+import {
+    buildVehiclePricingPayload,
+    filterVehiclePricing,
+    normalizePlate,
+    parsePricingNumber,
+    upsertVehiclePricingRow,
+} from "../../domain/vehiclePricing";
+import {
+    insertVehiclePricingBatch,
+    listVehiclePricing,
+    saveVehiclePricing,
+    setVehiclePricingPassive,
+    updateVehiclePricingBatch,
+    updateVehiclePricingDays,
+} from "../../services/vehiclePricingRepository";
 import "./VehiclePricing.css";
 
 const emptyForm = {
@@ -44,33 +58,6 @@ function formatTL(value) {
     });
 }
 
-function toNumber(value) {
-    if (value === "" || value === null || value === undefined) return null;
-
-    const n = Number(
-        String(value)
-            .replace("₺", "")
-            .replace("%", "")
-            .replace(/\s/g, "")
-            .replace(/\./g, "")
-            .replace(",", ".")
-    );
-
-    return Number.isFinite(n) ? n : null;
-}
-
-function normalizePlate(value) {
-    return String(value || "")
-        .toLocaleUpperCase("tr-TR")
-        .replace(/\s+/g, "")
-        .trim();
-}
-
-function toBool(value) {
-    const v = String(value ?? "").toLocaleLowerCase("tr-TR").trim();
-    return ["true", "1", "evet", "e", "pasif"].includes(v);
-}
-
 function readExcelFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -101,20 +88,7 @@ function downloadXlsx(rows, fileName, sheetName = "Veriler") {
 }
 
 function mapExcelRow(row) {
-    return {
-        plaka: normalizePlate(row.plaka),
-        cari_id: row.cari_id ? String(row.cari_id) : null,
-        cari_adi: row.cari_adi || null,
-        arac_sahip: row.arac_sahip || null,
-        calisma_tipi: row.calisma_tipi || null,
-        aylik_kira: toNumber(row.aylik_kira),
-        aylik_surucu: toNumber(row.aylik_surucu),
-        yakma_orani: toNumber(row.yakma_orani),
-        calisma_gunu: toNumber(row.calisma_gunu),
-        pasif: toBool(row.pasif),
-        aciklama: row.aciklama || null,
-        updated_at: new Date().toISOString(),
-    };
+    return buildVehiclePricingPayload(row, { fromExcel: true });
 }
 
 export default function VehiclePricing() {
@@ -136,19 +110,14 @@ export default function VehiclePricing() {
     async function loadData() {
         setLoading(true);
 
-        const { data, error } = await supabase
-            .from("arac_fiyat_yonetimi")
-            .select("*")
-            .order("plaka", { ascending: true });
-
-        if (error) {
+        try {
+            setRows(await listVehiclePricing());
+        } catch (error) {
             console.error(error);
             setRows([]);
-        } else {
-            setRows(data || []);
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     }
 
     function openNew() {
@@ -230,11 +199,7 @@ export default function VehiclePricing() {
                 return;
             }
 
-            const { error } = await supabase
-                .from("arac_fiyat_yonetimi")
-                .insert(payload);
-
-            if (error) throw error;
+            await insertVehiclePricingBatch(payload);
 
             alert(`${payload.length} yeni kayıt eklendi.`);
             await loadData();
@@ -252,28 +217,9 @@ export default function VehiclePricing() {
 
         try {
             const excelRows = await readExcelFile(file);
-            let count = 0;
-
-            for (const row of excelRows) {
-                const payload = mapExcelRow(row);
-
-                if (!payload.plaka && !row.id) continue;
-
-                let query = supabase
-                    .from("arac_fiyat_yonetimi")
-                    .update(payload);
-
-                if (row.id) {
-                    query = query.eq("id", row.id);
-                } else {
-                    query = query.eq("plaka", payload.plaka);
-                }
-
-                const { error } = await query;
-
-                if (error) throw error;
-                count++;
-            }
+            const count = await updateVehiclePricingBatch(
+                excelRows.map((row) => ({ id: row.id, payload: mapExcelRow(row) }))
+            );
 
             alert(`${count} kayıt güncellendi.`);
             await loadData();
@@ -291,25 +237,12 @@ export default function VehiclePricing() {
 
         try {
             const excelRows = await readExcelFile(file);
-            let count = 0;
-
-            for (const row of excelRows) {
-                const plaka = normalizePlate(row.plaka);
-                const calismaGunu = toNumber(row.calisma_gunu);
-
-                if (!plaka || calismaGunu === null) continue;
-
-                const { error } = await supabase
-                    .from("arac_fiyat_yonetimi")
-                    .update({
-                        calisma_gunu: calismaGunu,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq("plaka", plaka);
-
-                if (error) throw error;
-                count++;
-            }
+            const count = await updateVehiclePricingDays(
+                excelRows.map((row) => ({
+                    plaka: normalizePlate(row.plaka),
+                    calismaGunu: parsePricingNumber(row.calisma_gunu),
+                }))
+            );
 
             alert(`${count} aracın çalışma günü güncellendi.`);
             await loadData();
@@ -324,54 +257,11 @@ export default function VehiclePricing() {
     async function saveRecord(e) {
         e.preventDefault();
 
-        const payload = {
-            plaka: normalizePlate(form.plaka),
-            cari_id: form.cari_id || null,
-            cari_adi: form.cari_adi || null,
-            arac_sahip: form.arac_sahip || null,
-            calisma_tipi: form.calisma_tipi || null,
-            aylik_kira: toNumber(form.aylik_kira),
-            aylik_surucu: toNumber(form.aylik_surucu),
-            yakma_orani: toNumber(form.yakma_orani),
-            calisma_gunu: toNumber(form.calisma_gunu),
-            pasif: Boolean(form.pasif),
-            aciklama: form.aciklama || null,
-            updated_at: new Date().toISOString(),
-        };
+        const payload = buildVehiclePricingPayload(form);
 
         try {
-            let result;
-
-            if (editingRow) {
-                result = await supabase
-                    .from("arac_fiyat_yonetimi")
-                    .update(payload)
-                    .eq("id", editingRow.id)
-                    .select()
-                    .single();
-            } else {
-                result = await supabase
-                    .from("arac_fiyat_yonetimi")
-                    .insert(payload)
-                    .select()
-                    .single();
-            }
-
-            const { data, error } = result;
-
-            if (error) throw error;
-
-            if (editingRow) {
-                setRows((prev) =>
-                    prev.map((x) => (x.id === data.id ? data : x))
-                );
-            } else {
-                setRows((prev) =>
-                    [...prev, data].sort((a, b) =>
-                        String(a.plaka).localeCompare(String(b.plaka), "tr")
-                    )
-                );
-            }
+            const data = await saveVehiclePricing({ id: editingRow?.id, payload });
+            setRows((previousRows) => upsertVehiclePricingRow(previousRows, data));
 
             await islemLogla({
                 islem_tipi: editingRow
@@ -397,17 +287,11 @@ export default function VehiclePricing() {
     }
 
     async function togglePassive(row) {
-        const { data, error } = await supabase
-            .from("arac_fiyat_yonetimi")
-            .update({
-                pasif: !row.pasif,
-                updated_at: new Date().toISOString(),
-            })
-            .eq("id", row.id)
-            .select()
-            .single();
-
-        if (error) {
+        let data;
+        try {
+            data = await setVehiclePricingPassive(row.id, !row.pasif);
+        } catch (error) {
+            console.error(error);
             alert("Durum güncellenemedi.");
             return;
         }
@@ -430,22 +314,7 @@ export default function VehiclePricing() {
     }
 
     const filteredRows = useMemo(() => {
-        const q = search.toLocaleLowerCase("tr-TR");
-
-        return rows.filter((row) => {
-            const text = [
-                row.plaka,
-                row.cari_id,
-                row.cari_adi,
-                row.arac_sahip,
-                row.calisma_tipi,
-                row.aciklama,
-            ]
-                .join(" ")
-                .toLocaleLowerCase("tr-TR");
-
-            return text.includes(q);
-        });
+        return filterVehiclePricing(rows, search);
     }, [rows, search]);
 
     return (
