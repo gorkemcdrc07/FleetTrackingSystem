@@ -1,5 +1,4 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
 import {
     buildVehiclePricingPayload,
@@ -62,8 +61,10 @@ function readExcelFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
+                const xlsxModule = await import("xlsx");
+                const XLSX = xlsxModule.default || xlsxModule;
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: "array" });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -79,7 +80,9 @@ function readExcelFile(file) {
     });
 }
 
-function downloadXlsx(rows, fileName, sheetName = "Veriler") {
+async function downloadXlsx(rows, fileName, sheetName = "Veriler") {
+    const xlsxModule = await import("xlsx");
+    const XLSX = xlsxModule.default || xlsxModule;
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
 

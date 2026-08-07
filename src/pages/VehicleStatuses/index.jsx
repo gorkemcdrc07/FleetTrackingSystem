@@ -4,7 +4,6 @@ import { islemLogla } from "../../utils/islemLogla";
 import { buildVehiclePayload, upsertVehicleRow } from "../../domain/vehicles";
 import { createVehicle, listVehicles, updateVehicle } from "../../services/vehicleRepository";
 import { removeVehicleDocument, uploadVehicleDocument } from "../../services/vehicleDocumentStorage";
-import * as XLSX from "xlsx";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin", "Bakım İzni"];
@@ -538,12 +537,14 @@ export default function VehicleStatuses() {
         }))
     ), [enrichedRows]);
 
-    function exportExcel(fileName, rows) {
+    async function exportExcel(fileName, rows) {
         if (!rows.length) {
             alert("Aktarılacak kayıt bulunamadı.");
             return;
         }
 
+        const xlsxModule = await import("xlsx");
+        const XLSX = xlsxModule.default || xlsxModule;
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
 
