@@ -3,100 +3,35 @@ import { MdAdminPanelSettings } from "react-icons/md";
 
 import "./Home.css";
 
-import AktifSeferler from "./AktifSeferler";
-import TamamlananSeferler from "./TamamlananSeferler";
-import AracDurumlari from "./AracDurumları";
-import AracTakibi from "./AracTakibi";
+import ActiveTrips from "./ActiveTrips";
+import CompletedTrips from "./CompletedTrips";
+import VehicleStatuses from "./VehicleStatuses";
+import VehicleTracking from "./VehicleTracking";
 
-import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
-import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
-import KullaniciKPI from "./Raporlar/kullanicikpi";
+import LoadingWaitReport from "./Reports/LoadingWaitReport";
+import DeliveryWaitReport from "./Reports/DeliveryWaitReport";
+import UserKpiReport from "./Reports/UserKpiReport";
 
-import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
-import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
-import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
-import Hamaliye from "./Hakedisler/Hamaliye";
+import VehiclePricing from "./Settlements/VehiclePricing";
+import HayatKimyaFuelSettlement from "./Settlements/HayatKimyaFuelSettlement";
+import PepsiFuelSettlement from "./Settlements/PepsiFuelSettlement";
+import HandlingFee from "./Settlements/HandlingFee";
 
-import YonetimPaneli from "./Yonetici/YonetimPaneli";
+import AdminPanel from "./Admin/AdminPanel";
 
-import Alarmlar from "./Alarmlar";
+import Alarms from "./Alarms";
 import Dashboard from "./Dashboard";
 import Playback from "./Playback";
 import Geofence from "./Geofence";
-import OperasyonMerkezi from "./OperasyonMerkezi";
+import OperationsCenter from "./OperationsCenter";
 
 import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
 import NotificationToasts from "../components/NotificationCenter/NotificationToasts";
+import { menuGroups, PAGE_IDS, pageLabels, resolvePageId, type PageId } from "../navigation/pages";
 
 type HomeProps = {
     onLogout: () => void;
 };
-
-type MenuGroup = {
-    title: string;
-    icon: string;
-    items: string[];
-};
-
-const menuGroups: MenuGroup[] = [
-    {
-        title: "Kullanıcı İşlemleri",
-        icon: "👤",
-        items: [
-            "Aktif Seferler",
-            "Tamamlanan Seferler",
-        ],
-    },
-    {
-        title: "Araç Yönetimi",
-        icon: "🚚",
-        items: [
-            "Araç Durumları",
-            "Araç Takibi",
-            "Playback",
-            "Geofence",
-            "Operasyon Merkezi",
-            "Alarm Merkezi",
-        ],
-    },
-    {
-        title: "Raporlar",
-        icon: "📊",
-        items: [
-            "Kullanıcı KPİ",
-            "Yüklemede Bekleme",
-            "Teslimde Bekleme",
-        ],
-    },
-    {
-        title: "Hakedişler",
-        icon: "₺",
-        items: [
-            "Hayat Kimya YHH",
-            "Pepsi YHH",
-            "Frigo YHH",
-            "Sefer Kira & Sürücü Hakediş",
-            "Plaka Kira & Sürücü Tutarları",
-            "Filo %12 İskontolu Yakıt",
-            "Tedarikçi Masraf",
-            "Hamaliye",
-        ],
-    },
-    {
-        title: "Kayıt İşlemleri",
-        icon: "📝",
-        items: ["KM Kayıt"],
-    },
-    {
-        title: "Görevler",
-        icon: "✅",
-        items: [
-            "Tüm Görevler",
-            "Görev Ata",
-            "Bana Gelen Görevler",
-        ],
-    },
-];
 
 function getAktifKullanici() {
     try {
@@ -122,8 +57,7 @@ function getAktifKullanici() {
 }
 
 function Home({ onLogout }: HomeProps) {
-    const [activePage, setActivePage] =
-        useState("Dashboard");
+    const [activePage, setActivePage] = useState<PageId>(PAGE_IDS.dashboard);
 
     const aktifKullanici = getAktifKullanici();
 
@@ -153,15 +87,15 @@ function Home({ onLogout }: HomeProps) {
             plate
         );
 
-        setActivePage("Operasyon Merkezi");
+        setActivePage(PAGE_IDS.operationsCenter);
     }
 
     function handleNavigate(page: string) {
-        setActivePage(page);
+        setActivePage(resolvePageId(page));
     }
 
     const renderPage = () => {
-        if (activePage === "Dashboard") {
+        if (activePage === PAGE_IDS.dashboard) {
             return (
                 <Dashboard
                     onNavigate={handleNavigate}
@@ -169,79 +103,78 @@ function Home({ onLogout }: HomeProps) {
             );
         }
 
-        if (activePage === "Aktif Seferler") {
-            return <AktifSeferler />;
+        if (activePage === PAGE_IDS.activeTrips) {
+            return <ActiveTrips />;
         }
 
-        if (activePage === "Tamamlanan Seferler") {
-            return <TamamlananSeferler />;
+        if (activePage === PAGE_IDS.completedTrips) {
+            return <CompletedTrips />;
         }
 
-        if (activePage === "Araç Durumları") {
-            return <AracDurumlari />;
+        if (activePage === PAGE_IDS.vehicleStatuses) {
+            return <VehicleStatuses />;
         }
 
-        if (activePage === "Araç Takibi") {
+        if (activePage === PAGE_IDS.vehicleTracking) {
             return (
-                <AracTakibi
+                <VehicleTracking
                     onNavigate={handleNavigate}
                 />
             );
         }
 
-        if (activePage === "Playback") {
+        if (activePage === PAGE_IDS.playback) {
             return <Playback />;
         }
 
-        if (activePage === "Geofence") {
+        if (activePage === PAGE_IDS.geofence) {
             return <Geofence />;
         }
 
-        if (activePage === "Alarm Merkezi") {
-            return <Alarmlar />;
+        if (activePage === PAGE_IDS.alarms) {
+            return <Alarms />;
         }
 
-        if (activePage === "Operasyon Merkezi") {
+        if (activePage === PAGE_IDS.operationsCenter) {
             return (
-                <OperasyonMerkezi
+                <OperationsCenter
                     onNavigate={handleNavigate}
                 />
             );
         }
 
-        if (activePage === "Yüklemede Bekleme") {
-            return <YuklemedeBekleme />;
+        if (activePage === PAGE_IDS.loadingWaitReport) {
+            return <LoadingWaitReport />;
         }
 
-        if (activePage === "Teslimde Bekleme") {
-            return <TeslimdeBekleme />;
+        if (activePage === PAGE_IDS.deliveryWaitReport) {
+            return <DeliveryWaitReport />;
         }
 
-        if (activePage === "Kullanıcı KPİ") {
-            return <KullaniciKPI />;
+        if (activePage === PAGE_IDS.userKpiReport) {
+            return <UserKpiReport />;
         }
 
         if (
-            activePage ===
-            "Plaka Kira & Sürücü Tutarları"
+            activePage === PAGE_IDS.vehiclePricing
         ) {
-            return <AracFiyatYonetimi />;
+            return <VehiclePricing />;
         }
 
-        if (activePage === "Hayat Kimya YHH") {
-            return <HayatKimyaYakitHakedis />;
+        if (activePage === PAGE_IDS.hayatKimyaFuelSettlement) {
+            return <HayatKimyaFuelSettlement />;
         }
 
-        if (activePage === "Pepsi YHH") {
-            return <PepsiYakitHakedis />;
+        if (activePage === PAGE_IDS.pepsiFuelSettlement) {
+            return <PepsiFuelSettlement />;
         }
 
-        if (activePage === "Hamaliye") {
-            return <Hamaliye />;
+        if (activePage === PAGE_IDS.handlingFee) {
+            return <HandlingFee />;
         }
 
-        if (activePage === "Yönetim Paneli") {
-            return <YonetimPaneli />;
+        if (activePage === PAGE_IDS.admin) {
+            return <AdminPanel />;
         }
 
         return (
@@ -251,7 +184,7 @@ function Home({ onLogout }: HomeProps) {
                         Aktif Sayfa
                     </span>
 
-                    <h1>{activePage}</h1>
+                    <h1>{pageLabels[activePage]}</h1>
 
                     <p>
                         Seçilen modül için içerik alanı
@@ -274,7 +207,7 @@ function Home({ onLogout }: HomeProps) {
                     type="button"
                     className="brand"
                     onClick={() =>
-                        setActivePage("Dashboard")
+                        setActivePage(PAGE_IDS.dashboard)
                     }
                 >
                     <div className="brand-logo">
@@ -349,7 +282,7 @@ function Home({ onLogout }: HomeProps) {
                                                 }
                                             >
                                                 <span>
-                                                    {item}
+                                                    {pageLabels[item]}
                                                 </span>
 
                                                 <small>
@@ -392,7 +325,7 @@ function Home({ onLogout }: HomeProps) {
                         className="admin-btn"
                         onClick={() =>
                             setActivePage(
-                                "Yönetim Paneli"
+                                PAGE_IDS.admin
                             )
                         }
                     >

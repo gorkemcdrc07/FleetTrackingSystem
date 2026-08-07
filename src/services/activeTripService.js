@@ -1,6 +1,6 @@
 import { prepareActiveTrips } from "../domain/activeTrips";
 import { getExcludedTripNumbers, saveActiveTrips } from "./tripRepository";
-import { mapTMSRows, syncFromTMS } from "../pages/AktifSeferler/tmsService";
+import { mapTMSRows, syncFromTMS } from "../pages/ActiveTrips/tmsService";
 
 export async function synchronizeActiveTrips({ startDate, endDate }) {
     const incoming = await syncFromTMS({
