@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
-import { createSessionUser, validateLoginUser } from "../domain/userSession";
-import { findUserByUsername } from "../services/userRepository";
+import { createSessionUser } from "../domain/userSession";
+import { authenticateLogin } from "../services/authService";
 import { getRememberedUsername, saveSession } from "../services/sessionStorage";
 import "./Login.css";
 
@@ -64,8 +64,10 @@ function Login({ onLogin }: LoginProps) {
         setLoading(true);
 
         try {
-            const data = await findUserByUsername(cleanUser);
-            const validation = validateLoginUser(data, sifre);
+            const { profile: data, validation } = await authenticateLogin({
+                identity: cleanUser,
+                password: sifre,
+            });
 
             if (validation.reason === "not_found") {
                 setErrorMessage("Kullanıcı bulunamadı.");
