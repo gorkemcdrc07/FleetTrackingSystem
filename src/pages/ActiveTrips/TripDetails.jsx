@@ -9,6 +9,8 @@ import RouteEditor from "./RouteEditor/RouteEditor";
 import { islemLogla } from "../../utils/islemLogla";
 import RouteHistory from "./Details/RouteHistory";
 import EtaAnalysis from "./Details/EtaAnalysis";
+import { buildAddressCandidates } from "../../domain/mapRouting";
+import { fetchDrivingRoute as fetchOsrmRoute, geocodeFirstAddress as geocodeAddress } from "../../services/mapRoutingService";
 
 const DRIVE_BLOCK_MIN = 270;
 const SHORT_BREAK_MIN = 45;
@@ -158,16 +160,6 @@ function getStatus(item) {
     };
 }
 
-function buildAddressCandidates(item) {
-    return [
-        [item.nokta, item.ilce, item.il, "Türkiye"],
-        [item.ilce, item.il, "Türkiye"],
-        [item.il, "Türkiye"],
-    ]
-        .map((parts) => parts.filter(Boolean).join(", "))
-        .filter(Boolean);
-}
-
 function buildRoute(row) {
     if (Array.isArray(row.rota_detaylari) && row.rota_detaylari.length > 0) {
         return row.rota_detaylari.map((item, index) => {
@@ -275,87 +267,6 @@ function buildRoute(row) {
         cikisInput: toMaskedDateTimeValue(item.cikis),
         status: getStatus(item),
     }));
-}
-
-const geoCache = new Map();
-
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function geocodeAddress(query) {
-    if (!query) return null;
-
-    const cacheKey = query.trim().toLowerCase();
-
-    if (geoCache.has(cacheKey)) {
-        return geoCache.get(cacheKey);
-    }
-
-    try {
-        await sleep(900);
-
-        const url =
-            `https://nominatim.openstreetmap.org/search?` +
-            new URLSearchParams({
-                q: query,
-                format: "json",
-                limit: 1,
-                countrycodes: "tr",
-            });
-
-        const response = await fetch(url, {
-            headers: {
-                Accept: "application/json",
-            },
-        });
-
-        if (!response.ok) {
-            console.warn("Geocode HTTP error:", response.status);
-            return null;
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data) || !data.length) {
-            return null;
-        }
-
-        const result = {
-            lat: Number(data[0].lat),
-            lon: Number(data[0].lon),
-        };
-
-        geoCache.set(cacheKey, result);
-
-        return result;
-
-    } catch (err) {
-        console.error("Geocode error:", err);
-        return null;
-    }
-}
-async function fetchOsrmRoute(points) {
-    if (points.length < 2) return null;
-
-    const coords = points.map((p) => `${p.lng},${p.lat}`).join(";");
-    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    const route = data?.routes?.[0];
-    if (!route) return null;
-
-    return {
-        distanceKm: route.distance / 1000,
-        durationMin: route.duration / 60,
-        geometry: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
-        legs: route.legs.map((leg) => ({
-            distanceKm: leg.distance / 1000,
-            durationMin: leg.duration / 60,
-        })),
-    };
 }
 
 function applyLegalEtaToLeg(driveMin, state) {
