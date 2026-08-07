@@ -14,3 +14,14 @@ export function createSessionUser(user) {
         yetki: user.yetki || {},
     };
 }
+
+export function buildUserLookupAttempts(user) {
+    if (!user) return [];
+    const email = user.email || user.mail || user.eposta;
+    const username = user.kullanici || user.kullanici_adi || user.kullaniciAdi || user.username || user.ad;
+    return [
+        email ? { field: "email", value: email } : null,
+        email ? { field: "mail", value: email } : null,
+        username ? { field: "kullanici", value: username } : null,
+    ].filter(Boolean);
+}
