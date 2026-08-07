@@ -1,4 +1,4 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
     mapSettlementRow as mapRow,
     normalizeSettlementPlate as normalizePlate,
@@ -20,7 +20,7 @@ import {
 import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
 import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
 import { listVehiclePricing } from "../../services/vehiclePricingRepository";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import "./HayatKimyaFuelSettlement.css";
 
 function formatTL(v) {
@@ -96,7 +96,7 @@ export default function HayatKimyaFuelSettlement() {
             setPasteText("");
             setActiveStep(2);
 
-            islemLogla({
+            logAuditEvent({
                 islem_tipi: "HAYAT_KIMYA_YAKIT_EXCEL_YUKLEME",
                 islem_aciklama: "Hayat Kimya yakıt verisi yüklendi",
                 tablo_adi: "hayat_kimya_yakit_tmp",
@@ -141,7 +141,7 @@ export default function HayatKimyaFuelSettlement() {
             setPasteText("");
             setActiveStep(3);
 
-            islemLogla({
+            logAuditEvent({
                 islem_tipi: "HAYAT_KIMYA_SEFER_EXCEL_YUKLEME",
                 islem_aciklama: "Hayat Kimya sefer verisi yüklendi",
                 tablo_adi: "hayat_kimya_sefer_tmp",

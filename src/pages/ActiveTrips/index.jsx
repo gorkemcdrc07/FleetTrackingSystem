@@ -7,7 +7,7 @@ import "./ActiveTrips.css";
 import TripDetails from "./TripDetails";
 import ColumnLayout from "./ViewSettings/ColumnLayout";
 import ETA from "./ETA/ETA";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import { findUserByIdentity, findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
 import { findEtaReference } from "../../services/etaReferenceRepository";
 
@@ -517,7 +517,7 @@ function OpsBtns({
                 onClick={async (e) => {
                     e.stopPropagation();
 
-                    await islemLogla({
+                    await logAuditEvent({
                         islem_tipi: "SEFER_DETAY_ACMA",
                         islem_aciklama: "Detay ekranı açıldı",
                         tablo_adi: "aktif_seferler",
@@ -542,7 +542,7 @@ function OpsBtns({
                 onClick={async (e) => {
                     e.stopPropagation();
 
-                    await islemLogla({
+                    await logAuditEvent({
                         islem_tipi: "ETA_ACMA",
                         islem_aciklama: "ETA ekranı açıldı",
                         tablo_adi: "aktif_seferler",
@@ -567,7 +567,7 @@ function OpsBtns({
                 onClick={async (e) => {
                     e.stopPropagation();
 
-                    await islemLogla({
+                    await logAuditEvent({
                         islem_tipi: "TONAJ_BUTON",
                         islem_aciklama: "Tonaj işlemi tetiklendi",
                         tablo_adi: "aktif_seferler",
@@ -594,7 +594,7 @@ function OpsBtns({
                 onClick={async (e) => {
                     e.stopPropagation();
 
-                    await islemLogla({
+                    await logAuditEvent({
                         islem_tipi: "IKAZ_BUTON",
                         islem_aciklama: "İkaz işlemi tetiklendi",
                         tablo_adi: "aktif_seferler",
@@ -619,7 +619,7 @@ function OpsBtns({
                 onClick={async (e) => {
                     e.stopPropagation();
 
-                    await islemLogla({
+                    await logAuditEvent({
                         islem_tipi: "SEFER_SIL",
                         islem_aciklama: "Sefer pasif hale getirildi",
                         tablo_adi: "aktif_seferler",

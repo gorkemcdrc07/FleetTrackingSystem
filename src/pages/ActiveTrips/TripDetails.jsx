@@ -6,7 +6,7 @@ import "./TripDetails.css";
 import Tabs from "./Details/Tabs";
 import MobilizInformation from "./Details/MobilizInformation";
 import RouteEditor from "./RouteEditor/RouteEditor";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import RouteHistory from "./Details/RouteHistory";
 import EtaAnalysis from "./Details/EtaAnalysis";
 import { buildAddressCandidates } from "../../domain/mapRouting";
@@ -769,7 +769,7 @@ function TripDetails({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
             const degisenAlanlar = getRouteChanges(eskiRota, rotaDetaylari);
             const siraDegisikligi = getRouteOrderChanges(eskiRota, rotaDetaylari);
 
-            await islemLogla({
+            await logAuditEvent({
                 islem_tipi: siraDegisikligi
                     ? "ROTA_SIRASI_VE_DETAY_GUNCELLEME"
                     : "SEFER_DETAY_GUNCELLEME",

@@ -1,8 +1,8 @@
 import { buildAuditLogPayload } from "../domain/auditLog";
-import { createAuditLog } from "../services/auditLogRepository";
-import { getCurrentUser } from "../services/sessionStorage";
+import { createAuditLog } from "./auditLogRepository";
+import { getCurrentUser } from "./sessionStorage";
 
-export async function islemLogla(event) {
+export async function logAuditEvent(event) {
     try {
         const payload = buildAuditLogPayload(
             event,
