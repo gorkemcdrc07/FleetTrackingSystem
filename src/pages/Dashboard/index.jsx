@@ -7,9 +7,7 @@ import "../../components/Harita/Harita.css";
 import "./Dashboard.css";
 
 import { notificationEngine } from "../../services/notificationEngine";
-import { apiUrl } from "../../config/api";
-
-const API_URL = apiUrl("/api/mobiliz/activity-last");
+import { mobilizService } from "../../services/mobiliz";
 
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
 const FOCUS_PLATE_KEY = "fts_focus_plate";
@@ -209,15 +207,6 @@ function getCoordinates(vehicle) {
 
 function hasGps(vehicle) {
     return getCoordinates(vehicle).valid;
-}
-
-function getResponseList(json) {
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json?.data)) return json.data;
-    if (Array.isArray(json?.result)) return json.result;
-    if (Array.isArray(json?.items)) return json.items;
-
-    return [];
 }
 
 function loadGeofenceEvents() {
@@ -446,38 +435,7 @@ export default function Dashboard({ onNavigate }) {
             setLoading(true);
             setError("");
 
-            const response = await fetch(API_URL, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            const contentType =
-                response.headers.get("content-type") || "";
-
-            let json;
-
-            if (contentType.includes("application/json")) {
-                json = await response.json();
-            } else {
-                const text = await response.text();
-
-                throw new Error(
-                    text ||
-                    `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    json?.message ||
-                    json?.error ||
-                    `Dashboard isteği başarısız oldu. HTTP ${response.status}`
-                );
-            }
-
-            const data = getResponseList(json);
+            const data = await mobilizService.araclar();
             const nextGeofenceEvents =
                 loadGeofenceEvents();
 

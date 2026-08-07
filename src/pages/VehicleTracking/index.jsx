@@ -3,9 +3,7 @@ import Harita from "../../components/Harita/Harita";
 import Filtreler from "../../components/Harita/Filtreler";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 import "../../components/Harita/Harita.css";
-import { apiUrl } from "../../config/api";
-
-const API_URL = apiUrl("/api/mobiliz/activity-last");
+import { mobilizService } from "../../services/mobiliz";
 
 function normalizePlate(value) {
     return String(value || "")
@@ -93,15 +91,6 @@ function formatDate(value) {
     return date.toLocaleString("tr-TR");
 }
 
-function getResponseList(json) {
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json?.data)) return json.data;
-    if (Array.isArray(json?.result)) return json.result;
-    if (Array.isArray(json?.items)) return json.items;
-
-    return [];
-}
-
 export default function VehicleTracking({ onNavigate }) {
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -122,39 +111,7 @@ export default function VehicleTracking({ onNavigate }) {
             setLoading(true);
             setError("");
 
-            const response = await fetch(API_URL, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                },
-                signal,
-            });
-
-            const contentType =
-                response.headers.get("content-type") || "";
-
-            let json;
-
-            if (contentType.includes("application/json")) {
-                json = await response.json();
-            } else {
-                const text = await response.text();
-
-                throw new Error(
-                    text ||
-                    `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    json?.message ||
-                    json?.error ||
-                    `Mobiliz isteği başarısız oldu. HTTP ${response.status}`
-                );
-            }
-
-            const data = getResponseList(json);
+            const data = await mobilizService.araclar({ signal });
 
             setVehicles(data);
 

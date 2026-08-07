@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./Alarms.css";
 import { notificationEngine } from "../../services/notificationEngine";
-import { apiUrl } from "../../config/api";
-
-const API_URL = apiUrl("/api/mobiliz/activity-last");
+import { mobilizService } from "../../services/mobiliz";
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
 
 function getSpeed(vehicle) {
@@ -201,9 +199,7 @@ export default function Alarms() {
         setLoading(true);
 
         try {
-            const res = await fetch(API_URL);
-            const json = await res.json();
-            const data = Array.isArray(json) ? json : json.data || [];
+            const data = await mobilizService.araclar();
 
             setVehicles(data);
             setGeofenceEvents(loadGeofenceEvents());

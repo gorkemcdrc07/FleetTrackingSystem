@@ -1,14 +1,16 @@
 import { apiUrl } from "../config/api";
+import { extractMobilizList } from "../domain/mobilizResponse";
 
 const MOBILIZ_API_URL = apiUrl("/api/mobiliz");
 
 async function request(path, options = {}) {
+    const { headers, ...requestOptions } = options;
     const response = await fetch(`${MOBILIZ_API_URL}${path}`, {
         headers: {
             "Content-Type": "application/json",
-            ...(options.headers || {}),
+            ...headers,
         },
-        ...options,
+        ...requestOptions,
     });
 
     const text = await response.text();
@@ -34,8 +36,12 @@ async function request(path, options = {}) {
 }
 
 export const mobilizService = {
-    araclar() {
-        return request("/activity-last");
+    async araclar(options = {}) {
+        return extractMobilizList(await request("/activity-last", options));
+    },
+
+    sonKonum(options = {}) {
+        return this.araclar(options);
     },
 
     rotaDetayi(plate, startTime, endTime) {
