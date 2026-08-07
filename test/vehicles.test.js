@@ -28,3 +28,19 @@ test("araç satırını kimliğiyle günceller veya plakaya göre sıralı ekler
         { id: 1, plaka: "35 ZZZ 35" },
     ]);
 });
+
+test("araç kayıt yükü izin, kesinti ve çıkış alanlarını korur", () => {
+    const payload = buildVehiclePayload({
+        id: 7,
+        izinler: [{ id: "izin-1" }],
+        kesintiler: [{ id: "kesinti-1" }],
+        isten_cikarildi: true,
+        cikartilma_nedeni: "Sözleşme sonu",
+        evrak_fotograflari: {},
+    });
+
+    assert.deepEqual(payload.izinler, [{ id: "izin-1" }]);
+    assert.deepEqual(payload.kesintiler, [{ id: "kesinti-1" }]);
+    assert.equal(payload.isten_cikarildi, true);
+    assert.equal(payload.cikartilma_nedeni, "Sözleşme sonu");
+});
