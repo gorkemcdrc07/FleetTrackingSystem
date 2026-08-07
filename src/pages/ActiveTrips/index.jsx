@@ -9,6 +9,7 @@ import ColumnLayout from "./ViewSettings/ColumnLayout";
 import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
+import { findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
 
 function IconChevron({ open }) {
     return (
@@ -270,43 +271,7 @@ function getAktifKullanici() {
 }
 async function findKullaniciRow() {
     const aktifKullanici = getAktifKullanici();
-
-    if (!aktifKullanici) return null;
-
-    const kullaniciMail =
-        aktifKullanici.email ||
-        aktifKullanici.mail ||
-        aktifKullanici.eposta;
-
-    const kullaniciAdi =
-        aktifKullanici.kullanici_adi ||
-        aktifKullanici.kullaniciAdi ||
-        aktifKullanici.username ||
-        aktifKullanici.ad;
-
-    const attempts = [
-        kullaniciMail ? { field: "email", value: kullaniciMail } : null,
-        kullaniciMail ? { field: "mail", value: kullaniciMail } : null,
-        kullaniciAdi ? { field: "kullanici", value: kullaniciAdi } : null,
-    ].filter(Boolean);
-
-    for (const attempt of attempts) {
-        const { data, error } = await supabase
-            .from("kullanicilar")
-            .select(`id, ${USER_LAYOUT_COLUMN}`)
-            .eq(attempt.field, attempt.value)
-            .maybeSingle();
-
-        if (!error && data) {
-            return {
-                row: data,
-                matchField: attempt.field,
-                matchValue: attempt.value,
-            };
-        }
-    }
-
-    return null;
+    return findUserWithPreferences(aktifKullanici, USER_LAYOUT_COLUMN);
 } async function loadUserTableLayout() {
     const found = await findKullaniciRow();
     if (!found?.row) return getDefaultTableLayout();
@@ -327,12 +292,7 @@ async function saveUserTableLayout(layout) {
         [TABLE_LAYOUT_KEY]: sanitizeTableLayout(layout),
     };
 
-    const { error } = await supabase
-        .from("kullanicilar")
-        .update({ [USER_LAYOUT_COLUMN]: nextLayouts })
-        .eq(found.matchField, found.matchValue);
-
-    if (error) throw error;
+    await updateUserPreferences(found.match, USER_LAYOUT_COLUMN, nextLayouts);
 }
 
 function formatDate(val) {
