@@ -1,6 +1,10 @@
 ﻿// TamamlananSeferler.jsx
 import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
-import { supabase } from "../../supabaseClient";
+import {
+    findEtaReferenceDays,
+    listCompletedTrips,
+    updateCompletedTrip,
+} from "../../services/completedTripRepository";
 import "./CompletedTrips.css";
 import ColumnLayout from "../ActiveTrips/ViewSettings/ColumnLayout";
 import * as XLSX from "xlsx-js-style";
@@ -1051,14 +1055,7 @@ async function enrichEta(row) {
         const varis = normalizeTR(getLastValue(row.teslim_ili));
 
         if (cikis && varis) {
-            const { data } = await supabase
-                .from("eta_referanslari")
-                .select("*")
-                .ilike("cikis", `${cikis}%`)
-                .ilike("varis", `${varis}%`)
-                .maybeSingle();
-
-            if (data) etaReferansGun = data["gün"];
+            etaReferansGun = await findEtaReferenceDays({ origin: cikis, destination: varis });
         }
     }
 
@@ -1154,12 +1151,7 @@ function CompletedTrips() {
             else setLoading(true);
 
             try {
-                const { data, error } = await supabase
-                    .from("tamamlanan_seferler")
-                    .select("*")
-                    .order("sefer_tarihi", { ascending: false });
-
-                if (error) throw error;
+                const data = await listCompletedTrips();
 
                 const enriched = [];
                 for (const row of data || []) {
@@ -1516,18 +1508,8 @@ function CompletedTrips() {
             if (!editingRow) return;
 
             setSavingEdit(true);
-            const idKey = editingRow.id !== undefined && editingRow.id !== null ? "id" : "sefer_no";
-            const idValue = editingRow.id ?? editingRow.sefer_no;
-
             try {
-                const { data, error } = await supabase
-                    .from("tamamlanan_seferler")
-                    .update(formValues)
-                    .eq(idKey, idValue)
-                    .select()
-                    .maybeSingle();
-
-                if (error) throw error;
+                const data = await updateCompletedTrip(editingRow, formValues);
 
                 const targetKey = getRowKey(editingRow);
                 setRows((prev) =>
