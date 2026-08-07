@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Harita from "../../components/Harita/Harita";
-import Filtreler from "../../components/Harita/Filtreler";
+import FleetMap from "../../components/Map/FleetMap";
+import MapFilters from "../../components/Map/MapFilters";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
-import "../../components/Harita/Harita.css";
+import "../../components/Map/FleetMap.css";
 import { mobilizService } from "../../services/mobiliz";
 import { STORAGE_KEYS, writeStorageJson, writeStorageText } from "../../services/browserStorage";
 import { getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
@@ -289,7 +289,7 @@ export default function VehicleTracking({ onNavigate }) {
                 </div>
             )}
 
-            <Filtreler
+            <MapFilters
                 vehicles={vehicles}
                 filters={filters}
                 onChange={setFilters}
@@ -351,7 +351,7 @@ export default function VehicleTracking({ onNavigate }) {
                 </aside>
 
                 <div className="arac-harita-alani premium">
-                    <Harita
+                    <FleetMap
                         vehicles={filteredVehicles}
                         selectedPlate={
                             selectedVehicle
