@@ -3,30 +3,9 @@ import { MdAdminPanelSettings } from "react-icons/md";
 
 import "./Home.css";
 
-import ActiveTrips from "./ActiveTrips";
-import CompletedTrips from "./CompletedTrips";
-import VehicleStatuses from "./VehicleStatuses";
-import VehicleTracking from "./VehicleTracking";
-
-import LoadingWaitReport from "./Reports/LoadingWaitReport";
-import DeliveryWaitReport from "./Reports/DeliveryWaitReport";
-import UserKpiReport from "./Reports/UserKpiReport";
-
-import VehiclePricing from "./Settlements/VehiclePricing";
-import HayatKimyaFuelSettlement from "./Settlements/HayatKimyaFuelSettlement";
-import PepsiFuelSettlement from "./Settlements/PepsiFuelSettlement";
-import HandlingFee from "./Settlements/HandlingFee";
-
-import AdminPanel from "./Admin/AdminPanel";
-
-import Alarms from "./Alarms";
-import Dashboard from "./Dashboard";
-import Playback from "./Playback";
-import Geofence from "./Geofence";
-import OperationsCenter from "./OperationsCenter";
-
 import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
 import NotificationToasts from "../components/NotificationCenter/NotificationToasts";
+import PageOutlet from "../navigation/PageOutlet";
 import { menuGroups, PAGE_IDS, pageLabels, resolvePageId, type PageId } from "../navigation/pages";
 
 type HomeProps = {
@@ -93,112 +72,6 @@ function Home({ onLogout }: HomeProps) {
     function handleNavigate(page: string) {
         setActivePage(resolvePageId(page));
     }
-
-    const renderPage = () => {
-        if (activePage === PAGE_IDS.dashboard) {
-            return (
-                <Dashboard
-                    onNavigate={handleNavigate}
-                />
-            );
-        }
-
-        if (activePage === PAGE_IDS.activeTrips) {
-            return <ActiveTrips />;
-        }
-
-        if (activePage === PAGE_IDS.completedTrips) {
-            return <CompletedTrips />;
-        }
-
-        if (activePage === PAGE_IDS.vehicleStatuses) {
-            return <VehicleStatuses />;
-        }
-
-        if (activePage === PAGE_IDS.vehicleTracking) {
-            return (
-                <VehicleTracking
-                    onNavigate={handleNavigate}
-                />
-            );
-        }
-
-        if (activePage === PAGE_IDS.playback) {
-            return <Playback />;
-        }
-
-        if (activePage === PAGE_IDS.geofence) {
-            return <Geofence />;
-        }
-
-        if (activePage === PAGE_IDS.alarms) {
-            return <Alarms />;
-        }
-
-        if (activePage === PAGE_IDS.operationsCenter) {
-            return (
-                <OperationsCenter
-                    onNavigate={handleNavigate}
-                />
-            );
-        }
-
-        if (activePage === PAGE_IDS.loadingWaitReport) {
-            return <LoadingWaitReport />;
-        }
-
-        if (activePage === PAGE_IDS.deliveryWaitReport) {
-            return <DeliveryWaitReport />;
-        }
-
-        if (activePage === PAGE_IDS.userKpiReport) {
-            return <UserKpiReport />;
-        }
-
-        if (
-            activePage === PAGE_IDS.vehiclePricing
-        ) {
-            return <VehiclePricing />;
-        }
-
-        if (activePage === PAGE_IDS.hayatKimyaFuelSettlement) {
-            return <HayatKimyaFuelSettlement />;
-        }
-
-        if (activePage === PAGE_IDS.pepsiFuelSettlement) {
-            return <PepsiFuelSettlement />;
-        }
-
-        if (activePage === PAGE_IDS.handlingFee) {
-            return <HandlingFee />;
-        }
-
-        if (activePage === PAGE_IDS.admin) {
-            return <AdminPanel />;
-        }
-
-        return (
-            <section className="hero-panel">
-                <div>
-                    <span className="eyebrow">
-                        Aktif Sayfa
-                    </span>
-
-                    <h1>{pageLabels[activePage]}</h1>
-
-                    <p>
-                        Seçilen modül için içerik alanı
-                        burada görüntülenecek.
-                    </p>
-                </div>
-
-                <div className="system-card">
-                    <span className="pulse" />
-                    Sistem Aktif
-                </div>
-            </section>
-        );
-    };
 
     return (
         <div className="home-container">
@@ -347,7 +220,7 @@ function Home({ onLogout }: HomeProps) {
             </header>
 
             <main className="main-content">
-                {renderPage()}
+                <PageOutlet pageId={activePage} onNavigate={handleNavigate} />
             </main>
 
             <NotificationToasts
