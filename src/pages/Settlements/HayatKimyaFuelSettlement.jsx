@@ -2,7 +2,6 @@
 import {
     mapSettlementRow as mapRow,
     normalizeSettlementPlate as normalizePlate,
-    normalizeSettlementText as normalizeText,
     parseSettlementClipboardRows as parseClipboardRows,
     parseSettlementNumber as parseNumber,
     pickSettlementValue as pick,
@@ -11,13 +10,18 @@ import {
     downloadSettlementSpreadsheet as downloadExcel,
     readSettlementSpreadsheet as readExcel,
 } from "../../services/settlementSpreadsheet";
+import {
+    aggregateHayatKimyaFuelByPlate,
+    calculateHayatKimyaFuelSummary,
+    distributeHayatKimyaSettlement,
+    indexHayatKimyaVehiclePricing,
+    summarizeHayatKimyaSettlement,
+} from "../../domain/hayatKimyaFuelSettlement";
 import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
 import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
 import { listVehiclePricing } from "../../services/vehiclePricingRepository";
 import { islemLogla } from "../../utils/islemLogla";
 import "./HayatKimyaFuelSettlement.css";
-
-const SPECIAL_CUSTOMERS = ["HAYAT KİMYA", "HAYAT KIMYA", "ODAK TEDARİK", "ODAK TEDARIK"];
 
 function formatTL(v) {
     return Number(v || 0).toLocaleString("tr-TR", {
@@ -199,127 +203,27 @@ export default function HayatKimyaFuelSettlement() {
     }
 
     const fiyatMap = useMemo(() => {
-        return new Map(aracFiyatRows.map((x) => [normalizePlate(x.plaka), x]));
+        return indexHayatKimyaVehiclePricing(aracFiyatRows);
     }, [aracFiyatRows]);
 
     const yakitByPlate = useMemo(() => {
-        const map = new Map();
-
-        yakitRows.forEach((row) => {
-            const key = normalizePlate(row.plaka);
-
-            if (!map.has(key)) {
-                map.set(key, {
-                    plaka: key,
-                    cari_id: row.cari_id,
-                    cari_adi: row.cari_adi,
-                    toplam_yakit_litresi: 0,
-                    birim_fiyat: row.birim_fiyat || 0,
-                    iskontosuz_birim_fiyat: row.iskontosuz_birim_fiyat || 0,
-                });
-            }
-
-            const item = map.get(key);
-            item.toplam_yakit_litresi += Number(row.yakit_litresi || 0);
-
-            if (row.birim_fiyat) item.birim_fiyat = row.birim_fiyat;
-            if (row.iskontosuz_birim_fiyat) item.iskontosuz_birim_fiyat = row.iskontosuz_birim_fiyat;
-        });
-
-        return map;
+        return aggregateHayatKimyaFuelByPlate(yakitRows);
     }, [yakitRows]);
 
     const summaryRows = useMemo(() => {
         if (!calculated) return [];
 
-        const map = new Map();
-
-        seferRows.forEach((row) => {
-            const plaka = normalizePlate(row.plaka);
-            const musteri = normalizeText(row.musteri_adi);
-            const isSpecial = SPECIAL_CUSTOMERS.some((x) => musteri.includes(x));
-
-            if (!map.has(plaka)) {
-                map.set(plaka, {
-                    plaka,
-                    km_36: 0,
-                    km_37: 0,
-                    toplam_km: 0,
-                    tahmini_tuketim: 0,
-                    gercek_yakit: 0,
-                    fark_litre: 0,
-                    birim_fiyat: 0,
-                    duzeltme_maliyeti: 0,
-                    tl_km: 0,
-                    durum: "",
-                    cari_id: "",
-                    cari_adi: "",
-                });
-            }
-
-            const item = map.get(plaka);
-            const km = Number(row.toplam_km || 0);
-
-            if (isSpecial) item.km_36 += km;
-            else item.km_37 += km;
-
-            item.toplam_km += km;
-        });
-
-        map.forEach((item, plaka) => {
-            const fuel = yakitByPlate.get(plaka);
-            const fiyat = fiyatMap.get(plaka);
-
-            item.tahmini_tuketim = item.km_36 * 0.36 + item.km_37 * 0.37;
-            item.gercek_yakit = fuel?.toplam_yakit_litresi || 0;
-            item.fark_litre = item.tahmini_tuketim - item.gercek_yakit;
-            item.birim_fiyat = fuel?.birim_fiyat || fuel?.iskontosuz_birim_fiyat || 0;
-            item.duzeltme_maliyeti = item.fark_litre * item.birim_fiyat;
-            item.tl_km = item.toplam_km > 0 ? item.duzeltme_maliyeti / item.toplam_km : 0;
-            item.durum = item.fark_litre >= 0 ? "PRİM" : "CEZA";
-            item.cari_id = fuel?.cari_id || fiyat?.cari_id || "";
-            item.cari_adi = fuel?.cari_adi || fiyat?.cari_adi || "";
-        });
-
-        return Array.from(map.values()).sort((a, b) => a.plaka.localeCompare(b.plaka, "tr"));
+        return calculateHayatKimyaFuelSummary(seferRows, yakitByPlate, fiyatMap);
     }, [calculated, seferRows, yakitByPlate, fiyatMap]);
 
     const distributionRows = useMemo(() => {
         if (!calculated) return [];
 
-        const summaryMap = new Map(summaryRows.map((x) => [x.plaka, x]));
-
-        return seferRows.map((row) => {
-            const plaka = normalizePlate(row.plaka);
-            const summary = summaryMap.get(plaka);
-            const km = Number(row.toplam_km || 0);
-            const seferHakedisi = km * Number(summary?.tl_km || 0);
-
-            return {
-                sefer_no: row.sefer_no,
-                tms_despatch_id: row.tms_despatch_id,
-                musteri_adi: row.musteri_adi,
-                plaka,
-                km,
-                sefer_hakedisi_tl: seferHakedisi,
-                cari_unvan_id: summary?.cari_id || "",
-                cari_adi: summary?.cari_adi || "",
-            };
-        });
+        return distributeHayatKimyaSettlement(seferRows, summaryRows);
     }, [calculated, seferRows, summaryRows]);
 
     const totals = useMemo(() => {
-        return summaryRows.reduce(
-            (acc, row) => {
-                acc.km += row.toplam_km;
-                acc.tahmini += row.tahmini_tuketim;
-                acc.gercek += row.gercek_yakit;
-                acc.fark += row.fark_litre;
-                acc.tl += row.duzeltme_maliyeti;
-                return acc;
-            },
-            { km: 0, tahmini: 0, gercek: 0, fark: 0, tl: 0 }
-        );
+        return summarizeHayatKimyaSettlement(summaryRows);
     }, [summaryRows]);
 
     function handleCalculate() {
