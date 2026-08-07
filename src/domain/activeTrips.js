@@ -4,7 +4,7 @@ export const ALLOWED_WORKING_TYPES = [
     "PEPSİ KİRALIK",
 ];
 
-function split(value) {
+export function splitTripValues(value) {
     return String(value || "").split(";").map((item) => item.trim()).filter(Boolean);
 }
 
@@ -24,13 +24,13 @@ function uniqueStops(stops) {
 }
 
 export function createRouteDetails(row) {
-    const loadingPoints = split(row.yukleme_noktasi);
-    const loadingCities = split(row.yukleme_ili);
-    const loadingCounties = split(row.yukleme_ilcesi);
-    const deliveryCompanies = split(row.teslim_alan_firma);
-    const deliveryPoints = split(row.teslim_noktasi);
-    const deliveryCities = split(row.teslim_ili);
-    const deliveryCounties = split(row.teslim_ilcesi);
+    const loadingPoints = splitTripValues(row.yukleme_noktasi);
+    const loadingCities = splitTripValues(row.yukleme_ili);
+    const loadingCounties = splitTripValues(row.yukleme_ilcesi);
+    const deliveryCompanies = splitTripValues(row.teslim_alan_firma);
+    const deliveryPoints = splitTripValues(row.teslim_noktasi);
+    const deliveryCities = splitTripValues(row.teslim_ili);
+    const deliveryCounties = splitTripValues(row.teslim_ilcesi);
 
     const loadingCount = Math.max(loadingPoints.length, loadingCities.length, loadingCounties.length);
     const deliveryCount = Math.max(
