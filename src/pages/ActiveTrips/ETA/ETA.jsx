@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../../supabaseClient";
+import { findEtaReference } from "../../../services/etaReferenceRepository";
 import "./ETA.css";
 
 const ISTANBUL_ANADOLU_ILCELERI = [
@@ -261,16 +261,7 @@ function ETA({ row, onClose }) {
                     return;
                 }
 
-                const { data, error } = await supabase
-                    .from("eta_referanslari")
-                    .select("*")
-                    .ilike("cikis", `${etaKeys.cikis}%`)
-                    .ilike("varis", `${etaKeys.varis}%`)
-                    .limit(1);
-
-                if (error) throw error;
-
-                const matchedEta = data?.[0];
+                const matchedEta = await findEtaReference(etaKeys.cikis, etaKeys.varis);
 
                 if (!matchedEta) {
                     setErrorText(`${etaKeys.cikis} - ${etaKeys.varis} için ETA kaydı bulunamadı.`);

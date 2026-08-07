@@ -10,6 +10,7 @@ import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
 import { findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
+import { findEtaReference } from "../../services/etaReferenceRepository";
 
 function IconChevron({ open }) {
     return (
@@ -1138,16 +1139,13 @@ function ActiveTrips() {
 
                 if (!cikis || !varis) continue;
 
-                const { data, error } = await supabase
-                    .from("eta_referanslari")
-                    .select("*")
-                    .ilike("cikis", `${cikis}%`)
-                    .ilike("varis", `${varis}%`)
-                    .limit(1);
-
-                if (error || !data?.length) continue;
-
-                const etaRef = data[0];
+                let etaRef;
+                try {
+                    etaRef = await findEtaReference(cikis, varis);
+                } catch {
+                    continue;
+                }
+                if (!etaRef) continue;
                 const etaDays = parseGunValue(etaRef["gün"]);
                 if (!etaDays) continue;
 
@@ -1305,12 +1303,7 @@ function ActiveTrips() {
             }
 
             try {
-                const { data } = await supabase
-                    .from("eta_referanslari")
-                    .select("*")
-                    .ilike("cikis", `${cikis}%`)
-                    .ilike("varis", `${varis}%`)
-                    .maybeSingle();
+                const data = await findEtaReference(cikis, varis);
 
                 if (data) {
                     etaReferansGun = data["gün"];
