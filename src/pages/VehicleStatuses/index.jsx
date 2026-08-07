@@ -164,6 +164,16 @@ export default function VehicleStatuses() {
         setCikisModalRow((p) => p?.id === updatedRow.id ? updatedRow : p);
     }
 
+    async function persistVehicleFields(id, changes, errorMessage) {
+        try {
+            return await updateVehicle(id, changes);
+        } catch (error) {
+            console.error(errorMessage, error);
+            alert(errorMessage);
+            return null;
+        }
+    }
+
     function openAddForm() { setEditingRow(null); setForm({ ...emptyForm, evrak_fotograflari: {} }); setFormOpen(true); }
     function openEditForm(row) { setEditingRow(row); setForm({ ...emptyForm, ...row, evrak_fotograflari: normalizeDocuments(row.evrak_fotograflari) }); setFormOpen(true); }
     function closeForm() { setFormOpen(false); setEditingRow(null); setForm({ ...emptyForm, evrak_fotograflari: {} }); }
@@ -235,8 +245,12 @@ export default function VehicleStatuses() {
             created_at: new Date().toISOString(),
         }];
 
-        const { data, error } = await supabase.from("arac_durumlari").update({ izinler: nextList }).eq("id", izinModalRow.id).select().single();
-        if (error) { console.error("İzin kaydedilemedi:", error); alert("İzin kaydedilemedi."); return; }
+        const data = await persistVehicleFields(
+            izinModalRow.id,
+            { izinler: nextList },
+            "İzin kaydedilemedi."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_IZIN_EKLEME",
@@ -269,8 +283,12 @@ export default function VehicleStatuses() {
             created_at: new Date().toISOString(),
         }];
 
-        const { data, error } = await supabase.from("arac_durumlari").update({ kesintiler: nextList }).eq("id", kesintiModalRow.id).select().single();
-        if (error) { console.error("Kesinti kaydedilemedi:", error); alert("Kesinti kaydedilemedi."); return; }
+        const data = await persistVehicleFields(
+            kesintiModalRow.id,
+            { kesintiler: nextList },
+            "Kesinti kaydedilemedi."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_KESINTI_EKLEME",
@@ -292,8 +310,12 @@ export default function VehicleStatuses() {
         if (!cikisForm.cikartilan_tarih || !cikisForm.cikartilma_nedeni.trim()) { alert("Çıkartılan tarih ve çıkarılma nedeni zorunludur."); return; }
 
         const payload = { ...cikisForm, durum: "Çıkartıldı", isten_cikarildi: true };
-        const { data, error } = await supabase.from("arac_durumlari").update(payload).eq("id", cikisModalRow.id).select().single();
-        if (error) { console.error("İşten çıkartma kaydedilemedi:", error); alert("İşten çıkartma kaydedilemedi."); return; }
+        const data = await persistVehicleFields(
+            cikisModalRow.id,
+            payload,
+            "İşten çıkartma kaydedilemedi."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_ISTEN_CIKARTMA",
@@ -314,8 +336,12 @@ export default function VehicleStatuses() {
 
     async function undoCikis(row) {
         if (!window.confirm(`${row.plaka || "Araç"} tekrar ana listeye alınsın mı?`)) return;
-        const { data, error } = await supabase.from("arac_durumlari").update({ isten_cikarildi: false, durum: "Müsait" }).eq("id", row.id).select().single();
-        if (error) { console.error("Araç geri alınamadı:", error); alert("Araç geri alınamadı."); return; }
+        const data = await persistVehicleFields(
+            row.id,
+            { isten_cikarildi: false, durum: "Müsait" },
+            "Araç geri alınamadı."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_ANA_LISTEYE_ALMA",
@@ -347,18 +373,12 @@ export default function VehicleStatuses() {
                 : item
         ).map(({ baslangicInput, bitisInput, ...clean }) => clean);
 
-        const { data, error } = await supabase
-            .from("arac_durumlari")
-            .update({ izinler: nextList })
-            .eq("id", row.id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error("İzin kaydı güncellenemedi:", error);
-            alert("İzin kaydı güncellenemedi.");
-            return;
-        }
+        const data = await persistVehicleFields(
+            row.id,
+            { izinler: nextList },
+            "İzin kaydı güncellenemedi."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_IZIN_GUNCELLEME",
@@ -390,18 +410,12 @@ export default function VehicleStatuses() {
                 : item
         ).map(({ baslangicInput, bitisInput, ...clean }) => clean);
 
-        const { data, error } = await supabase
-            .from("arac_durumlari")
-            .update({ kesintiler: nextList })
-            .eq("id", row.id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error("Kesinti kaydı güncellenemedi:", error);
-            alert("Kesinti kaydı güncellenemedi.");
-            return;
-        }
+        const data = await persistVehicleFields(
+            row.id,
+            { kesintiler: nextList },
+            "Kesinti kaydı güncellenemedi."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_KESINTI_GUNCELLEME",
@@ -431,18 +445,12 @@ export default function VehicleStatuses() {
             isten_cikarildi: true,
         };
 
-        const { data, error } = await supabase
-            .from("arac_durumlari")
-            .update(payload)
-            .eq("id", row.id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error("Çıkış bilgileri güncellenemedi:", error);
-            alert("Çıkış bilgileri güncellenemedi.");
-            return;
-        }
+        const data = await persistVehicleFields(
+            row.id,
+            payload,
+            "Çıkış bilgileri güncellenemedi."
+        );
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_CIKIS_GUNCELLEME",
@@ -461,8 +469,8 @@ export default function VehicleStatuses() {
     async function removeIzin(row, id) {
         const removed = (row.izinler || []).find((x) => x.id === id);
         const next = (row.izinler || []).filter((x) => x.id !== id);
-        const { data, error } = await supabase.from("arac_durumlari").update({ izinler: next }).eq("id", row.id).select().single();
-        if (error) return alert("İzin silinemedi.");
+        const data = await persistVehicleFields(row.id, { izinler: next }, "İzin silinemedi.");
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_IZIN_SILME",
@@ -481,8 +489,8 @@ export default function VehicleStatuses() {
     async function removeKesinti(row, id) {
         const removed = (row.kesintiler || []).find((x) => x.id === id);
         const next = (row.kesintiler || []).filter((x) => x.id !== id);
-        const { data, error } = await supabase.from("arac_durumlari").update({ kesintiler: next }).eq("id", row.id).select().single();
-        if (error) return alert("Kesinti silinemedi.");
+        const data = await persistVehicleFields(row.id, { kesintiler: next }, "Kesinti silinemedi.");
+        if (!data) return;
 
         islemLogla({
             islem_tipi: "ARAC_KESINTI_SILME",
