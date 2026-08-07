@@ -2,6 +2,7 @@
 import { deactivateActiveTrip, moveTripToCompleted, updateActiveTrip } from "../../services/tripRepository";
 import { createRouteDetails as createRotaDetaylari, splitTripValues as split } from "../../domain/activeTrips";
 import { useActiveTrips } from "./useActiveTrips";
+import { getCurrentUser } from "../../services/sessionStorage";
 import "./ActiveTrips.css";
 import TripDetails from "./TripDetails";
 import ColumnLayout from "./ViewSettings/ColumnLayout";
@@ -256,21 +257,8 @@ function sanitizeTableLayout(layout) {
     };
 }
 
-function getAktifKullanici() {
-    try {
-        return (
-            JSON.parse(localStorage.getItem("fts_user") || "null") ||
-            JSON.parse(localStorage.getItem("kullanici") || "null") ||
-            JSON.parse(localStorage.getItem("aktifKullanici") || "null") ||
-            JSON.parse(localStorage.getItem("user") || "null") ||
-            null
-        );
-    } catch {
-        return null;
-    }
-}
 async function findKullaniciRow() {
-    const aktifKullanici = getAktifKullanici();
+    const aktifKullanici = getCurrentUser();
     return findUserWithPreferences(aktifKullanici, USER_LAYOUT_COLUMN);
 } async function loadUserTableLayout() {
     const found = await findKullaniciRow();
@@ -928,7 +916,7 @@ function ActiveTrips() {
     useEffect(() => {
         async function kullaniciYetkisiniGetir() {
             try {
-                const localUser = getAktifKullanici();
+                const localUser = getCurrentUser();
 
                 if (!localUser) {
                     setYetkiLoading(false);

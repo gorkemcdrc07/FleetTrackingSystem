@@ -7,38 +7,16 @@ import NotificationCenter from "../components/NotificationCenter/NotificationCen
 import NotificationToasts from "../components/NotificationCenter/NotificationToasts";
 import PageOutlet from "../navigation/PageOutlet";
 import { menuGroups, PAGE_IDS, pageLabels, resolvePageId, type PageId } from "../navigation/pages";
+import { getCurrentUser } from "../services/sessionStorage";
 
 type HomeProps = {
     onLogout: () => void;
 };
 
-function getAktifKullanici() {
-    try {
-        return (
-            JSON.parse(
-                localStorage.getItem("fts_user") || "null"
-            ) ||
-            JSON.parse(
-                localStorage.getItem("kullanici") || "null"
-            ) ||
-            JSON.parse(
-                localStorage.getItem("aktifKullanici") ||
-                "null"
-            ) ||
-            JSON.parse(
-                localStorage.getItem("user") || "null"
-            ) ||
-            null
-        );
-    } catch {
-        return null;
-    }
-}
-
 function Home({ onLogout }: HomeProps) {
     const [activePage, setActivePage] = useState<PageId>(PAGE_IDS.dashboard);
 
-    const aktifKullanici = getAktifKullanici();
+    const aktifKullanici = getCurrentUser();
 
     const kullaniciAdi =
         aktifKullanici?.ad ||

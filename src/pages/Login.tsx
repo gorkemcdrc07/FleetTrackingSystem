@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { createSessionUser, validateLoginUser } from "../domain/userSession";
 import { findUserByUsername } from "../services/userRepository";
+import { getRememberedUsername, saveSession } from "../services/sessionStorage";
 import "./Login.css";
 
 type KullaniciYetki = Record<string, unknown>;
@@ -18,7 +19,7 @@ type LoginProps = {
 };
 
 function Login({ onLogin }: LoginProps) {
-    const savedUser = localStorage.getItem("fts_kullanici");
+    const savedUser = getRememberedUsername();
 
     const [kullanici, setKullanici] = useState(savedUser ?? "");
     const [sifre, setSifre] = useState("");
@@ -89,13 +90,7 @@ function Login({ onLogin }: LoginProps) {
 
             const sessionUser: KullaniciSession = createSessionUser(data!);
 
-            if (remember) {
-                localStorage.setItem("fts_kullanici", cleanUser);
-            } else {
-                localStorage.removeItem("fts_kullanici");
-            }
-
-            localStorage.setItem("fts_user", JSON.stringify(sessionUser));
+            saveSession({ username: cleanUser, user: sessionUser, remember });
 
             setSuccess(true);
 
