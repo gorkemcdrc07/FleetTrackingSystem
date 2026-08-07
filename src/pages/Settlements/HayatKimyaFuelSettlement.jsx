@@ -1,5 +1,16 @@
 ﻿import { useMemo, useRef, useState } from "react";
-import * as XLSX from "xlsx";
+import {
+    mapSettlementRow as mapRow,
+    normalizeSettlementPlate as normalizePlate,
+    normalizeSettlementText as normalizeText,
+    parseSettlementClipboardRows as parseClipboardRows,
+    parseSettlementNumber as parseNumber,
+    pickSettlementValue as pick,
+} from "../../domain/settlementParsing";
+import {
+    downloadSettlementSpreadsheet as downloadExcel,
+    readSettlementSpreadsheet as readExcel,
+} from "../../services/settlementSpreadsheet";
 import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
 import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
 import { listVehiclePricing } from "../../services/vehiclePricingRepository";
@@ -7,42 +18,6 @@ import { islemLogla } from "../../utils/islemLogla";
 import "./HayatKimyaFuelSettlement.css";
 
 const SPECIAL_CUSTOMERS = ["HAYAT KİMYA", "HAYAT KIMYA", "ODAK TEDARİK", "ODAK TEDARIK"];
-
-function normalizeText(v) {
-    return String(v || "").toLocaleUpperCase("tr-TR").replace(/\s+/g, " ").trim();
-}
-
-function normalizePlate(v) {
-    return String(v || "").toLocaleUpperCase("tr-TR").replace(/\s+/g, "").trim();
-}
-
-function normalizeHeader(v) {
-    return String(v || "")
-        .toLocaleLowerCase("tr-TR")
-        .replaceAll("ı", "i")
-        .replaceAll("ğ", "g")
-        .replaceAll("ü", "u")
-        .replaceAll("ş", "s")
-        .replaceAll("ö", "o")
-        .replaceAll("ç", "c")
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
-}
-
-function parseNumber(v) {
-    if (v === null || v === undefined || v === "") return 0;
-    if (typeof v === "number") return Number.isFinite(v) ? v : 0;
-
-    let s = String(v).replace(/₺/g, "").replace(/\s/g, "").trim();
-
-    if (s.includes(".") && s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
-    else if (s.includes(",")) s = s.replace(",", ".");
-
-    s = s.replace(/[^\d.-]/g, "");
-
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
-}
 
 function formatTL(v) {
     return Number(v || 0).toLocaleString("tr-TR", {
@@ -57,71 +32,6 @@ function formatNumber(v) {
     return Number(v || 0).toLocaleString("tr-TR", {
         minimumFractionDigits: 4,
         maximumFractionDigits: 4,
-    });
-}
-
-function readExcel(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                resolve(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
-            } catch (err) {
-                reject(err);
-            }
-        };
-
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-    });
-}
-
-function mapRow(row) {
-    const mapped = {};
-    Object.entries(row).forEach(([key, value]) => {
-        mapped[normalizeHeader(key)] = value;
-    });
-    return mapped;
-}
-
-function pick(row, keys) {
-    for (const key of keys) {
-        const normalized = normalizeHeader(key);
-        if (row[normalized] !== undefined && row[normalized] !== "") return row[normalized];
-    }
-    return "";
-}
-
-function downloadExcel(rows, fileName, sheetName = "Rapor") {
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    XLSX.writeFile(wb, fileName);
-}
-
-function parseClipboardRows(text) {
-    const clean = String(text || "").trim();
-    if (!clean) return [];
-
-    const lines = clean.split(/\r?\n/).filter((line) => line.trim());
-    if (lines.length < 2) return [];
-
-    const separator = lines[0].includes("\t") ? "\t" : ";";
-    const headers = lines[0].split(separator).map((h) => h.trim());
-
-    return lines.slice(1).map((line) => {
-        const values = line.split(separator);
-        const row = {};
-
-        headers.forEach((header, index) => {
-            row[header] = values[index] ?? "";
-        });
-
-        return row;
     });
 }
 
