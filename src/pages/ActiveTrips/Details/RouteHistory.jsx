@@ -1,8 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Detay.css";
-import { apiUrl } from "../../../config/api";
-
-const API_URL = apiUrl("/api/mobiliz/locations");
+import { mobilizService } from "../../../services/mobiliz";
 
 function pad(value) {
     return String(value).padStart(2, "0");
@@ -31,16 +29,6 @@ function formatDate(value) {
     }
 
     return date.toLocaleString("tr-TR");
-}
-
-function getResponseList(json) {
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json?.data)) return json.data;
-    if (Array.isArray(json?.Data)) return json.Data;
-    if (Array.isArray(json?.result)) return json.result;
-    if (Array.isArray(json?.items)) return json.items;
-
-    return [];
 }
 
 function getLatitude(item) {
@@ -111,48 +99,13 @@ export default function RouteHistory({ plaka }) {
                     endDate.getTime() - 24 * 60 * 60 * 1000
                 );
 
-                const params = new URLSearchParams({
+                const params = {
                     plate: normalizedPlate,
                     start: formatDateForMobiliz(startDate),
                     end: formatDateForMobiliz(endDate),
-                });
+                };
 
-                const response = await fetch(
-                    `${API_URL}?${params.toString()}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            Accept: "application/json",
-                        },
-                        signal,
-                    }
-                );
-
-                const contentType =
-                    response.headers.get("content-type") || "";
-
-                let json;
-
-                if (contentType.includes("application/json")) {
-                    json = await response.json();
-                } else {
-                    const text = await response.text();
-
-                    throw new Error(
-                        text ||
-                        `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
-                    );
-                }
-
-                if (!response.ok) {
-                    throw new Error(
-                        json?.message ||
-                        json?.error ||
-                        `Rota geçmişi isteği başarısız oldu. HTTP ${response.status}`
-                    );
-                }
-
-                const data = getResponseList(json)
+                const data = (await mobilizService.locations(params, { signal }))
                     .filter(Boolean)
                     .sort((a, b) => {
                         const aTime = new Date(

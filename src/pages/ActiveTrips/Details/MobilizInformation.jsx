@@ -1,9 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Detay.css";
 import LiveMap from "./LiveMap";
-import { apiUrl } from "../../../config/api";
-
-const API_URL = apiUrl("/api/mobiliz/activity-last");
+import { mobilizService } from "../../../services/mobiliz";
 
 function normalizePlate(value) {
     return String(value || "")
@@ -21,15 +19,6 @@ function formatDate(value) {
     }
 
     return date.toLocaleString("tr-TR");
-}
-
-function getResponseList(json) {
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json?.data)) return json.data;
-    if (Array.isArray(json?.result)) return json.result;
-    if (Array.isArray(json?.items)) return json.items;
-
-    return [];
 }
 
 export default function MobilizInformation({ plaka }) {
@@ -50,36 +39,7 @@ export default function MobilizInformation({ plaka }) {
             setLoading((current) => current || !vehicle);
             setError("");
 
-            const response = await fetch(API_URL, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            const contentType = response.headers.get("content-type") || "";
-
-            let json;
-
-            if (contentType.includes("application/json")) {
-                json = await response.json();
-            } else {
-                const text = await response.text();
-
-                throw new Error(
-                    text || `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    json?.message ||
-                    json?.error ||
-                    `Mobiliz isteği başarısız oldu. HTTP ${response.status}`
-                );
-            }
-
-            const list = getResponseList(json);
+            const list = await mobilizService.araclar();
 
             const found = list.find(
                 (item) =>

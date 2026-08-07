@@ -54,10 +54,12 @@ export const mobilizService = {
         return request(`/activity-detail?${params.toString()}`);
     },
 
-    locations(params = {}) {
+    async locations(params = {}, options = {}) {
         const searchParams = new URLSearchParams(params);
 
-        return request(`/locations?${searchParams.toString()}`);
+        return extractMobilizList(
+            await request(`/locations?${searchParams.toString()}`, options)
+        );
     },
 };
 
