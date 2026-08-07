@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import { moveTripToCompleted } from "../../services/tripRepository";
+import { deactivateActiveTrip, moveTripToCompleted, updateActiveTrip } from "../../services/tripRepository";
 import { createRouteDetails as createRotaDetaylari } from "../../domain/activeTrips";
 import { useActiveTrips } from "./useActiveTrips";
 import "./ActiveTrips.css";
@@ -1013,16 +1013,7 @@ function ActiveTrips() {
         setDeletingTrip(true);
 
         try {
-            const { error } = await supabase
-                .from("aktif_seferler")
-                .update({
-                    pasif: true,
-                    pasif_tarihi: new Date().toISOString(),
-                    pasif_nedeni: "Kullanıcı tarafından silindi",
-                })
-                .eq("sefer_no", deleteCandidate.sefer_no);
-
-            if (error) throw error;
+            await deactivateActiveTrip(deleteCandidate);
 
             setRows((prev) =>
                 prev.filter(
@@ -1272,12 +1263,7 @@ function ActiveTrips() {
         );
 
         try {
-            const { error } = await supabase
-                .from("aktif_seferler")
-                .update({ aciklama: IKAZ_ACIKLAMA })
-                .eq("sefer_no", row.sefer_no);
-
-            if (error) throw error;
+            await updateActiveTrip(row, { aciklama: IKAZ_ACIKLAMA });
 
             setToast({
                 type: "success",
@@ -1313,14 +1299,7 @@ function ActiveTrips() {
         );
 
         try {
-            const { error } = await supabase
-                .from("aktif_seferler")
-                .update({
-                    tonaj_durumu: yeniDeger,
-                })
-                .eq("sefer_no", row.sefer_no);
-
-            if (error) throw error;
+            await updateActiveTrip(row, { tonaj_durumu: yeniDeger });
 
         } catch (err) {
             console.error("Tonaj güncelleme hatası:", err);

@@ -1,5 +1,6 @@
 import { supabase } from "../supabaseClient";
 import { normalizeTripNumber, tripNumberSet, uniqueTripsByNumber } from "../domain/tripIdentity";
+import { buildInactiveTripPatch, getActiveTripMatch } from "../domain/activeTripMutations";
 
 export async function listActiveTrips({ startDate, endDate }) {
     const { data, error } = await supabase.from("aktif_seferler").select("*")
@@ -38,4 +39,14 @@ export async function moveTripToCompleted(payload) {
     const { error: deleteError } = await supabase.from("aktif_seferler").delete()
         .eq("sefer_no", normalizedPayload.sefer_no);
     if (deleteError) throw deleteError;
+}
+
+export async function updateActiveTrip(trip, patch) {
+    const match = getActiveTripMatch(trip);
+    const { error } = await supabase.from("aktif_seferler").update(patch).eq(match.field, match.value);
+    if (error) throw error;
+}
+
+export async function deactivateActiveTrip(trip) {
+    await updateActiveTrip(trip, buildInactiveTripPatch());
 }
