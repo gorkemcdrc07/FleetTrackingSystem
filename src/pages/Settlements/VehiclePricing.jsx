@@ -1,5 +1,5 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { islemLogla } from "../../utils/islemLogla";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { logAuditEvent } from "../../services/auditLogger";
 import {
     buildVehiclePricingPayload,
     filterVehiclePricing,
@@ -266,7 +266,7 @@ export default function VehiclePricing() {
             const data = await saveVehiclePricing({ id: editingRow?.id, payload });
             setRows((previousRows) => upsertVehiclePricingRow(previousRows, data));
 
-            await islemLogla({
+            await logAuditEvent({
                 islem_tipi: editingRow
                     ? "ARAC_FIYAT_GUNCELLEME"
                     : "ARAC_FIYAT_EKLEME",
@@ -303,7 +303,7 @@ export default function VehiclePricing() {
             prev.map((x) => (x.id === row.id ? data : x))
         );
 
-        await islemLogla({
+        await logAuditEvent({
             islem_tipi: "ARAC_FIYAT_DURUM",
             islem_aciklama: row.pasif
                 ? "Araç fiyat kaydı aktife alındı"

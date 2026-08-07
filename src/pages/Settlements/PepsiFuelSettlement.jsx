@@ -1,4 +1,4 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
     mapSettlementRow as mapRow,
     normalizeSettlementPlate as normalizePlate,
@@ -18,7 +18,7 @@ import {
 } from "../../domain/pepsiFuelSettlement";
 import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
 import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import "./PepsiFuelSettlement.css";
 
 function formatTL(v) {
@@ -127,7 +127,7 @@ export default function PepsiFuelSettlement() {
             setPasteText("");
             setActiveStep(2);
 
-            islemLogla({
+            logAuditEvent({
                 islem_tipi: "PEPSI_YAKIT_EXCEL_YUKLEME",
                 islem_aciklama: "Pepsi yakıt verisi yüklendi",
                 tablo_adi: "frigo_yakit_tmp",
@@ -169,7 +169,7 @@ export default function PepsiFuelSettlement() {
             setPasteText("");
             setActiveStep(3);
 
-            islemLogla({
+            logAuditEvent({
                 islem_tipi: "PEPSI_SEFER_EXCEL_YUKLEME",
                 islem_aciklama: "Pepsi sefer verisi yüklendi",
                 tablo_adi: "frigo_sefer_tmp",

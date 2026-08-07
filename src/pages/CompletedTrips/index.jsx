@@ -7,114 +7,17 @@ import {
 } from "../../services/completedTripRepository";
 import "./CompletedTrips.css";
 import ColumnLayout from "../ActiveTrips/ViewSettings/ColumnLayout";
+import {
+    formatDate, formatDateTime, formatNumber, fromDatetimeLocalValue,
+    getActualEtaDays, getCompletedTripKey as getRowKey,
+    getCompletedTripSortValue as getSortValue, getLastTripValue as getLastValue,
+    hasTripWarning as isIkazli, isTonnageTrip as isTonajli,
+    matchesCompletedTripColumn as matchColumnFilter,
+    matchesCompletedTripSearch as matchGlobalSearch, normalizeTurkishText as normalizeTR,
+    parseDate, parseDayValue as parseGunValue, splitTripValues as split,
+    toDatetimeLocalValue, TONNAGE_DESCRIPTION as TONAJ_ACIKLAMA,
+} from "../../domain/completedTripView";
 
-function formatDate(value) {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (isNaN(d)) return value;
-
-    return d.toLocaleDateString("tr-TR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-    });
-}
-
-function formatDateTime(value) {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (isNaN(d)) return value;
-
-    return d.toLocaleString("tr-TR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-}
-
-function formatNumber(value) {
-    if (value === null || value === undefined || value === "") return "—";
-    return Number(value).toLocaleString("tr-TR", {
-        maximumFractionDigits: 2,
-    });
-}
-
-function split(val) {
-    return String(val || "")
-        .split(";")
-        .map((x) => x.trim())
-        .filter(Boolean);
-}
-
-function getLastValue(value) {
-    const parts = split(value);
-    return parts.length ? parts[parts.length - 1] : "";
-}
-
-function normalizeTR(value) {
-    return String(value || "")
-        .toLocaleUpperCase("tr-TR")
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
-function parseDate(value) {
-    if (!value) return null;
-    const date = new Date(value);
-    return isNaN(date) ? null : date;
-}
-
-function parseGunValue(value) {
-    if (!value) return null;
-
-    const text = String(value)
-        .replace(",", ".")
-        .replace(/[^\d.]/g, "");
-
-    const num = Number(text);
-    return Number.isFinite(num) ? num : null;
-}
-
-function toDatetimeLocalValue(value) {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d)) return "";
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromDatetimeLocalValue(value) {
-    if (!value) return null;
-    const d = new Date(value);
-    return isNaN(d) ? null : d.toISOString();
-}
-
-function getActualEtaDays(row) {
-    const rota = Array.isArray(row.rota_detaylari) ? row.rota_detaylari : [];
-    if (!rota.length) return null;
-
-    const loads = rota.filter((x) => x.tip === "yukleme" || x.type === "Yükleme");
-    const deliveries = rota.filter((x) => x.tip === "teslim" || x.type === "Teslim");
-
-    const firstLoad = loads[0];
-    const lastDelivery = deliveries[deliveries.length - 1];
-
-    const start = parseDate(firstLoad?.cikis || firstLoad?.gerceklesen_cikis);
-    const end = parseDate(lastDelivery?.varis || lastDelivery?.gerceklesen_varis);
-
-    if (!start || !end) return null;
-
-    const diffMs = end.getTime() - start.getTime();
-    if (diffMs < 0) return null;
-
-    return Number((diffMs / (1000 * 60 * 60 * 24)).toFixed(2));
-}
-
-function getRowKey(row) {
-    return row?.id ?? row?.sefer_no;
-}
 
 /* ---------------------------------- İkonlar ---------------------------------- */
 
@@ -273,16 +176,6 @@ function EtaBadge({ delayed }) {
     );
 }
 
-const TONAJ_ACIKLAMA = "Tonajlı";
-
-function isTonajli(row) {
-    return String(row?.tonaj_durumu || "").trim() === TONAJ_ACIKLAMA;
-}
-
-function isIkazli(row) {
-    return Boolean(String(row?.aciklama || "").trim());
-}
-
 const DEFAULT_COLUMNS = [
     { key: "sefer_no", label: "Sefer No", width: 120, sticky: true, type: "sefer", locked: true },
     { key: "sefer_tarihi", label: "Sefer Tarihi", width: 115, type: "date" },
@@ -304,23 +197,6 @@ const DEFAULT_COLUMNS = [
     { key: "tonaj_durumu", label: "Tonaj", width: 110, type: "tonaj", filter: "select" },
     { key: "ikaz_durumu", label: "İkaz", width: 110, type: "ikaz", filter: "select" },
     { key: "aciklama", label: "Açıklama", width: 260, type: "textLong", filter: "text" },
-];
-
-// Global arama kutusunun eşleştireceği alanlar.
-const GLOBAL_SEARCH_KEYS = [
-    "sefer_no",
-    "arac_statu",
-    "plaka",
-    "treyler",
-    "surucu_ad_soyad",
-    "musteri_adi",
-    "musteri_siparis_no",
-    "hizmet_adi",
-    "proje_adi",
-    "yukleme_ili",
-    "teslim_ili",
-    "irsaliye_no",
-    "aciklama",
 ];
 
 // Düzenleme modalinde değiştirilebilecek gerçek tablo alanları.
@@ -410,23 +286,6 @@ function CellValue({ col, row }) {
     }
 
     return val ? <span>{val}</span> : <span className="muted">—</span>;
-}
-
-// Sıralama için satırdan karşılaştırılabilir bir değer üretir.
-function getSortValue(row, col) {
-    if (col.key === "eta_durum") return row.eta_gecikme ? 1 : 0;
-    if (col.type === "tonaj") return isTonajli(row) ? 1 : 0;
-    if (col.type === "ikaz") return isIkazli(row) ? 1 : 0;
-    if (col.type === "date") return parseDate(row[col.key])?.getTime() ?? -Infinity;
-    if (col.type === "last") return normalizeTR(getLastValue(row[col.key]));
-    if (col.type === "gun" || col.type === "gecikme") {
-        const num = Number(row[col.key]);
-        return Number.isFinite(num) ? num : -Infinity;
-    }
-
-    const val = row[col.key];
-    if (val === null || val === undefined || val === "") return "";
-    return normalizeTR(String(val));
 }
 
 function diffText(startValue, endValue) {
@@ -996,51 +855,6 @@ function ToastStack({ toasts, onDismiss }) {
             ))}
         </div>
     );
-}
-
-// Bir sütunun geçerli filtre değerine göre satırı eşleştirir.
-// Metin filtreleri Türkçe karakter duyarsız "içerir" mantığıyla,
-// seçime dayalı filtreler ise kesin eşleşmeyle çalışır.
-function matchColumnFilter(row, col, filterValue) {
-    if (!filterValue) return true;
-
-    if (col.key === "eta_durum") {
-        const state = row.eta_gecikme ? "gecikti" : "normal";
-        return state === filterValue;
-    }
-
-    if (col.type === "tonaj") {
-        const has = isTonajli(row);
-        return filterValue === "var" ? has : !has;
-    }
-
-    if (col.type === "ikaz") {
-        const has = isIkazli(row);
-        return filterValue === "var" ? has : !has;
-    }
-
-    if (col.key === "arac_statu") {
-        return row.arac_statu === filterValue;
-    }
-
-    if (col.type === "multi") {
-        const parts = split(row[col.key]).map(normalizeTR);
-        const needle = normalizeTR(filterValue);
-        return parts.some((p) => p.includes(needle));
-    }
-
-    if (col.type === "last") {
-        return normalizeTR(getLastValue(row[col.key])).includes(normalizeTR(filterValue));
-    }
-
-    const val = row[col.key];
-    return normalizeTR(String(val ?? "")).includes(normalizeTR(filterValue));
-}
-
-function matchGlobalSearch(row, query) {
-    if (!query) return true;
-    const needle = normalizeTR(query);
-    return GLOBAL_SEARCH_KEYS.some((key) => normalizeTR(String(row[key] ?? "")).includes(needle));
 }
 
 async function enrichEta(row) {

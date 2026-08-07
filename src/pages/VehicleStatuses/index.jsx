@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./VehicleStatuses.css";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import { buildVehiclePayload, upsertVehicleRow } from "../../domain/vehicles";
 import { createVehicle, listVehicles, updateVehicle } from "../../services/vehicleRepository";
 import { removeVehicleDocument, uploadVehicleDocument } from "../../services/vehicleDocumentStorage";
@@ -195,7 +195,7 @@ export default function VehicleStatuses() {
             return;
         }
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: editingRow ? "ARAC_DUZENLEME" : "ARAC_EKLEME",
             islem_aciklama: editingRow ? "Araç bilgileri güncellendi" : "Yeni araç eklendi",
             tablo_adi: "arac_durumlari",
@@ -237,7 +237,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_IZIN_EKLEME",
             islem_aciklama: "Araç için izin kaydı eklendi",
             tablo_adi: "arac_durumlari",
@@ -275,7 +275,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_KESINTI_EKLEME",
             islem_aciklama: "Araç için kesinti kaydı eklendi",
             tablo_adi: "arac_durumlari",
@@ -302,7 +302,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_ISTEN_CIKARTMA",
             islem_aciklama: "Araç işten çıkartıldı",
             tablo_adi: "arac_durumlari",
@@ -328,7 +328,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_ANA_LISTEYE_ALMA",
             islem_aciklama: "Araç tekrar ana listeye alındı",
             tablo_adi: "arac_durumlari",
@@ -365,7 +365,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_IZIN_GUNCELLEME",
             islem_aciklama: "Araç izin kaydı güncellendi",
             tablo_adi: "arac_durumlari",
@@ -402,7 +402,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_KESINTI_GUNCELLEME",
             islem_aciklama: "Araç kesinti kaydı güncellendi",
             tablo_adi: "arac_durumlari",
@@ -437,7 +437,7 @@ export default function VehicleStatuses() {
         );
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_CIKIS_GUNCELLEME",
             islem_aciklama: "İşten çıkartılan araç bilgileri güncellendi",
             tablo_adi: "arac_durumlari",
@@ -457,7 +457,7 @@ export default function VehicleStatuses() {
         const data = await persistVehicleFields(row.id, { izinler: next }, "İzin silinemedi.");
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_IZIN_SILME",
             islem_aciklama: "Araç izin kaydı silindi",
             tablo_adi: "arac_durumlari",
@@ -477,7 +477,7 @@ export default function VehicleStatuses() {
         const data = await persistVehicleFields(row.id, { kesintiler: next }, "Kesinti silinemedi.");
         if (!data) return;
 
-        islemLogla({
+        logAuditEvent({
             islem_tipi: "ARAC_KESINTI_SILME",
             islem_aciklama: "Araç kesinti kaydı silindi",
             tablo_adi: "arac_durumlari",
