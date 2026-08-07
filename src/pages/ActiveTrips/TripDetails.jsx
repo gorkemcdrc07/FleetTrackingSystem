@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "../../supabaseClient";
+import { updateActiveTrip } from "../../services/tripRepository";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./TripDetails.css";
@@ -848,23 +848,11 @@ function TripDetails({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
 
             const aracStatu = getAracStatuFromRoute(rotaDetaylari);
 
-            let query = supabase
-                .from("aktif_seferler")
-                .update({
-                    rota_detaylari: rotaDetaylari,
-                    arac_statu: aracStatu,
-                    updated_at: new Date().toISOString(),
-                });
-
-            if (row.id) {
-                query = query.eq("id", row.id);
-            } else {
-                query = query.eq("sefer_no", row.sefer_no);
-            }
-
-            const { error } = await query;
-
-            if (error) throw error;
+            await updateActiveTrip(row, {
+                rota_detaylari: rotaDetaylari,
+                arac_statu: aracStatu,
+                updated_at: new Date().toISOString(),
+            });
 
             const eskiRota = buildRoute(row);
             const degisenAlanlar = getRouteChanges(eskiRota, rotaDetaylari);
