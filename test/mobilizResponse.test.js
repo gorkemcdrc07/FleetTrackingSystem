@@ -6,6 +6,7 @@ test("Mobiliz araç listesini desteklenen cevap zarflarından çıkarır", () =>
     const rows = [{ plate: "34ABC" }];
     assert.equal(extractMobilizList(rows), rows);
     assert.equal(extractMobilizList({ data: rows }), rows);
+    assert.equal(extractMobilizList({ Data: rows }), rows);
     assert.equal(extractMobilizList({ result: rows }), rows);
     assert.equal(extractMobilizList({ items: rows }), rows);
 });
