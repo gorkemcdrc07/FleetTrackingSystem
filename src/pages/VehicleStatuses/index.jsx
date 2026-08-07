@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../supabaseClient";
 import "./VehicleStatuses.css";
 import { islemLogla } from "../../utils/islemLogla";
 import { buildVehiclePayload, upsertVehicleRow } from "../../domain/vehicles";
 import { createVehicle, listVehicles, updateVehicle } from "../../services/vehicleRepository";
+import { removeVehicleDocument, uploadVehicleDocument } from "../../services/vehicleDocumentStorage";
 import * as XLSX from "xlsx";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
@@ -20,8 +20,6 @@ const DOCUMENT_TYPES = [
     "Taşıt Belgesi 1",
     "Taşıt Belgesi 2",
 ];
-
-const STORAGE_BUCKET = "arac-evraklari";
 
 const emptyForm = {
     plaka: "", surucu_isim: "", tel_no: "", tc_kimlik_no: "", ikamet_adresi: "",
@@ -103,18 +101,6 @@ function getChangedFields(oldObj = {}, newObj = {}) {
 
 function cssKey(text) {
     return normalize(text).replaceAll(" ", "-").replaceAll("ı", "i").replaceAll("ğ", "g").replaceAll("ü", "u").replaceAll("ş", "s").replaceAll("ö", "o").replaceAll("ç", "c");
-}
-
-function safePath(text) {
-    return normalize(text)
-        .replaceAll(" ", "_")
-        .replaceAll("ı", "i")
-        .replaceAll("ğ", "g")
-        .replaceAll("ü", "u")
-        .replaceAll("ş", "s")
-        .replaceAll("ö", "o")
-        .replaceAll("ç", "c")
-        .replace(/[^a-z0-9_.-]/g, "_");
 }
 
 function StatusBadge({ status }) { return <span className={`status-badge ${cssKey(status || "Müsait")}`}>{status || "Müsait"}</span>; }
@@ -805,38 +791,31 @@ function DocumentUploadGrid({ plaka, documents, onChange }) {
         }
 
         setUploading(type);
-        const fileExt = file.name.split(".").pop();
-        const path = `${safePath(plaka)}/${safePath(type)}/${Date.now()}-${createId()}.${fileExt}`;
-
-        const { error } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .upload(path, file, {
-                cacheControl: "3600",
-                upsert: true,
+        try {
+            const uploadedDocument = await uploadVehicleDocument({ plate: plaka, type, file });
+            const normalizedDocuments = normalizeDocuments(documents);
+            onChange({
+                ...normalizedDocuments,
+                [type]: [...(normalizedDocuments[type] || []), uploadedDocument],
             });
-        if (error) {
+        } catch (error) {
             console.error("Evrak yüklenemedi:", error);
             alert("Evrak fotoğrafı yüklenemedi. Storage bucket ve yetkileri kontrol edin.");
+        } finally {
             setUploading("");
-            return;
         }
-
-        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-        const next = {
-            ...normalizeDocuments(documents),
-            [type]: [...(normalizeDocuments(documents)[type] || []), { id: createId(), url: data.publicUrl, path, name: file.name, uploaded_at: new Date().toISOString() }],
-        };
-
-        onChange(next);
-        setUploading("");
     }
 
     async function removePhoto(type, item) {
         const ok = window.confirm(`${type} evrakı silinsin mi?`);
         if (!ok) return;
 
-        if (item?.path) {
-            await supabase.storage.from(STORAGE_BUCKET).remove([item.path]);
+        try {
+            await removeVehicleDocument(item?.path);
+        } catch (error) {
+            console.error("Evrak silinemedi:", error);
+            alert("Evrak dosyası silinemedi.");
+            return;
         }
 
         const next = {
