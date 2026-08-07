@@ -2,7 +2,6 @@
 import {
     mapSettlementRow as mapRow,
     normalizeSettlementPlate as normalizePlate,
-    normalizeSettlementText as normalizeText,
     parseSettlementClipboardRows as parseClipboardRows,
     parseSettlementNumber as parseNumber,
     pickSettlementValue as pick,
@@ -11,12 +10,16 @@ import {
     downloadSettlementSpreadsheet as downloadExcel,
     readSettlementSpreadsheet as readExcel,
 } from "../../services/settlementSpreadsheet";
+import {
+    aggregatePepsiFuelByPlate,
+    calculatePepsiFuelSummary,
+    distributePepsiSettlement,
+    summarizePepsiSettlement,
+} from "../../domain/pepsiFuelSettlement";
 import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
 import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
 import { islemLogla } from "../../utils/islemLogla";
 import "./PepsiFuelSettlement.css";
-
-const PEPSI_CUSTOMERS = ["PEPSI", "PEPSİ"];
 
 function formatTL(v) {
     return Number(v || 0).toLocaleString("tr-TR", {
@@ -32,12 +35,6 @@ function formatNumber(v) {
         minimumFractionDigits: 4,
         maximumFractionDigits: 4,
     });
-}
-
-function getRateByMusteri(musteriAdi) {
-    const musteri = normalizeText(musteriAdi);
-    const isPepsi = PEPSI_CUSTOMERS.some((x) => musteri.includes(x));
-    return isPepsi ? 0.38 : 0.37;
 }
 
 export default function PepsiFuelSettlement() {
@@ -258,139 +255,23 @@ export default function PepsiFuelSettlement() {
     }
 
     const yakitByPlate = useMemo(() => {
-        const map = new Map();
-
-        yakitRows.forEach((row) => {
-            const plaka = normalizePlate(row.plaka);
-
-            if (!map.has(plaka)) {
-                map.set(plaka, {
-                    plaka,
-                    cari_id: row.cari_id,
-                    cari_adi: row.cari_adi,
-                    toplam_yakit_litresi: 0,
-                    birim_fiyat_sum: 0,
-                    iskontosuz_birim_fiyat_sum: 0,
-                    fiyat_count: 0,
-                });
-            }
-
-            const item = map.get(plaka);
-            item.toplam_yakit_litresi += Number(row.yakit_litresi || 0);
-
-            if (row.birim_fiyat || row.iskontosuz_birim_fiyat) {
-                item.birim_fiyat_sum += Number(row.birim_fiyat || 0);
-                item.iskontosuz_birim_fiyat_sum += Number(row.iskontosuz_birim_fiyat || 0);
-                item.fiyat_count += 1;
-            }
-        });
-
-        map.forEach((item) => {
-            item.birim_fiyat = item.fiyat_count > 0 ? item.birim_fiyat_sum / item.fiyat_count : 0;
-            item.iskontosuz_birim_fiyat =
-                item.fiyat_count > 0 ? item.iskontosuz_birim_fiyat_sum / item.fiyat_count : 0;
-        });
-
-        return map;
+        return aggregatePepsiFuelByPlate(yakitRows);
     }, [yakitRows]);
 
     const summaryRows = useMemo(() => {
         if (!calculated) return [];
 
-        const map = new Map();
-
-        seferRows.forEach((row) => {
-            const plaka = normalizePlate(row.plaka);
-            const rate = getRateByMusteri(row.musteri_adi);
-            const km = Number(row.toplam_km || 0);
-
-            if (!map.has(plaka)) {
-                map.set(plaka, {
-                    plaka,
-                    km_38: 0,
-                    km_37: 0,
-                    toplam_km: 0,
-                    toplam_tuketim: 0,
-                    gercek_yakit: 0,
-                    litre_farki: 0,
-                    birim_fiyat: 0,
-                    iskontosuz_birim_fiyat: 0,
-                    duzeltme_maliyeti: 0,
-                    tl_km: 0,
-                    durum: "",
-                    cari_id: "",
-                    cari_adi: "",
-                });
-            }
-
-            const item = map.get(plaka);
-
-            if (rate === 0.38) item.km_38 += km;
-            else item.km_37 += km;
-
-            item.toplam_km += km;
-            item.toplam_tuketim += km * rate;
-        });
-
-        map.forEach((item, plaka) => {
-            const fuel = yakitByPlate.get(plaka);
-
-            item.gercek_yakit = fuel?.toplam_yakit_litresi || 0;
-            item.birim_fiyat = fuel?.birim_fiyat || 0;
-            item.iskontosuz_birim_fiyat = fuel?.iskontosuz_birim_fiyat || 0;
-            item.litre_farki = item.toplam_tuketim - item.gercek_yakit;
-
-            item.duzeltme_maliyeti =
-                item.litre_farki >= 0
-                    ? item.litre_farki * item.birim_fiyat
-                    : -Math.abs(item.litre_farki) * item.iskontosuz_birim_fiyat;
-
-            item.tl_km = item.toplam_km > 0 ? item.duzeltme_maliyeti / item.toplam_km : 0;
-            item.durum = item.duzeltme_maliyeti >= 0 ? "HAKEDİŞ" : "CEZA";
-            item.cari_id = fuel?.cari_id || "";
-            item.cari_adi = fuel?.cari_adi || "";
-        });
-
-        return Array.from(map.values()).sort((a, b) => a.plaka.localeCompare(b.plaka, "tr"));
+        return calculatePepsiFuelSummary(seferRows, yakitByPlate);
     }, [calculated, seferRows, yakitByPlate]);
 
     const distributionRows = useMemo(() => {
         if (!calculated) return [];
 
-        const summaryMap = new Map(summaryRows.map((x) => [x.plaka, x]));
-
-        return seferRows.map((row) => {
-            const plaka = normalizePlate(row.plaka);
-            const summary = summaryMap.get(plaka);
-            const km = Number(row.toplam_km || 0);
-
-            return {
-                sefer_no: row.sefer_no,
-                tms_despatch_id: row.tms_despatch_id,
-                musteri_adi: row.musteri_adi,
-                plaka,
-                km,
-                oran: getRateByMusteri(row.musteri_adi),
-                sefer_hakedisi_tl: km * Number(summary?.tl_km || 0),
-                cari_unvan_id: summary?.cari_id || "",
-                cari_adi: summary?.cari_adi || "",
-            };
-        });
+        return distributePepsiSettlement(seferRows, summaryRows);
     }, [calculated, seferRows, summaryRows]);
 
     const totals = useMemo(() => {
-        return summaryRows.reduce(
-            (acc, row) => {
-                acc.plaka += 1;
-                acc.km += row.toplam_km;
-                acc.litre += row.litre_farki;
-                acc.tutar += row.duzeltme_maliyeti;
-                acc.tahmini += row.toplam_tuketim;
-                acc.gercek += row.gercek_yakit;
-                return acc;
-            },
-            { plaka: 0, km: 0, litre: 0, tutar: 0, tahmini: 0, gercek: 0 }
-        );
+        return summarizePepsiSettlement(summaryRows);
     }, [summaryRows]);
 
     function handleCalculate() {
