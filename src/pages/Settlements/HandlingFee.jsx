@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../supabaseClient";
+import {
+    buildHandlingFeePayload,
+    filterHandlingFees,
+    summarizeHandlingFees,
+} from "../../domain/handlingFees";
+import {
+    deleteHandlingFee,
+    listHandlingFees,
+    saveHandlingFee,
+} from "../../services/handlingFeeRepository";
 import "./HandlingFee.css";
 
 const giderSecenekleri = [
@@ -76,13 +85,6 @@ function getInitialForm() {
     };
 }
 
-function normalizeText(value) {
-    return String(value || "")
-        .toLocaleLowerCase("tr-TR")
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
 function formatCurrency(value) {
     return Number(value || 0).toLocaleString("tr-TR", {
         minimumFractionDigits: 2,
@@ -100,46 +102,6 @@ function formatDateForDisplay(value) {
         month: "2-digit",
         year: "numeric",
     });
-}
-
-function toNumber(value) {
-    if (value === "" || value === null || value === undefined) return null;
-    const numberValue = Number(value);
-    return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function getRowSearchText(item) {
-    return normalizeText([
-        item.gelir_gider,
-        item.sefer_no,
-        item.tarih,
-        item.plaka,
-        item.ad_soyad,
-        item.surucu_tel,
-        item.yukleme_musteri,
-        item.fatura_musteri,
-        item.bolge_palet_sayisi,
-        item.donem,
-        item.kullanici,
-    ].join(" "));
-}
-
-function mapFormToPayload(form) {
-    return {
-        gelir_gider: form.gelirGider,
-        sefer_no: form.seferNo,
-        tarih: form.tarih || null,
-        plaka: form.plaka,
-        ad_soyad: form.adSoyad,
-        surucu_tel: form.surucuTel,
-        yukleme_musteri: form.yuklemeMusteri,
-        fatura_musteri: form.faturaMusteri,
-        bolge_palet_sayisi: form.bolgePaletSayisi,
-        odenen_tutar: form.odenenTutar ? Number(form.odenenTutar) : 0,
-        palet_sayisi: form.paletSayisi ? Number(form.paletSayisi) : 0,
-        donem: form.donem,
-        kullanici: form.kullanici,
-    };
 }
 
 function mapRowToForm(row) {
@@ -175,50 +137,22 @@ export default function HandlingFee() {
     async function verileriGetir() {
         setLoading(true);
 
-        const { data, error } = await supabase
-            .from("hamaliye_kayitlari")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-        if (error) {
+        try {
+            setKayitlar(await listHandlingFees());
+        } catch (error) {
             console.error("Hamaliye verileri alınamadı:", error);
             alert("Veriler alınamadı: " + error.message);
-        } else {
-            setKayitlar(data || []);
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     }
 
     const filteredKayitlar = useMemo(() => {
-        return kayitlar.filter((item) => {
-            const q = normalizeText(filters.search);
-            const amount = Number(item.odenen_tutar || 0);
-            const minAmount = toNumber(filters.minAmount);
-            const maxAmount = toNumber(filters.maxAmount);
-
-            if (q && !getRowSearchText(item).includes(q)) return false;
-            if (filters.gelirGider !== "Tümü" && item.gelir_gider !== filters.gelirGider) return false;
-            if (filters.startDate && item.tarih && new Date(item.tarih) < new Date(filters.startDate)) return false;
-            if (filters.endDate && item.tarih && new Date(item.tarih) > new Date(filters.endDate)) return false;
-            if (minAmount !== null && amount < minAmount) return false;
-            if (maxAmount !== null && amount > maxAmount) return false;
-
-            return true;
-        });
+        return filterHandlingFees(kayitlar, filters);
     }, [kayitlar, filters]);
 
     const stats = useMemo(() => {
-        const totalAmount = filteredKayitlar.reduce((sum, item) => sum + Number(item.odenen_tutar || 0), 0);
-        const totalPallet = filteredKayitlar.reduce((sum, item) => sum + Number(item.palet_sayisi || 0), 0);
-        const uniqueTripCount = new Set(filteredKayitlar.map((x) => x.sefer_no).filter(Boolean)).size;
-
-        return {
-            count: filteredKayitlar.length,
-            totalAmount,
-            totalPallet,
-            uniqueTripCount,
-        };
+        return summarizeHandlingFees(filteredKayitlar);
     }, [filteredKayitlar]);
 
     const activeFilterCount = useMemo(() => {
@@ -267,20 +201,16 @@ export default function HandlingFee() {
 
         setLoading(true);
 
-        const payload = mapFormToPayload(form);
+        const payload = buildHandlingFeePayload(form);
 
-        const query = editingRow
-            ? supabase.from("hamaliye_kayitlari").update(payload).eq("id", editingRow.id)
-            : supabase.from("hamaliye_kayitlari").insert([payload]);
-
-        const { error } = await query;
-
-        setLoading(false);
-
-        if (error) {
+        try {
+            await saveHandlingFee({ id: editingRow?.id, payload });
+        } catch (error) {
             console.error("Hamaliye kayıt hatası:", error);
             alert("Kayıt yapılamadı: " + error.message);
             return;
+        } finally {
+            setLoading(false);
         }
 
         resetForm();
@@ -291,12 +221,9 @@ export default function HandlingFee() {
         const onay = window.confirm("Bu kaydı silmek istiyor musunuz?");
         if (!onay) return;
 
-        const { error } = await supabase
-            .from("hamaliye_kayitlari")
-            .delete()
-            .eq("id", id);
-
-        if (error) {
+        try {
+            await deleteHandlingFee(id);
+        } catch (error) {
             console.error("Hamaliye silme hatası:", error);
             alert("Kayıt silinemedi: " + error.message);
             return;
