@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+import { createSessionUser, validateLoginUser } from "../domain/userSession";
+import { findUserByUsername } from "../services/userRepository";
 import "./Login.css";
 
 type KullaniciYetki = Record<string, unknown>;
@@ -62,42 +63,31 @@ function Login({ onLogin }: LoginProps) {
         setLoading(true);
 
         try {
-            const { data, error } = await supabase
-                .from("kullanicilar")
-                .select("id, kullanici, sifre, ad, rol, yetki, aktif")
-                .eq("kullanici", cleanUser)
-                .maybeSingle();
+            const data = await findUserByUsername(cleanUser);
+            const validation = validateLoginUser(data, sifre);
 
-            if (error) throw error;
-
-            if (!data) {
+            if (validation.reason === "not_found") {
                 setErrorMessage("Kullanıcı bulunamadı.");
                 setFieldError("all");
                 setSifre("");
                 return;
             }
 
-            if (data.aktif === false) {
+            if (validation.reason === "inactive") {
                 setErrorMessage("Bu kullanıcı pasif durumda. Yöneticinizle iletişime geçin.");
                 setFieldError("all");
                 setSifre("");
                 return;
             }
 
-            if (data.sifre !== sifre) {
+            if (validation.reason === "invalid_password") {
                 setErrorMessage("Kullanıcı adı veya şifre hatalı.");
                 setFieldError("all");
                 setSifre("");
                 return;
             }
 
-            const sessionUser: KullaniciSession = {
-                id: data.id,
-                kullanici: data.kullanici,
-                ad: data.ad,
-                rol: data.rol,
-                yetki: data.yetki || {},
-            };
+            const sessionUser: KullaniciSession = createSessionUser(data!);
 
             if (remember) {
                 localStorage.setItem("fts_kullanici", cleanUser);

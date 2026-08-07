@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../supabaseClient";
+import { listUsers, updateUserPermissions } from "../../services/userRepository";
 import "./AdminPanel.css";
 
 const pageGroups = [
@@ -84,12 +84,7 @@ function AdminPanel() {
         try {
             setLoading(true);
 
-            const { data, error } = await supabase
-                .from("kullanicilar")
-                .select("id, kullanici, ad, rol, yetki, aktif")
-                .order("ad", { ascending: true });
-
-            if (error) throw error;
+            const data = await listUsers();
 
             setKullanicilar(data || []);
 
@@ -221,17 +216,7 @@ function AdminPanel() {
         try {
             setSaving(true);
 
-            const { data, error } = await supabase
-                .from("kullanicilar")
-                .update({
-                    yetki: permissions,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("id", selectedUser.id)
-                .select("id, kullanici, ad, rol, yetki, aktif")
-                .single();
-
-            if (error) throw error;
+            const data = await updateUserPermissions(selectedUser.id, permissions);
 
             setKullanicilar((prev) =>
                 prev.map((user) => (user.id === data.id ? data : user))
