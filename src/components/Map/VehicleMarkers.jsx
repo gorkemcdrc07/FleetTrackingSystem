@@ -1,13 +1,13 @@
 ﻿import MarkerClusterGroup from "react-leaflet-cluster";
 import { Marker, Popup } from "react-leaflet";
-import PopupBilgisi from "./Popup";
-import { createVehicleIcon } from "./AracIkonu";
+import VehiclePopup from "./VehiclePopup";
+import { createVehicleIcon } from "./VehicleIcon";
 
 function normalizePlate(value) {
     return String(value || "").replace(/\s/g, "").toUpperCase();
 }
 
-export default function Markerlar({
+export default function VehicleMarkers({
     vehicles = [],
     selectedPlate,
     onVehicleClick,
@@ -40,7 +40,7 @@ export default function Markerlar({
                         }}
                     >
                         <Popup minWidth={320}>
-                            <PopupBilgisi vehicle={vehicle} />
+                            <VehiclePopup vehicle={vehicle} />
                         </Popup>
                     </Marker>
                 );

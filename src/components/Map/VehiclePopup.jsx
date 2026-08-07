@@ -1,4 +1,4 @@
-﻿import "./Harita.css";
+import "./FleetMap.css";
 
 function formatDate(date) {
     if (!date) return "-";
@@ -19,7 +19,7 @@ function getCoordinate(vehicle) {
     };
 }
 
-export default function PopupBilgisi({ vehicle }) {
+export default function VehiclePopup({ vehicle }) {
     const speed = Number(vehicle.speed || vehicle.velocity || 0);
     const ignition = Boolean(vehicle.ignition || vehicle.engine);
 

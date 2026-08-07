@@ -1,7 +1,7 @@
 ﻿import { useMemo } from "react";
-import "./Harita.css";
+import "./FleetMap.css";
 
-export default function Filtreler({
+export default function MapFilters({
     vehicles = [],
     filters,
     onChange,

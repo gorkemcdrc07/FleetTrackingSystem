@@ -1,6 +1,6 @@
-﻿import Harita from "../../../components/Harita/Harita";
+import FleetMap from "../../../components/Map/FleetMap";
 
-function koordinatliVehicle(vehicle) {
+function withCoordinates(vehicle) {
     const latitude =
         vehicle?.latitude ||
         vehicle?.lat ||
@@ -22,7 +22,7 @@ function koordinatliVehicle(vehicle) {
 }
 
 export default function LiveMap({ vehicle }) {
-    const normalizedVehicle = koordinatliVehicle(vehicle);
+    const normalizedVehicle = withCoordinates(vehicle);
 
     if (!normalizedVehicle?.latitude || !normalizedVehicle?.longitude) {
         return (
@@ -34,7 +34,7 @@ export default function LiveMap({ vehicle }) {
 
     return (
         <div className="mobiliz-live-map">
-            <Harita
+            <FleetMap
                 vehicles={[normalizedVehicle]}
                 selectedPlate={normalizedVehicle.plate}
                 height="450px"

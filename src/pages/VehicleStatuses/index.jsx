@@ -4,21 +4,26 @@ import { logAuditEvent } from "../../services/auditLogger";
 import { buildVehiclePayload, upsertVehicleRow } from "../../domain/vehicles";
 import { createVehicle, listVehicles, updateVehicle } from "../../services/vehicleRepository";
 import { removeVehicleDocument, uploadVehicleDocument } from "../../services/vehicleDocumentStorage";
+import {
+    VEHICLE_DOCUMENT_TYPES as DOCUMENT_TYPES,
+    calculateLeaveDaysFromInput,
+    countMissingVehicleDocuments as missingDocumentCount,
+    countVehicleDocuments as countDocuments,
+    displayValue as value,
+    formatInputDate,
+    getActiveVehicleLeave as getActiveLeave,
+    getChangedVehicleFields as getChangedFields,
+    getVehicleDisplayStatus as getDisplayStatus,
+    getVehicleDocumentRisk as getDocumentRisk,
+    inputDateFromDisplay,
+    normalizeVehicleDocuments as normalizeDocuments,
+    normalizeVehicleStatusText as normalize,
+    vehicleExitHasWarning as exitHasWarning,
+    vehicleStatusCssKey as cssKey,
+} from "../../domain/vehicleStatusView";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin", "Bakım İzni"];
-
-const DOCUMENT_TYPES = [
-    "Ruhsat",
-    "Ehliyet",
-    "Kimlik",
-    "SRC",
-    "Psikoteknik",
-    "Çekici Muayene",
-    "Dorse Muayene",
-    "Taşıt Belgesi 1",
-    "Taşıt Belgesi 2",
-];
 
 const emptyForm = {
     plaka: "", surucu_isim: "", tel_no: "", tc_kimlik_no: "", ikamet_adresi: "",
@@ -41,65 +46,12 @@ const emptyCikisForm = {
     iade_gestas_negmar: false,
 };
 
-function value(v) { return v === null || v === undefined || v === "" ? "—" : v; }
-function normalize(v) { return String(v || "").toLocaleLowerCase("tr-TR").trim(); }
 function createId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
-function formatInputDate(dateText) { if (!dateText) return ""; const p = String(dateText).split("-"); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : ""; }
-function inputDateFromDisplay(dateText) { if (!dateText) return ""; const p = String(dateText).split("."); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : String(dateText).slice(0, 10); }
-function parseDate(dateText) { if (!dateText) return null; const p = String(dateText).split("."); if (p.length !== 3) return null; const d = new Date(`${p[2]}-${p[1]}-${p[0]}`); if (isNaN(d)) return null; d.setHours(0, 0, 0, 0); return d; }
-function calculateLeaveDaysFromInput(s, e) { if (!s || !e) return ""; const a = new Date(s); const b = new Date(e); if (isNaN(a) || isNaN(b) || b < a) return ""; return String(Math.floor((b - a) / (1000 * 60 * 60 * 24)) + 1); }
-function isExpiringSoon(t) { const d = parseDate(t); if (!d) return false; const n = new Date(); n.setHours(0, 0, 0, 0); const days = (d - n) / (1000 * 60 * 60 * 24); return days >= 0 && days <= 30; }
-function isExpired(t) { const d = parseDate(t); if (!d) return false; const n = new Date(); n.setHours(0, 0, 0, 0); return d < n; }
-
-function getDocumentRisk(row) {
-    const dates = [row.cekici_muayene, row.dorse_muayene, row.trafik_sigorta];
-    const docs = normalizeDocuments(row.evrak_fotograflari);
-    const missingDocs = DOCUMENT_TYPES.some((type) => !docs[type]?.length);
-    if (dates.some(isExpired)) return "expired";
-    if (dates.some(isExpiringSoon) || missingDocs) return "soon";
-    return "ok";
-}
-
-function isTodayBetween(s, e) { const a = parseDate(s); const b = parseDate(e); if (!a || !b) return false; const n = new Date(); n.setHours(0, 0, 0, 0); return n >= a && n <= b; }
-function getActiveLeave(row) { return (Array.isArray(row.izinler) ? row.izinler : []).find((x) => isTodayBetween(x.baslangic, x.bitis)) || null; }
-function getDisplayStatus(row) { if (row.isten_cikarildi) return "Çıkartıldı"; const leave = getActiveLeave(row); return leave ? (leave.statu || "İzinde") : (row.durum || "Müsait"); }
 function formatKesinti(item) { if (!item) return "—"; return item.tip === "gun" ? `${value(item.deger)} gün` : `${value(item.deger)} ₺`; }
 function formatKesintiTarih(item) {
     if (!item) return "—";
     if (item.baslangic || item.bitis) return `${value(item.baslangic)} - ${value(item.bitis)}`;
     return value(item.tarih);
-}
-function exitHasWarning(row) { return Boolean(row.isten_cikarildi && (!row.iade_gps || !row.iade_evraklar)); }
-
-function normalizeDocuments(docs) {
-    if (!docs || typeof docs !== "object" || Array.isArray(docs)) return {};
-    return docs;
-}
-
-function countDocuments(docs) {
-    const normalized = normalizeDocuments(docs);
-    return DOCUMENT_TYPES.reduce((total, type) => total + (Array.isArray(normalized[type]) ? normalized[type].length : 0), 0);
-}
-
-function missingDocumentCount(docs) {
-    const normalized = normalizeDocuments(docs);
-    return DOCUMENT_TYPES.filter((type) => !Array.isArray(normalized[type]) || normalized[type].length === 0).length;
-}
-
-function getChangedFields(oldObj = {}, newObj = {}) {
-    const changes = [];
-    Object.keys(newObj || {}).forEach((key) => {
-        const oldValue = oldObj?.[key] ?? null;
-        const newValue = newObj?.[key] ?? null;
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-            changes.push({ alan: key, eski_deger: oldValue, yeni_deger: newValue });
-        }
-    });
-    return changes;
-}
-
-function cssKey(text) {
-    return normalize(text).replaceAll(" ", "-").replaceAll("ı", "i").replaceAll("ğ", "g").replaceAll("ü", "u").replaceAll("ş", "s").replaceAll("ö", "o").replaceAll("ç", "c");
 }
 
 function StatusBadge({ status }) { return <span className={`status-badge ${cssKey(status || "Müsait")}`}>{status || "Müsait"}</span>; }

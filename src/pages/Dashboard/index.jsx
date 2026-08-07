@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import Harita from "../../components/Harita/Harita";
+import FleetMap from "../../components/Map/FleetMap";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 import DashboardCharts from "./components/DashboardCharts";
 
-import "../../components/Harita/Harita.css";
+import "../../components/Map/FleetMap.css";
 import "./Dashboard.css";
 
 import { notificationEngine } from "../../services/notificationEngine";
@@ -909,7 +909,7 @@ export default function Dashboard({ onNavigate }) {
                         )}
                     </div>
 
-                    <Harita
+                    <FleetMap
                         vehicles={filteredVehicles}
                         selectedPlate={
                             selectedVehicle

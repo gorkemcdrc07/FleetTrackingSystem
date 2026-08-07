@@ -1,7 +1,7 @@
 ﻿import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { useEffect, useMemo, useState } from "react";
-import Markerlar from "./Markerlar";
-import "./Harita.css";
+import VehicleMarkers from "./VehicleMarkers";
+import "./FleetMap.css";
 
 const MAP_THEMES = {
     standart: {
@@ -21,7 +21,7 @@ const MAP_THEMES = {
     },
 };
 
-function ortalamaMerkez(vehicles = []) {
+function getAverageCenter(vehicles = []) {
     const valid = vehicles.filter(
         (v) =>
             Number.isFinite(Number(v.latitude || v.lat || v.y)) &&
@@ -47,7 +47,7 @@ function normalizePlate(value) {
     return String(value || "").replace(/\s/g, "").toUpperCase();
 }
 
-function HaritaOdakla({ vehicles, selectedPlate }) {
+function MapFocus({ vehicles, selectedPlate }) {
     const map = useMap();
 
     useEffect(() => {
@@ -74,7 +74,7 @@ function HaritaOdakla({ vehicles, selectedPlate }) {
     return null;
 }
 
-export default function Harita({
+export default function FleetMap({
     vehicles = [],
     selectedPlate,
     onVehicleClick,
@@ -83,7 +83,7 @@ export default function Harita({
 }) {
     const [theme, setTheme] = useState("standart");
 
-    const center = useMemo(() => ortalamaMerkez(vehicles), [vehicles]);
+    const center = useMemo(() => getAverageCenter(vehicles), [vehicles]);
     const activeTheme = MAP_THEMES[theme] || MAP_THEMES.standart;
 
     return (
@@ -116,12 +116,12 @@ export default function Harita({
                     url={activeTheme.url}
                 />
 
-                <HaritaOdakla
+                <MapFocus
                     vehicles={vehicles}
                     selectedPlate={selectedPlate}
                 />
 
-                <Markerlar
+                <VehicleMarkers
                     vehicles={vehicles}
                     selectedPlate={selectedPlate}
                     onVehicleClick={onVehicleClick}

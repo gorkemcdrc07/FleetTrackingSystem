@@ -5,8 +5,8 @@
     useState,
 } from "react";
 
-import Harita from "../components/Harita/Harita";
-import "../components/Harita/Harita.css";
+import FleetMap from "../components/Map/FleetMap";
+import "../components/Map/FleetMap.css";
 import "./OperationsCenter.css";
 
 import PageHeader from "../components/UI/PageHeader";
@@ -761,7 +761,7 @@ export default function OperationsCenter({
                         title="Canlı Harita"
                         subtitle={`${filteredVehicles.length} araç görüntüleniyor`}
                     >
-                        <Harita
+                        <FleetMap
                             vehicles={
                                 filteredVehicles
                             }

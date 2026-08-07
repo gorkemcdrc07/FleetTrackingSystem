@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# Fleet Tracking System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Fleet Tracking System (FTS), filo operasyonlarını, aktif ve tamamlanan seferleri, canlı araç konumlarını, raporları ve hakediş süreçlerini tek panelde yöneten bir React uygulamasıdır.
 
-Currently, two official plugins are available:
+## Öne çıkan yetenekler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Aktif ve tamamlanan sefer yönetimi
+- Sefer kimliği ve veritabanı seviyesinde benzersizlik koruması
+- Mobiliz ve TMS entegrasyonları
+- Canlı araç takibi, geofence, alarm ve rota geçmişi
+- Bekleme, KPI ve operasyon raporları
+- Araç, evrak, fiyatlandırma ve hakediş yönetimi
+- Sayfa bazlı lazy loading ve hata sınırları
+- Otomatik test, üretim derlemesi ve Vercel önizleme kontrolleri
 
-## React Compiler
+## Mimari
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+├── components/   Yeniden kullanılabilir arayüz parçaları
+├── domain/       Saf iş kuralları ve veri dönüşümleri
+├── navigation/   Sayfa yönlendirme ve lazy loading
+├── pages/        Sayfa bileşenleri ve sayfaya özel hook'lar
+├── services/     Supabase, TMS, Mobiliz ve tarayıcı servisleri
+└── config/       Ortam ve API yapılandırması
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Veri akışı `page/hook → service/repository → external API/database` yönündedir. Filtreleme, normalizasyon ve hesaplama gibi saf kurallar `domain` katmanında tutulur ve Node testleriyle doğrulanır.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Yerel kurulum
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Gereksinimler: Node.js 22 ve npm.
+
+```bash
+npm ci
+cp .env.example .env
+npm run dev
 ```
+
+Windows PowerShell için:
+
+```powershell
+Copy-Item .env.example .env
+npm.cmd run dev
+```
+
+Uygulama `npm start` kullanmaz. Kullanılabilir komutlar:
+
+```bash
+npm run dev       # Vite ve yerel proxy
+npm run frontend  # Yalnızca Vite
+npm test          # Domain/repository regresyon testleri
+npm run build     # TypeScript ve üretim derlemesi
+npm run lint      # ESLint
+```
+
+## Kalite güvence
+
+Her `main` hedefli pull request için GitHub Actions otomatik olarak bağımlılıkları temiz kurar, testleri çalıştırır ve üretim paketini oluşturur. Vercel ayrıca izole bir önizleme dağıtımı üretir.
+
+## Veritabanı
+
+Supabase migration dosyaları `supabase/migrations` altındadır. Migration'lar önce test/staging projesinde uygulanmalı ve yedek alınmadan üretimde çalıştırılmamalıdır.
+
+## Güvenlik durumu
+
+İstemci ortamında yalnızca yayınlanabilir Supabase anon anahtarı bulunmalıdır. Service-role anahtarı ve üçüncü taraf gizli anahtarları Vite değişkenlerine eklenmemelidir. Mevcut kimlik doğrulama akışının Supabase Auth + RLS geçişi tamamlanmadan sistem genel internete açık üretim uygulaması olarak değerlendirilmemelidir. Ayrıntılar [SECURITY.md](SECURITY.md) dosyasındadır.
+
+## Dağıtım
+
+Üretim dalı `main`dir. Değişiklikler pull request, başarılı CI ve Vercel önizlemesi sonrasında squash merge ile alınır.
