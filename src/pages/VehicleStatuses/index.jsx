@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import "./VehicleStatuses.css";
 import { islemLogla } from "../../utils/islemLogla";
+import { buildVehiclePayload, upsertVehicleRow } from "../../domain/vehicles";
+import { createVehicle, listVehicles, updateVehicle } from "../../services/vehicleRepository";
 import * as XLSX from "xlsx";
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
@@ -144,10 +146,14 @@ export default function VehicleStatuses() {
 
     async function loadData() {
         setLoading(true);
-        const { data, error } = await supabase.from("arac_durumlari").select("*").order("plaka", { ascending: true });
-        if (error) { console.error("Araç durumları alınamadı:", error); setRows([]); }
-        else setRows(data || []);
-        setLoading(false);
+        try {
+            setRows(await listVehicles());
+        } catch (error) {
+            console.error("Araç durumları alınamadı:", error);
+            setRows([]);
+        } finally {
+            setLoading(false);
+        }
     }
 
     function updateLocalRow(updatedRow) {
@@ -181,27 +187,14 @@ export default function VehicleStatuses() {
     async function saveVehicle(e) {
         e.preventDefault();
 
-        const {
-            documentRisk,
-            documentCount,
-            missingDocumentCount,
-            rawDurum,
-            ...cleanForm
-        } = form;
+        const payload = buildVehiclePayload(form);
+        let data;
 
-        const payload = {
-            ...cleanForm,
-            durum: cleanForm.durum || "Müsait",
-            evrak_fotograflari: normalizeDocuments(cleanForm.evrak_fotograflari),
-        };
-
-        const query = editingRow
-            ? supabase.from("arac_durumlari").update(payload).eq("id", editingRow.id).select().single()
-            : supabase.from("arac_durumlari").insert(payload).select().single();
-
-        const { data, error } = await query;
-
-        if (error) {
+        try {
+            data = editingRow
+                ? await updateVehicle(editingRow.id, payload)
+                : await createVehicle(payload);
+        } catch (error) {
             console.error("Araç kaydedilemedi:", error);
             alert("Araç kaydedilemedi.");
             return;
@@ -220,11 +213,7 @@ export default function VehicleStatuses() {
             },
         });
 
-        setRows((p) =>
-            editingRow
-                ? p.map((x) => x.id === editingRow.id ? data : x)
-                : [...p, data].sort((a, b) => String(a.plaka).localeCompare(String(b.plaka), "tr"))
-        );
+        setRows((previousRows) => upsertVehicleRow(previousRows, data));
 
         setSelectedRow(data);
         closeForm();
