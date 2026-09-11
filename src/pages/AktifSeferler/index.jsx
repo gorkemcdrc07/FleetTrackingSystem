@@ -1,4 +1,7 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { hasWarning, toggleWarningText } from "../../domain/tripWarning";
+﻿import { createPortal } from "react-dom";
+import { Search, RefreshCw, CalendarDays, SlidersHorizontal, Download, ArrowRight, ChevronLeft, ChevronRight, MoreHorizontal, X, Truck, Route, Clock3, Weight, TriangleAlert, Trash2, Columns3, FileText, MapPin, ListFilter, CheckCircle2, Copy, CheckSquare2, Square, Sparkles, Layers3, Keyboard, RotateCcw, ClipboardList, CalendarRange } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { moveTripToCompleted } from "../../services/tripRepository";
 import { createRouteDetails as createRotaDetaylari } from "../../domain/activeTrips";
@@ -9,112 +12,34 @@ import SutunDuzeni from "./Gorunum/SutunDuzeni";
 import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
+import "./AktifSeferlerModern.css";
+import "./DetailsModern.css";
 
-function IconChevron({ open }) {
-    return (
-        <svg viewBox="0 0 16 16" fill="none" width="13" height="13" style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.18s ease", flexShrink: 0 }}>
-            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
+function IconChevron({open}) { return <ChevronRight size={15} style={{transform:open?"rotate(90deg)":"none"}}/>; }
+const IconPin = () => <MapPin size={14}/>;
+const IconDetail = () => <FileText size={15}/>;
+const IconETA = () => <Clock3 size={15}/>;
+const IconIkaz = () => <TriangleAlert size={15}/>;
+const IconTonaj = () => <Weight size={15}/>;
+const IconTrash = () => <Trash2 size={15}/>;
+const IconColumns = () => <Columns3 size={17}/>;
 
-function IconPin() {
-    return (
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-            <path d="M12 21s-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-8 12-8 12z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="2" />
-        </svg>
-    );
-}
-
-function IconDetail() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" />
-            <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconETA() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconIkaz() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M12 9v4M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconTonaj() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path
-                d="M3 17h18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-            <path
-                d="M7 17V9l5-4 5 4v8"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
-function IconTrash() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path
-                d="M3 6h18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-
-            <path
-                d="M8 6V4h8v2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-
-            <path
-                d="M19 6l-1 14H6L5 6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinejoin="round"
-            />
-
-            <path
-                d="M10 11v5M14 11v5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
-function IconColumns() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
-            <path d="M9 4v16M15 4v16" stroke="currentColor" strokeWidth="2" />
-        </svg>
-    );
+function MoreActions({children, plate}) {
+    const [position,setPosition]=useState(null);
+    const trigger=useRef(null);
+    const panel=useRef(null);
+    useEffect(()=>{
+        if(!position) return;
+        const dismiss=e=>{ if(!panel.current?.contains(e.target) && !trigger.current?.contains(e.target)) setPosition(null); };
+        const close=e=>{if(e.key==="Escape"){setPosition(null);trigger.current?.focus();}};
+        const move=()=>setPosition(null);
+        document.addEventListener("pointerdown",dismiss);
+        document.addEventListener("keydown",close);
+        window.addEventListener("resize",move);
+        panel.current?.querySelector("button")?.focus();
+        return ()=>{document.removeEventListener("pointerdown",dismiss);document.removeEventListener("keydown",close);window.removeEventListener("resize",move);};
+    },[position]);
+    return <><button ref={trigger} className="op-btn trip-more" aria-label={`${plate || "Sefer"} diğer işlemler`} aria-expanded={!!position} title="Diğer işlemler" onClick={e=>{e.stopPropagation();const r=trigger.current.getBoundingClientRect();setPosition(position?null:{left:Math.min(r.left,window.innerWidth-200),top:Math.min(r.bottom+8,window.innerHeight-180)});}}><MoreHorizontal size={17}/></button>{position && createPortal(<div ref={panel} className="trip-actions-popover" role="group" aria-label="Diğer sefer işlemleri" style={position}>{React.Children.map(children,child=>React.isValidElement(child)?React.cloneElement(child,{onClick:async e=>{try{await child.props.onClick?.(e);}finally{setPosition(null);trigger.current?.focus();}}}):child)}</div>,document.body)}</>;
 }
 
 function RouteStep({ index, total, step }) {
@@ -181,13 +106,10 @@ function DetailPanel({ row }) {
     );
 }
 
-const IKAZ_ACIKLAMA =
-    "Operasyon verimsizlik konusunda ikaz edildi ama yine de araç bulamadıkları için filo ataması yapıldı.";
-
 const TONAJ_ACIKLAMA = "Tonajlı";
 
 const DEFAULT_COLUMNS = [
-    { key: "_ops", label: "İşlemler", width: 160, sticky: true, locked: true },
+    { key: "_ops", label: "İşlemler", width: 205, sticky: true, locked: true },
     { key: "_expand", label: "", width: 40, sticky: true, locked: true },
     { key: "sefer_no", label: "Sefer No", width: 120, sticky: true, type: "sefer", locked: true },
     { key: "sefer_tarihi", label: "Sefer Tarihi", width: 108, type: "date" },
@@ -215,6 +137,26 @@ const DEFAULT_COLUMNS = [
 ];
 
 
+
+
+const ACTIVE_TRIPS_PREFS_KEY = "fts_active_trips_preferences_v1";
+
+function loadActiveTripsPreferences() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(ACTIVE_TRIPS_PREFS_KEY) || "null");
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveActiveTripsPreferences(next) {
+    try {
+        localStorage.setItem(ACTIVE_TRIPS_PREFS_KEY, JSON.stringify(next));
+    } catch {
+        // Tarayıcı depolaması kapalıysa ekran çalışmaya devam etsin.
+    }
+}
 
 const TABLE_LAYOUT_KEY = "aktif_seferler";
 const USER_LAYOUT_COLUMN = "sutun_gorunumu";
@@ -406,6 +348,13 @@ function parseGunValue(value) {
     return Number.isFinite(num) ? num : null;
 }
 
+function split(val) {
+    return String(val || "")
+        .split(";")
+        .map((x) => x.trim())
+        .filter(Boolean);
+}
+
 function getLastValue(value) {
     return String(value || "")
         .split(";")
@@ -559,7 +508,7 @@ function OpsBtns({
     onSeferSil,
     etaDelayed
 }) {
-    const ikazli = row.aciklama === IKAZ_ACIKLAMA;
+    const ikazli = hasWarning(row);
     const tonajli = row.tonaj_durumu === TONAJ_ACIKLAMA;
 
     return (
@@ -614,6 +563,7 @@ function OpsBtns({
                 <IconETA /> ETA
             </button>
 
+            <MoreActions plate={row.plaka}>
             <button
                 className={`op-btn op-btn-tonaj ${tonajli ? "is-active" : ""}`}
                 title="Tonaj"
@@ -663,7 +613,7 @@ function OpsBtns({
                     onIkaz(row);
                 }}
             >
-                <IconIkaz /> İkaz
+                <IconIkaz /> {ikazli ? "İkazı kaldır" : "İkaz ver"}
             </button>
 
             <button
@@ -692,6 +642,7 @@ function OpsBtns({
                 Sil
             </button>
 
+            </MoreActions>
         </div>
     );
 }
@@ -723,7 +674,7 @@ function CellValue({
 
     if (col.key === "_expand") {
         return (
-            <button className={`expand-btn ${isOpen ? "open" : ""}`} onClick={onToggle} aria-label={isOpen ? "Kapat" : "Detay"} style={{ border: "none", cursor: "pointer" }}>
+            <button className={`expand-btn ${isOpen ? "open" : ""}`} onClick={onToggle} aria-expanded={isOpen} aria-label={isOpen ? "Rotayı kapat" : "Rotayı göster"} style={{ border: "none", cursor: "pointer" }}>
                 <IconChevron open={isOpen} />
             </button>
         );
@@ -731,7 +682,7 @@ function CellValue({
 
     const val = row[col.key];
 
-    if (col.type === "sefer") return <span className="sefer-badge">{val || "—"}</span>;
+    if (col.type === "sefer") return <div className="trip-identity"><span className="sefer-badge">{val || "—"}</span>{hasWarning(row) && <span className="trip-warning-badge"><TriangleAlert size={12}/> İkazlı</span>}</div>;
     if (col.type === "plaka") return val ? <span className="plate-cell">{val}</span> : <span className="muted">—</span>;
     if (col.type === "statu") return val ? <span className="statu-pill">{val}</span> : <span className="muted">—</span>;
 
@@ -924,6 +875,14 @@ function ColumnFiltersPanel({ columns, rows, filters, onChange, onClearAll }) {
 
 function AktifSeferler() {
     const [expandedId, setExpandedId] = useState(null);
+    const [search, setSearch] = useState("");
+    const initialPrefs = useMemo(() => loadActiveTripsPreferences(), []);
+    const [quickFilter,setQuickFilter]=useState("all");
+    const [projectFilter,setProjectFilter]=useState("all");
+    const [density,setDensity]=useState(initialPrefs.density === "compact" ? "compact" : "comfortable");
+    const [selectedRowKeys,setSelectedRowKeys]=useState([]);
+    const [page,setPage]=useState(1);
+    const [pageSize,setPageSize]=useState([25,50,100].includes(Number(initialPrefs.pageSize)) ? Number(initialPrefs.pageSize) : 25);
     const [detailRow, setDetailRow] = useState(null);
     const [etaRow, setEtaRow] = useState(null);
     const [delayedEtaMap, setDelayedEtaMap] = useState({});
@@ -946,7 +905,7 @@ function AktifSeferler() {
         rows,
         setRows,
         loading,
-        syncing,
+        syncing, syncState, loadError, refresh,
         synchronize: tmsdenCekVeKaydet,
     } = useActiveTrips({ startDate, endDate });
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
@@ -963,7 +922,13 @@ function AktifSeferler() {
     const [aktifKullaniciDb, setAktifKullaniciDb] = useState(null);
     const [yetkiLoading, setYetkiLoading] = useState(true);
     const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const warningPending = useRef(new Set());
+    const searchInputRef = useRef(null);
     const [deletingTrip, setDeletingTrip] = useState(false);
+
+    useEffect(() => {
+        saveActiveTripsPreferences({ density, pageSize });
+    }, [density, pageSize]);
 
     useEffect(() => {
         async function kullaniciYetkisiniGetir() {
@@ -1096,20 +1061,114 @@ function AktifSeferler() {
 
     const baseRows = useMemo(() => rows, [rows]);
 
-    const visibleRows = useMemo(() => {
-        const activeFilters = Object.entries(columnFilters).filter(([, filter]) => !isColumnFilterEmpty(filter));
-        if (!activeFilters.length) return baseRows;
+    const projectStats = useMemo(() => {
+        const projects = new Map();
 
-        const columnMap = new Map(DEFAULT_COLUMNS.map((col) => [col.key, col]));
+        baseRows.forEach((row) => {
+            const label = String(row.proje_adi || "").replace(/\s+/g, " ").trim();
+            if (!label) return;
 
-        return baseRows.filter((row) =>
-            activeFilters.every(([key, filter]) => {
-                const col = columnMap.get(key);
-                if (!col) return true;
-                return rowMatchesColumnFilter(row, col, filter);
-            })
+            const key = normalizeCompare(label);
+            const current = projects.get(key);
+            if (current) {
+                current.count += 1;
+            } else {
+                projects.set(key, { key, label, count: 1 });
+            }
+        });
+
+        return Array.from(projects.values()).sort((a, b) =>
+            b.count - a.count || a.label.localeCompare(b.label, "tr", { sensitivity: "base" })
         );
-    }, [baseRows, columnFilters]);
+    }, [baseRows]);
+
+    const visibleRows = useMemo(() => {
+        const activeFilters = Object.entries(columnFilters).filter(([,filter])=>!isColumnFilterEmpty(filter));
+        const columnMap = new Map(DEFAULT_COLUMNS.map(col=>[col.key,col]));
+        return baseRows.filter(row=>{
+            const text=normalizeCompare([row.sefer_no,row.plaka,row.treyler,row.surucu_ad_soyad,row.musteri_adi,row.proje_adi,row.yukleme_ili,row.teslim_ili].join(" "));
+            const matchesSearch=!search || text.includes(normalizeCompare(search));
+            const rowKey=row.id || row.sefer_no;
+            const matchesQuick=quickFilter==="all" || (quickFilter==="tonaj" && row.tonaj_durumu===TONAJ_ACIKLAMA) || (quickFilter==="ikaz" && hasWarning(row)) || (quickFilter==="eta" && Boolean(delayedEtaMap[rowKey]));
+            const matchesProject=projectFilter==="all" || normalizeCompare(row.proje_adi)===projectFilter;
+            return matchesSearch && matchesQuick && matchesProject && activeFilters.every(([key,filter])=>!columnMap.has(key)||rowMatchesColumnFilter(row,columnMap.get(key),filter));
+        });
+    },[baseRows,columnFilters,search,quickFilter,projectFilter,delayedEtaMap]);
+    const pageCount=Math.max(1,Math.ceil(visibleRows.length/pageSize));
+    const currentPage=Math.min(page,pageCount);
+    const pageRows=visibleRows.slice((currentPage-1)*pageSize,currentPage*pageSize);
+    useEffect(()=>setPage(1),[search,quickFilter,projectFilter,columnFilters,startDate,endDate,pageSize]);
+    useEffect(()=>{
+        if(projectFilter!=="all" && !projectStats.some(project=>project.key===projectFilter)){
+            setProjectFilter("all");
+        }
+    },[projectFilter,projectStats]);
+    const quickCounts={all:baseRows.length,tonaj:baseRows.filter(r=>r.tonaj_durumu===TONAJ_ACIKLAMA).length,ikaz:baseRows.filter(r=>hasWarning(r)).length,eta:baseRows.filter(r=>Boolean(delayedEtaMap[r.id || r.sefer_no])).length};
+    const selectedRows=useMemo(()=>baseRows.filter(r=>selectedRowKeys.includes(r.id || r.sefer_no)),[baseRows,selectedRowKeys]);
+    const pageRowKeys=pageRows.map(r=>r.id || r.sefer_no);
+    const visibleRowKeys=visibleRows.map(r=>r.id || r.sefer_no);
+    const allPageSelected=pageRowKeys.length>0 && pageRowKeys.every(key=>selectedRowKeys.includes(key));
+    const allVisibleSelected=visibleRowKeys.length>0 && visibleRowKeys.every(key=>selectedRowKeys.includes(key));
+    const togglePageSelection=()=>setSelectedRowKeys(prev=>allPageSelected?prev.filter(key=>!pageRowKeys.includes(key)):Array.from(new Set([...prev,...pageRowKeys])));
+    const toggleVisibleSelection=()=>setSelectedRowKeys(prev=>allVisibleSelected?prev.filter(key=>!visibleRowKeys.includes(key)):Array.from(new Set([...prev,...visibleRowKeys])));
+    const clearSelection=()=>setSelectedRowKeys([]);
+    const toggleRowSelection=(key)=>setSelectedRowKeys(prev=>prev.includes(key)?prev.filter(x=>x!==key):[...prev,key]);
+    const exportRowsToExcel=(items,filePrefix="aktif_seferler")=>{
+        if(!items.length){setToast({type:"error",message:"Dışa aktarılacak sefer bulunamadı."});setTimeout(()=>setToast(null),2200);return;}
+        const data=items.map(r=>({"Sefer No":r.sefer_no||"","Sefer Tarihi":formatDate(r.sefer_tarihi)||"","Plaka":r.plaka||"","Treyler":r.treyler||"","Sürücü":r.surucu_ad_soyad||"","Müşteri":r.musteri_adi||"","Proje":r.proje_adi||"","Yükleme":r.yukleme_noktasi||"","Teslim":r.teslim_noktasi||"","Araç Statü":r.arac_statu||"","İkaz":hasWarning(r)?"Var":"Yok","Tonaj":r.tonaj_durumu||""}));
+        const ws=XLSX.utils.json_to_sheet(data), wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Aktif Seferler");XLSX.writeFile(wb,`${filePrefix}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        setToast({type:"success",message:`${items.length} sefer Excel dosyasına aktarıldı.`});setTimeout(()=>setToast(null),2200);
+    };
+    const copySelectedPlates=async()=>{const plates=[...new Set(selectedRows.map(r=>r.plaka).filter(Boolean))];if(!plates.length){setToast({type:"error",message:"Kopyalanacak plaka seçilmedi."});setTimeout(()=>setToast(null),2200);return;} await navigator.clipboard.writeText(plates.join("\n"));setToast({type:"success",message:`${plates.length} plaka panoya kopyalandı.`});setTimeout(()=>setToast(null),2200);};
+    const copySelectedSummary=async()=>{
+        if(!selectedRows.length){setToast({type:"error",message:"Özet için önce sefer seçin."});setTimeout(()=>setToast(null),2200);return;}
+        const lines=selectedRows.map(r=>[r.sefer_no,r.plaka,r.surucu_ad_soyad,r.proje_adi].filter(Boolean).join(" | "));
+        await navigator.clipboard.writeText(lines.join("\n"));
+        setToast({type:"success",message:`${selectedRows.length} sefer özeti panoya kopyalandı.`});setTimeout(()=>setToast(null),2200);
+    };
+    const applyDatePreset=(preset)=>{
+        const end=new Date();
+        const start=new Date(end);
+        if(preset==="today") start.setDate(end.getDate());
+        if(preset==="yesterday") start.setDate(end.getDate()-1);
+        if(preset==="week") start.setDate(end.getDate()-6);
+        setStartDate(formatInputDate(start));
+        setEndDate(formatInputDate(end));
+    };
+    function applyOperationView(){
+        const keys=["_ops","_expand","sefer_no","plaka","arac_statu","surucu_ad_soyad","musteri_adi","yukleme_ili","teslim_ili","sefer_tarihi"];
+        setVisibleColumnKeys(keys);setColumnOrder([...keys,...DEFAULT_COLUMNS.map(c=>c.key).filter(k=>!keys.includes(k))]);
+    }
+    useEffect(()=>{
+        const onKeyDown=(event)=>{
+            const target=event.target;
+            const typing=target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable;
+            if(event.key==="/" && !typing){event.preventDefault();searchInputRef.current?.focus();return;}
+            if(event.altKey && event.key.toLowerCase()==="f" && !typing){event.preventDefault();setShowColumnFilters(true);return;}
+            if(event.altKey && event.key.toLowerCase()==="r" && !typing && canUpdate && !loading && !syncing){event.preventDefault();tmsdenCekVeKaydet();return;}
+            if(event.key==="Escape" && !showColumnFilters && !showSutunDuzeni && search){setSearch("");}
+        };
+        window.addEventListener("keydown",onKeyDown);
+        return()=>window.removeEventListener("keydown",onKeyDown);
+    },[canUpdate,loading,syncing,tmsdenCekVeKaydet,showColumnFilters,showSutunDuzeni,search]);
+
+    useEffect(()=>{
+        if(!showColumnFilters && !showSutunDuzeni) return;
+        const previousFocus=document.activeElement;
+        const panel=document.querySelector(showColumnFilters?".filter-drawer":".sutun-panel");
+        const focusable=()=>Array.from(panel?.querySelectorAll('button:not(:disabled), input:not(:disabled), select, [tabindex="0"]')||[]).filter(el=>el.getClientRects().length);
+        focusable()[0]?.focus();
+        const close=e=>{
+            if(e.key==="Escape"){setShowColumnFilters(false);setShowSutunDuzeni(false);}
+            if(e.key==="Tab"){
+                const list=focusable(),first=list[0],last=list.at(-1);
+                if(e.shiftKey && document.activeElement===first){e.preventDefault();last?.focus();}
+                else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first?.focus();}
+            }
+        };
+        window.addEventListener("keydown",close);
+        return()=>{window.removeEventListener("keydown",close);previousFocus?.focus();};
+    },[showColumnFilters,showSutunDuzeni]);
 
     const clearColumnFilters = useCallback(() => {
         setColumnFilters({});
@@ -1261,41 +1320,23 @@ function AktifSeferler() {
     }, []);
 
     const handleIkaz = useCallback(async (row) => {
-        const rowKey = row.id || row.sefer_no;
-
-        setRows((prev) =>
-            prev.map((item) =>
-                (item.id || item.sefer_no) === rowKey
-                    ? { ...item, aciklama: IKAZ_ACIKLAMA }
-                    : item
-            )
-        );
-
+        if (warningPending.current.has(row.sefer_no)) return;
+        warningPending.current.add(row.sefer_no);
+        const next = toggleWarningText(row.aciklama);
         try {
-            const { error } = await supabase
-                .from("aktif_seferler")
-                .update({ aciklama: IKAZ_ACIKLAMA })
-                .eq("sefer_no", row.sefer_no);
-
+            const { data, error } = await supabase.from("aktif_seferler")
+                .update({ aciklama: next }).eq("sefer_no", row.sefer_no).select("sefer_no, aciklama");
             if (error) throw error;
-
-            setToast({
-                type: "success",
-                message: "İkaz verildi ve açıklama kaydedildi.",
-            });
-
-            setTimeout(() => setToast(null), 2600);
-        } catch (err) {
-            console.error("İkaz açıklaması kaydedilemedi:", err);
-
-            setToast({
-                type: "error",
-                message: "İkaz kaydedilirken hata oluştu.",
-            });
-
-            setTimeout(() => setToast(null), 2600);
+            if (!data?.length) throw new Error("Kayıt güncellenemedi; yetki veya sefer durumunu kontrol edin.");
+            setRows(prev=>prev.map(item=>item.sefer_no===row.sefer_no?{...item,aciklama:data[0].aciklama}:item));
+            setToast({type:"success",message:hasWarning(row)?"İkaz kaldırıldı.":"Sefer ikazlı olarak işaretlendi."});
+        } catch (error) {
+            setToast({type:"error",message:`İkaz değiştirilemedi. ${error.message || "Lütfen yeniden deneyin."}`});
+        } finally {
+            warningPending.current.delete(row.sefer_no);
+            setTimeout(()=>setToast(null),4000);
         }
-    }, []);
+    }, [setRows]);
     const handleTonaj = useCallback(async (row) => {
         const aktifMi = row.tonaj_durumu === TONAJ_ACIKLAMA;
 
@@ -1581,128 +1622,60 @@ function AktifSeferler() {
     }
 
     return (
-        <div className="aktif-page">
-            <div className="aktif-header">
-                <div>
-                    <span className="aktif-eyebrow">Lojistik Yönetimi</span>
-                    <h1>Aktif Seferler</h1>
-                </div>
-
+        <div className={`aktif-page trips-modern density-${density}`}>
+            <header className="aktif-header">
+                <div><span className="aktif-eyebrow">OPERASYON / SEFER YÖNETİMİ</span><h1>Aktif Seferler</h1><p>Atamadan teslimata, tüm operasyonunuzu yönetin.</p></div>
                 <div className="aktif-header-actions">
-                    <div className="aktif-count-badge">{visibleRows.length}/{baseRows.length} sefer</div>
-
-                    {canExport && (
-                        <button
-                            className="eta-export-btn"
-                            type="button"
-                            onClick={exportEtaUyumsuzExcel}
-                            disabled={!etaUyumsuzRows.length}
-                            title="ETA uyumsuz satırları Excel'e aktar"
-                        >
-                            ETA Uyumsuz Excel
-                            <span>{etaUyumsuzRows.length}</span>
-                        </button>
-                    )}
-                    <button
-                        className="columns-icon-btn"
-                        type="button"
-                        onClick={() => setShowSutunDuzeni(true)}
-                        title="Sütun Düzeni"
-                        aria-label="Sütun Düzeni"
-                    >
-                        <IconColumns />
-                    </button>
+                    {canExport && <button className="eta-export-btn" type="button" onClick={exportEtaUyumsuzExcel} disabled={!etaUyumsuzRows.length} title="ETA uyumsuz satırları Excel’e aktar"><Download size={16}/> ETA raporu <span>{etaUyumsuzRows.length}</span></button>}
+                    <button className="columns-icon-btn" type="button" onClick={()=>setShowSutunDuzeni(true)} aria-label="Sütun Düzeni"><IconColumns/> Görünüm</button>
+                </div>
+            </header>
+            <section className="trip-overview" aria-label="Sefer özeti">
+                <div><span className="trip-metric-icon"><Route size={21}/></span><span><small>Aktif sefer</small><strong>{baseRows.length}</strong></span><em>Seçili tarih aralığı</em></div>
+                <div><span className="trip-metric-icon teal"><Truck size={21}/></span><span><small>Atanan araç</small><strong>{new Set(baseRows.map(r=>r.plaka).filter(Boolean)).size}</strong></span></div>
+                <div><span className="trip-metric-icon amber"><Weight size={21}/></span><span><small>Tonajlı sefer</small><strong>{quickCounts.tonaj}</strong></span></div>
+                <div><span className="trip-metric-icon rose"><TriangleAlert size={21}/></span><span><small>İkazlı sefer</small><strong>{quickCounts.ikaz}</strong></span></div>
+            </section>
+            <section className="trip-sync-bar" aria-label="Tarih ve veri yenileme">
+                <div className="trip-sync-label"><CalendarDays size={18}/><span><strong>Sefer dönemi</strong><small>Listelenecek tarih aralığı</small></span></div>
+                <div className="filter-date-group"><label className="date-field"><span>Başlangıç</span><input type="date" disabled={syncing} aria-label="Başlangıç tarihi" value={startDate} onChange={e=>setStartDate(e.target.value)}/></label><ArrowRight size={16}/><label className="date-field"><span>Bitiş</span><input type="date" disabled={syncing} aria-label="Bitiş tarihi" value={endDate} onChange={e=>setEndDate(e.target.value)}/></label></div>
+                <div className="trip-date-presets" aria-label="Hızlı tarih aralıkları"><button type="button" onClick={()=>applyDatePreset("today")}>Bugün</button><button type="button" onClick={()=>applyDatePreset("yesterday")}>Dün + bugün</button><button type="button" onClick={()=>applyDatePreset("week")}><CalendarRange size={14}/> Son 7 gün</button></div>
+                <div className="trip-sync-status" role="status">{syncing ? "TMS verileri alınıyor…" : loading ? "Liste yükleniyor…" : "Kayıtlı seferler gösteriliyor"}</div>
+                {canUpdate && <button className="tms-refresh-btn" onClick={tmsdenCekVeKaydet} disabled={loading||syncing}><RefreshCw size={16} className={syncing?"trip-spin":""}/>{syncing?"Yenileniyor…":"TMS’den Yenile"}</button>}
+            </section>
+            {loadError && <div className="sync-result error" role="alert"><TriangleAlert size={20}/><span>{loadError}</span><button onClick={()=>refresh().catch(()=>{})}>Listeyi yeniden yükle</button></div>}
+            {syncState && <section className={`sync-result ${syncState.stage}`} aria-live="polite" aria-busy={syncing}>
+                <div className="sync-result-heading">{syncing?<RefreshCw size={22} className="trip-spin"/>:syncState.stage==="success"?<CheckCircle2 size={22}/>:<TriangleAlert size={22}/>}<div><strong>{syncState.message}</strong><small>{syncing ? "İşlem sürüyor; bu ekranı açık tutabilirsiniz." : syncState.finishedAt ? `Son tamamlanma ${syncState.finishedAt}` : "Kaydedilen kayıtlar korunur. Yeniden deneyebilirsiniz."}</small></div></div>
+                {syncing && <div className="sync-progress-track"><i/></div>}
+                <div className="sync-steps">{[{key:"fetching",label:"TMS bağlantısı"},{key:"checking",label:"Kayıt kontrolü"},{key:"saving",label:"Kaydetme"},{key:"refreshing",label:"Liste yenileme"}].map((step,index)=><span key={step.key} className={step.key===syncState.stage?"current":""}>{index+1}. {step.label}</span>)}</div>
+                <div className="sync-counts"><span>Alınan <b>{syncState.received??"—"}</b></span><span>Yeni sefer <b>{syncState.newCount??"—"}</b></span><span>Güncellenen <b>{syncState.updatedCount??"—"}</b></span><span>Değişmeyen <b>{syncState.unchangedCount??"—"}</b></span><span>Kapsam dışı <b>{syncState.excludedCount??"—"}</b></span>{syncState.skippedCount>0&&<span>Atlanan <b>{syncState.skippedCount}</b></span>}</div>
+            </section>}
+            <section className="trip-workspace">
+            <div className="trip-viewbar"><div className="trip-quick-filters" aria-label="Hızlı filtreler">{[{key:"all",label:"Tüm seferler"},{key:"tonaj",label:"Tonajlı"},{key:"ikaz",label:"İkazlı"},{key:"eta",label:"ETA riskli"}].map(item=><button key={item.key} aria-pressed={quickFilter===item.key} className={quickFilter===item.key?"selected":""} onClick={()=>setQuickFilter(item.key)}>{item.label}<span>{quickCounts[item.key]}</span></button>)}</div><button className="trip-preset" onClick={applyOperationView}><Sparkles size={15}/> Operasyon görünümü</button></div>
+            <div className="project-filter-section">
+                <div className="project-filter-heading"><span className="project-filter-icon"><Layers3 size={16}/></span><div><strong>Proje dağılımı</strong><small>Projeye göre seferleri tek tıkla filtreleyin</small></div></div>
+                <div className="project-filter-list" aria-label="Proje filtreleri">
+                    <button type="button" className={`project-filter-chip ${projectFilter==="all"?"selected":""}`} aria-pressed={projectFilter==="all"} onClick={()=>setProjectFilter("all")}><span>Tüm projeler</span><b>{baseRows.length}</b></button>
+                    {projectStats.map(project=><button type="button" key={project.key} className={`project-filter-chip ${projectFilter===project.key?"selected":""}`} aria-pressed={projectFilter===project.key} title={`${project.label}: ${project.count} aktif sefer`} onClick={()=>setProjectFilter(prev=>prev===project.key?"all":project.key)}><span>{project.label}</span><b>{project.count}</b></button>)}
                 </div>
             </div>
-
-            <div className="filter-card">
-                <div className="filter-info">
-                    <div className="filter-icon" aria-hidden="true">
-                        ↻
-                    </div>
-
-                    <div className="filter-title-block">
-                        <span className="filter-kicker">Tarih Aralığı</span>
-                        <strong>Seferleri TMS’den güncelle</strong>
-                    </div>
-                </div>
-
-                <div className="filter-controls">
-                    <div className="filter-date-group">
-                        <div className="date-field">
-                            <label>Başlangıç</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="date-separator">→</div>
-
-                        <div className="date-field">
-                            <label>Bitiş</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="filter-divider" />
-
-                    {canUpdate && (
-                        <button
-                            className="tms-refresh-btn"
-                            onClick={tmsdenCekVeKaydet}
-                            disabled={loading || syncing}
-                        >
-                            {syncing ? (
-                                <>
-                                    <span className="btn-spinner" />
-                                    Yenileniyor
-                                </>
-                            ) : (
-                                <>
-                                    <span className="refresh-icon">↻</span>
-                                    TMS’den Yenile
-                                </>
-                            )}
-                        </button>
-                    )}
-                </div>
-            </div>
-
-
-            <div style={{ height: 20 }} />
-
             <div className="table-toolbar">
-                <div className="table-toolbar-left">
-                    <span className="toolbar-count">
-                        {visibleRows.length}/{baseRows.length} sefer
-                    </span>
-
-                    <span className="toolbar-hint">
-                        Aktif sefer listesi
-                    </span>
-                </div>
-
-                <div className="table-toolbar-actions">
-                    <button
-                        type="button"
-                        className={`toolbar-filter-btn ${Object.keys(columnFilters).length ? "has-filter" : ""}`}
-                        onClick={() => setShowColumnFilters(true)}
-                    >
-                        Sütun Filtreleri
-
-                        {Object.keys(columnFilters).length > 0 && (
-                            <span>{Object.keys(columnFilters).length}</span>
-                        )}
-                    </button>
+                <label className="trip-search"><Search size={18}/><input ref={searchInputRef} aria-label="Seferlerde ara" placeholder="Sefer, plaka, sürücü, müşteri veya proje ara…" value={search} onChange={e=>setSearch(e.target.value)}/><kbd>/</kbd>{search && <button aria-label="Aramayı temizle" onClick={()=>setSearch("")}><X size={14}/></button>}</label>
+                <div className="table-toolbar-actions"><span className="trip-shortcuts" title="Klavye kısayolları"><Keyboard size={15}/><span><kbd>/</kbd> Ara <kbd>Alt+F</kbd> Filtre <kbd>Alt+R</kbd> Yenile</span></span><button className="trip-density" onClick={()=>setDensity(density==="comfortable"?"compact":"comfortable")} aria-pressed={density==="compact"} title="Satır yoğunluğu"><ListFilter size={16}/>{density==="compact"?"Sıkı":"Rahat"}</button><button type="button" className="toolbar-filter-btn" onClick={()=>setShowColumnFilters(true)}><SlidersHorizontal size={16}/> Filtreler{Object.keys(columnFilters).length>0 && <span>{Object.keys(columnFilters).length}</span>}</button></div>
+            </div>
+            <div className="trip-commandbar">
+                <div className="trip-selection-info"><CheckSquare2 size={16}/><strong>{selectedRows.length}</strong><span>sefer seçili</span></div>
+                <div className="trip-command-actions">
+                    <button type="button" onClick={togglePageSelection}>{allPageSelected?<CheckSquare2 size={15}/>:<Square size={15}/>} {allPageSelected?"Sayfa seçimini kaldır":"Bu sayfayı seç"}</button>
+                    <button type="button" disabled={!visibleRows.length} onClick={toggleVisibleSelection}>{allVisibleSelected?<CheckSquare2 size={15}/>:<Square size={15}/>} {allVisibleSelected?"Tüm eşleşenleri bırak":`Tüm ${visibleRows.length} eşleşeni seç`}</button>
+                    <button type="button" disabled={!selectedRows.length} onClick={copySelectedPlates}><Copy size={15}/> Plakaları kopyala</button>
+                    <button type="button" disabled={!selectedRows.length} onClick={copySelectedSummary}><ClipboardList size={15}/> Özeti kopyala</button>
+                    <button type="button" disabled={!selectedRows.length} onClick={clearSelection}><RotateCcw size={15}/> Seçimi temizle</button>
+                    {canExport && <button type="button" disabled={!selectedRows.length} onClick={()=>exportRowsToExcel(selectedRows,"secili_aktif_seferler")}><Download size={15}/> Seçileni Excel</button>}
+                    {canExport && <button type="button" className="command-primary" disabled={!visibleRows.length} onClick={()=>exportRowsToExcel(visibleRows,"filtreli_aktif_seferler")}><Download size={15}/> Görünümü dışa aktar</button>}
                 </div>
             </div>
-
+            {(search || quickFilter!=="all" || projectFilter!=="all" || Object.keys(columnFilters).length>0) && <div className="trip-active-filters"><div className="trip-active-filter-summary"><strong>{visibleRows.length} eşleşen sefer</strong>{search&&<button type="button" onClick={()=>setSearch("")}><Search size={12}/> “{search}” <X size={11}/></button>}{quickFilter!=="all"&&<button type="button" onClick={()=>setQuickFilter("all")}><ListFilter size={12}/> {({tonaj:"Tonajlı",ikaz:"İkazlı",eta:"ETA riskli"})[quickFilter]} <X size={11}/></button>}{projectFilter!=="all"&&<button type="button" onClick={()=>setProjectFilter("all")}><Layers3 size={12}/> {projectStats.find(p=>p.key===projectFilter)?.label||"Proje"} <X size={11}/></button>}{Object.keys(columnFilters).length>0&&<button type="button" onClick={clearColumnFilters}><SlidersHorizontal size={12}/> {Object.keys(columnFilters).length} sütun filtresi <X size={11}/></button>}</div><button className="trip-clear-all" onClick={()=>{setSearch("");setQuickFilter("all");setProjectFilter("all");clearColumnFilters();}}><RotateCcw size={13}/> Tüm filtreleri sıfırla</button></div>}
             {showColumnFilters && (
                 <div
                     className="filter-drawer-overlay"
@@ -1720,7 +1693,7 @@ function AktifSeferler() {
 
                             <button
                                 type="button"
-                                onClick={() => setShowColumnFilters(false)}
+                                onClick={() => setShowColumnFilters(false)} aria-label="Filtreleri kapat"
                             >
                                 ×
                             </button>
@@ -1737,9 +1710,10 @@ function AktifSeferler() {
                 </div>
             )}
 
+            <div className="trip-table-hint"><ArrowRight size={12}/> Tüm bilgiler için tabloyu yana kaydırın. Sütun genişliklerini başlıktan ayarlayabilirsiniz.</div>
             <div className="aktif-card">
-                <div className="table-wrapper">
-                    <table className="aktif-table">
+                <div className="table-wrapper" tabIndex={0} role="region" aria-label="Aktif sefer tablosu; diğer sütunlar için yana kaydırın" aria-busy={loading}>
+                    <table className="aktif-table"><caption className="trip-sr-only">Aktif seferler, {visibleRows.length} kayıt</caption>
                         <colgroup>
                             {columnsWithLayout.map((col) => (
                                 <col key={col.key} style={{ width: col.width, minWidth: col.width }} />
@@ -1749,7 +1723,7 @@ function AktifSeferler() {
                         <thead>
                             <tr>
                                 {columnsWithLayout.map((col) => (
-                                    <th
+                                    <th scope="col"
                                         key={col.key}
                                         className={col.sticky ? "sticky-col th-sticky resizable-th" : "resizable-th"}
                                         style={col.sticky ? { left: col.left } : undefined}
@@ -1766,25 +1740,27 @@ function AktifSeferler() {
                                 <tr>
                                     <td colSpan={columnsWithLayout.length} className="empty-cell">
                                         <div className="empty-state">
-                                            <div className="empty-icon" aria-hidden="true">▱</div>
-                                            <strong>Seçili tarih aralığında kayıtlı sefer bulunmuyor.</strong>
-                                            <span>Farklı bir tarih aralığı seçerek listeyi güncelleyebilirsiniz.</span>
+                                            <div className="empty-icon" aria-hidden="true"><Search size={28}/></div>
+                                            <strong>{loading?"Seferler yükleniyor…":"Gösterilecek sefer bulunamadı"}</strong>
+                                            <span>Aramayı, filtreleri veya tarih aralığını değiştirebilirsiniz.</span>
                                         </div>
                                     </td>
                                 </tr>
                             )}
 
-                            {visibleRows.map((row) => {
+                            {pageRows.map((row) => {
                                 const rowKey = row.id || row.sefer_no;
                                 const isOpen = expandedId === rowKey;
                                 const expandable = canExpand(row);
 
                                 return (
                                     <React.Fragment key={rowKey}>
-                                        <tr className={`main-row ${isOpen ? "is-open" : ""}`}>
+                                        <tr className={`main-row ${isOpen ? "is-open" : ""} ${hasWarning(row) ? "is-warned" : ""} ${selectedRowKeys.includes(rowKey)?"is-selected":""}`}>
                                             {columnsWithLayout.map((col) => (
                                                 <td key={col.key} className={col.sticky ? "sticky-col" : ""} style={col.sticky ? { left: col.left } : undefined}>
-                                                    {col.key === "_expand" ? (
+                                                    {col.key === "_ops" ? (
+                                                        <div className="ops-select-wrap"><button type="button" className={`row-select-btn ${selectedRowKeys.includes(rowKey)?"selected":""}`} aria-label={selectedRowKeys.includes(rowKey)?"Seçimi kaldır":"Seferi seç"} onClick={(e)=>{e.stopPropagation();toggleRowSelection(rowKey);}}>{selectedRowKeys.includes(rowKey)?<CheckSquare2 size={15}/>:<Square size={15}/>}</button><CellValue col={col} row={row} isOpen={isOpen} onDetail={(r)=>setDetailRow(r)} onIkaz={handleIkaz} onETA={(r)=>setEtaRow({...r,yukleme_ili:r.yukleme_ili||r.ham_veri?.yukleme_ili,yukleme_ilcesi:r.yukleme_ilcesi||r.yukleme_ilce||r.ham_veri?.yukleme_ilcesi||r.ham_veri?.yukleme_ilce,teslim_ili:r.teslim_ili||r.ham_veri?.teslim_ili})} onTonaj={handleTonaj} onSeferSil={handleSeferSil} etaDelayed={Boolean(delayedEtaMap[rowKey])}/></div>
+                                                    ) : col.key === "_expand" ? (
                                                         expandable ? (
                                                             <CellValue
                                                                 col={col}
@@ -1846,6 +1822,9 @@ function AktifSeferler() {
                 </div>
             </div>
 
+            <footer className="trip-pagination"><span>{visibleRows.length ? (currentPage-1)*pageSize+1 : 0}–{Math.min(currentPage*pageSize,visibleRows.length)} / {visibleRows.length} sefer</span><div><label>Satır <select aria-label="Sayfa başına satır" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>{[25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label><button aria-label="Önceki sayfa" disabled={currentPage===1} onClick={()=>setPage(currentPage-1)}><ChevronLeft size={17}/></button><b>{currentPage} / {pageCount}</b><button aria-label="Sonraki sayfa" disabled={currentPage===pageCount} onClick={()=>setPage(currentPage+1)}><ChevronRight size={17}/></button></div></footer>
+            </section>
+
             {showSutunDuzeni && (
                 <SutunDuzeni
                     columns={orderedColumns}
@@ -1859,7 +1838,7 @@ function AktifSeferler() {
 
             {completionCandidate && (
                 <div className="complete-modal-overlay">
-                    <div className="complete-modal">
+                    <div className="complete-modal" role="dialog" aria-modal="true" aria-label="Seferi tamamla">
                         <div className="complete-modal-icon">✓</div>
 
                         <h3>Tüm bilgiler girildi</h3>
@@ -1907,7 +1886,7 @@ function AktifSeferler() {
             )}
             {deleteCandidate && (
                 <div className="delete-modal-overlay">
-                    <div className="delete-modal">
+                    <div className="delete-modal" role="dialog" aria-modal="true" aria-label="Seferi sil">
 
                         <div className="delete-modal-icon">
                             🗑

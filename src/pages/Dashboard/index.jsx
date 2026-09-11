@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { Search, CalendarDays, Plus, Truck, PauseCircle, ParkingCircle, WifiOff, BellRing, MapPinned, ExternalLink, ShieldCheck, Activity, Clock3, Wrench, BarChart3, RefreshCw, Command, Navigation, Gauge, ChevronRight, Sparkles } from "lucide-react";
 import Harita from "../../components/Harita/Harita";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
-import DashboardCharts from "./components/DashboardCharts";
 
 import "../../components/Harita/Harita.css";
 import "./Dashboard.css";
@@ -193,6 +193,7 @@ function getCoordinates(vehicle) {
     const parsedLongitude = Number(longitude);
 
     const valid =
+        latitude !== null && longitude !== null && latitude !== "" && longitude !== "" &&
         Number.isFinite(parsedLatitude) &&
         Number.isFinite(parsedLongitude) &&
         parsedLatitude >= -90 &&
@@ -436,6 +437,7 @@ export default function Dashboard({ onNavigate }) {
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState("all");
+    const [search, setSearch] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -489,7 +491,7 @@ export default function Dashboard({ onNavigate }) {
 
             setSelectedVehicle((previous) => {
                 if (!previous) {
-                    return data[0] || null;
+                    return null;
                 }
 
                 const previousPlate = normalizePlate(
@@ -503,7 +505,6 @@ export default function Dashboard({ onNavigate }) {
                                 getVehiclePlate(vehicle)
                             ) === previousPlate
                     ) ||
-                    data[0] ||
                     null
                 );
             });
@@ -535,16 +536,6 @@ export default function Dashboard({ onNavigate }) {
         };
     }, []);
 
-    const vehicleAlarms = useMemo(
-        () => createVehicleAlarms(vehicles),
-        [vehicles]
-    );
-
-    const geofenceAlarms = useMemo(
-        () => createGeofenceAlarms(geofenceEvents),
-        [geofenceEvents]
-    );
-
     const summary = useMemo(() => {
         return {
             all: vehicles.length,
@@ -572,125 +563,13 @@ export default function Dashboard({ onNavigate }) {
         };
     }, [vehicles]);
 
-    const statusChartData = useMemo(() => {
-        return [
-            {
-                key: "moving",
-                name: "Hareket",
-                value: summary.moving || 0,
-            },
-            {
-                key: "idle",
-                name: "Rölanti",
-                value: summary.idle || 0,
-            },
-            {
-                key: "park",
-                name: "Park",
-                value: summary.park || 0,
-            },
-        ];
-    }, [summary.moving, summary.idle, summary.park]);
-
-    const alarmChartData = useMemo(() => {
-        const allAlarms = [
-            ...vehicleAlarms,
-            ...geofenceAlarms,
-        ];
-
-        const counts = allAlarms.reduce(
-            (result, alarm) => {
-                const type = alarm?.type || "other";
-
-                result[type] = (result[type] || 0) + 1;
-
-                return result;
-            },
-            {}
-        );
-
-        return [
-            {
-                key: "speed",
-                name: "Hız",
-                shortName: "Hız",
-                value: counts.speed || 0,
-            },
-            {
-                key: "idle",
-                name: "Rölanti",
-                shortName: "Rölanti",
-                value: counts.idle || 0,
-            },
-            {
-                key: "oldData",
-                name: "Eski Veri",
-                shortName: "Eski",
-                value: counts.oldData || 0,
-            },
-            {
-                key: "gps",
-                name: "GPS Yok",
-                shortName: "GPS",
-                value: counts.gps || 0,
-            },
-            {
-                key: "geofence",
-                name: "Geofence",
-                shortName: "Alan",
-                value: counts.geofence || 0,
-            },
-        ];
-    }, [vehicleAlarms, geofenceAlarms]);
-
-    const filteredVehicles = useMemo(() => {
-        if (activeFilter === "all") {
-            return vehicles;
-        }
-
-        return vehicles.filter((vehicle) => {
-            if (activeFilter === "moving") {
-                return getStatus(vehicle) === "moving";
-            }
-
-            if (activeFilter === "idle") {
-                return getStatus(vehicle) === "idle";
-            }
-
-            if (activeFilter === "park") {
-                return getStatus(vehicle) === "park";
-            }
-
-            if (activeFilter === "gpsMissing") {
-                return !hasGps(vehicle);
-            }
-
-            if (activeFilter === "alarm") {
-                return hasVehicleNotification(vehicle);
-            }
-
-            return true;
-        });
-    }, [vehicles, activeFilter]);
-
-    const alarms = useMemo(() => {
-        return [
-            ...geofenceAlarms,
-            ...vehicleAlarms,
-        ]
-            .sort((a, b) => {
-                const aTime = a.createdAt
-                    ? new Date(a.createdAt).getTime()
-                    : 0;
-
-                const bTime = b.createdAt
-                    ? new Date(b.createdAt).getTime()
-                    : 0;
-
-                return bTime - aTime;
-            })
-            .slice(0, 8);
-    }, [geofenceAlarms, vehicleAlarms]);
+    const filteredVehicles = useMemo(() => vehicles.filter((vehicle) => {
+        const matchesStatus = activeFilter === "all" ||
+            (["moving", "idle", "park"].includes(activeFilter) && getStatus(vehicle) === activeFilter) ||
+            (activeFilter === "gpsMissing" && !hasGps(vehicle)) ||
+            (activeFilter === "alarm" && hasVehicleNotification(vehicle));
+        return matchesStatus && normalizePlate(getVehiclePlate(vehicle)).includes(normalizePlate(search));
+    }), [vehicles, activeFilter, search]);
 
     const operationFeed = useMemo(() => {
         return [
@@ -710,16 +589,6 @@ export default function Dashboard({ onNavigate }) {
             })
             .slice(0, 12);
     }, [filteredVehicles, geofenceEvents]);
-
-    const fastestVehicles = useMemo(() => {
-        return [...filteredVehicles]
-            .filter((vehicle) => getSpeed(vehicle) > 0)
-            .sort(
-                (a, b) =>
-                    getSpeed(b) - getSpeed(a)
-            )
-            .slice(0, 6);
-    }, [filteredVehicles]);
 
     const criticalVehicles = useMemo(() => {
         return [...filteredVehicles]
@@ -772,6 +641,7 @@ export default function Dashboard({ onNavigate }) {
 
     function handleFilterChange(filterKey) {
         setActiveFilter(filterKey);
+        if (filterKey === "all") { setSelectedVehicle(null); return; }
 
         const firstFilteredVehicle =
             vehicles.find((vehicle) => {
@@ -805,16 +675,6 @@ export default function Dashboard({ onNavigate }) {
         }
     }
 
-    function handleStatusChartClick(statusKey) {
-        if (!statusKey) return;
-
-        handleFilterChange(statusKey);
-    }
-
-    function handleAlarmChartClick() {
-        handleFilterChange("alarm");
-    }
-
     function handleGoPlayback(vehicle) {
         localStorage.setItem(
             "fts_playback_vehicle",
@@ -835,483 +695,87 @@ export default function Dashboard({ onNavigate }) {
         onNavigate?.("Operasyon Merkezi");
     }
 
+    const healthScore = Math.max(0, Math.round(100 - ((summary.alarm || 0) / Math.max(summary.all, 1)) * 100));
+    const todayLabel = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+
+    const kpiCards = [
+        { key: "moving", label: "Hareket Halinde", value: summary.moving, desc: "Anlık hareket eden araçlar", icon: Truck, tone: "blue" },
+        { key: "idle", label: "Rölantide", value: summary.idle, desc: "Kontak açık ve duran araçlar", icon: PauseCircle, tone: "amber" },
+        { key: "park", label: "Park Halinde", value: summary.park, desc: "Kontak kapalı araçlar", icon: ParkingCircle, tone: "slate" },
+        { key: "gpsMissing", label: "GPS Yok", value: summary.gpsMissing, desc: "Konum bilgisi alınamayanlar", icon: WifiOff, tone: "red" },
+        { key: "alarm", label: "Alarmı Olan", value: summary.alarm, desc: "Aktif bildirimi bulunan araçlar", icon: BellRing, tone: "green" },
+    ];
+
     return (
-        <div className="dashboard-page">
-            <div className="dashboard-head">
-                <div>
-                    <span>Fleet Tracking System</span>
-
-                    <h1>Canlı Filo Dashboard</h1>
-
-                    <p>
-                        Tüm araçlar, canlı harita, alarmlar ve
-                        operasyon akışı tek ekranda.
-                    </p>
-
-                    {lastRefresh && (
-                        <small>
-                            Son yenileme:{" "}
-                            {lastRefresh.toLocaleTimeString(
-                                "tr-TR",
-                                {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                }
-                            )}
-                        </small>
-                    )}
-                </div>
-
-                <div className="dashboard-head-actions">
-                    {activeFilter !== "all" && (
-                        <button
-                            type="button"
-                            className="dashboard-clear-filter"
-                            onClick={() =>
-                                handleFilterChange("all")
-                            }
-                        >
-                            Filtreyi Temizle
-                        </button>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={loadData}
-                        disabled={loading}
-                    >
-                        {loading
-                            ? "Yükleniyor..."
-                            : "Yenile"}
-                    </button>
-                </div>
-            </div>
-
-            {error && (
-                <div className="dashboard-error">
-                    <strong>
-                        Dashboard verisi alınamadı.
-                    </strong>
-
-                    <span>{error}</span>
-
-                    <button
-                        type="button"
-                        onClick={loadData}
-                        disabled={loading}
-                    >
-                        Tekrar Dene
-                    </button>
-                </div>
-            )}
-
-            <div className="dash-filter-summary">
-                <div>
-                    <span>Aktif görünüm</span>
-                    <strong>
-                        {getFilterTitle(activeFilter)}
-                    </strong>
-                </div>
-
-                <p>
-                    Haritada {filteredVehicles.length} araç
-                    görüntüleniyor.
-                </p>
-            </div>
-
-            <div className="dash-kpi-grid dashboard-filter-kpis">
-                {DASHBOARD_FILTERS.map((filter) => (
-                    <button
-                        key={filter.key}
-                        type="button"
-                        className={[
-                            "dashboard-kpi-card",
-                            activeFilter === filter.key
-                                ? "active"
-                                : "",
-                            filter.key,
-                        ]
-                            .filter(Boolean)
-                            .join(" ")}
-                        onClick={() =>
-                            handleFilterChange(filter.key)
-                        }
-                    >
-                        <span>{filter.label}</span>
-
-                        <strong>
-                            {summary[filter.key] ?? 0}
-                        </strong>
-
-                        <small>
-                            {filter.description}
-                        </small>
-                    </button>
-                ))}
-            </div>
-
-            <DashboardCharts
-                statusData={statusChartData}
-                alarmData={alarmChartData}
-                onStatusClick={handleStatusChartClick}
-                onAlarmClick={handleAlarmChartClick}
-            />
-
-            <div className="dashboard-main-grid">
-                <section className="dashboard-map-card">
-                    <div className="dash-section-title">
-                        <div>
-                            <h2>
-                                {getFilterTitle(activeFilter)}
-                            </h2>
-
-                            <p>
-                                {filteredVehicles.length} araç
-                                görüntüleniyor
-                            </p>
-                        </div>
-
-                        {activeFilter !== "all" && (
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    handleFilterChange("all")
-                                }
-                            >
-                                Tüm Araçlar
-                            </button>
-                        )}
+        <div className="dashboard-page dashboard-command">
+            <section className="command-shell">
+                <div className="command-topbar">
+                    <div className="command-heading">
+                        <span className="command-live"><i /> CANLI OPERASYON</span>
+                        <h1>Günaydın. Filo kontrol altında.</h1>
+                        <p>{todayLabel} · Tüm operasyon tek çalışma alanında.</p>
                     </div>
+                    <div className="command-actions">
+                        <button className="command-ghost" onClick={() => onNavigate?.("Operasyon Merkezi")}><Command size={17}/> Operasyon Merkezi</button>
+                        <button className="command-primary" onClick={() => onNavigate?.("Aktif Seferler")}><Navigation size={17}/> Aktif Seferler <ChevronRight size={16}/></button>
+                    </div>
+                </div>
 
-                    <Harita
-                        vehicles={filteredVehicles}
-                        selectedPlate={
-                            selectedVehicle
-                                ? getVehiclePlate(
-                                    selectedVehicle
-                                )
-                                : undefined
-                        }
-                        onVehicleClick={openVehicle}
-                        height="660px"
-                        zoom={6}
-                    />
-                </section>
+                {error && <div className="command-alert" role="alert"><WifiOff size={18}/><div><strong>Canlı veri bağlantısı kesildi</strong><span>{lastRefresh ? "Son başarılı veriler ekranda tutuluyor." : error}</span></div><button onClick={loadData}>Tekrar bağlan</button></div>}
 
-                <aside className="dashboard-side">
-                    <section className="dash-panel">
-                        <h2>Seçili Araç</h2>
+                <div className="command-stat-strip">
+                    <button className={activeFilter === "all" ? "active" : ""} onClick={() => handleFilterChange("all")}><span>Filo</span><strong>{lastRefresh ? summary.all : "—"}</strong><small>Toplam araç</small></button>
+                    {kpiCards.map(({key,label,value,icon:Icon,tone}) => <button key={key} className={`${tone} ${activeFilter === key ? "active" : ""}`} onClick={() => handleFilterChange(key)}><span><Icon size={16}/>{label}</span><strong>{lastRefresh ? value : "—"}</strong><small>{summary.all ? `%${Math.round(value / summary.all * 100)}` : "—"} filo oranı</small></button>)}
+                </div>
 
-                        {selectedVehicle ? (
-                            <button
-                                type="button"
-                                className="dash-selected dash-clickable-card"
-                                onClick={() =>
-                                    openVehicle(
-                                        selectedVehicle
-                                    )
-                                }
-                            >
-                                <div className="dash-selected-top">
-                                    <strong>
-                                        {getVehiclePlate(
-                                            selectedVehicle
-                                        )}
-                                    </strong>
+                <div className="command-workspace">
+                    <main className="command-map-panel">
+                        <div className="command-map-toolbar">
+                            <label className="command-search"><Search size={18}/><input aria-label="Plaka ara" placeholder="Plaka ara..." value={search} onChange={e => setSearch(e.target.value)}/>{search && <button onClick={() => setSearch("")} aria-label="Aramayı temizle">×</button>}</label>
+                            <div className="command-filter-pills">{DASHBOARD_FILTERS.slice(0,5).map(f => <button key={f.key} className={activeFilter === f.key ? "active" : ""} onClick={() => handleFilterChange(f.key)}>{f.key === "all" ? "Tümü" : f.label}<b>{summary[f.key]}</b></button>)}</div>
+                            <button className="command-refresh" onClick={loadData} disabled={loading} title="Canlı verileri yenile"><RefreshCw size={17} className={loading ? "spin" : ""}/></button>
+                        </div>
+                        <div className="command-map-stage">
+                            <Harita key={activeFilter} vehicles={filteredVehicles} selectedPlate={selectedVehicle ? getVehiclePlate(selectedVehicle) : undefined} onVehicleClick={openVehicle} height="100%" showToolbar={false} zoom={6}/>
+                            <div className="map-floating-status"><span><i className={error ? "bad" : ""}/>{loading ? "Senkronize ediliyor" : error ? "Çevrimdışı" : "Canlı bağlantı"}</span><b>{filteredVehicles.filter(hasGps).length} konum</b></div>
+                            <div className="map-floating-help"><MapPinned size={16}/><span>Haritadaki araca tıklayarak detay panelini açın</span></div>
+                        </div>
+                    </main>
 
-                                    <span
-                                        className={`dash-selected-status ${getStatus(
-                                            selectedVehicle
-                                        )}`}
-                                    >
-                                        {getStatusText(
-                                            selectedVehicle
-                                        )}
-                                    </span>
-                                </div>
+                    <aside className="command-side">
+                        <section className="command-health-panel">
+                            <div className="command-section-title"><div><span>FİLO SKORU</span><h2>Operasyon sağlığı</h2></div><Gauge size={20}/></div>
+                            <div className="command-score-row"><div className="command-score"><strong>{summary.all ? healthScore : "—"}</strong><span>/100</span></div><div className="command-score-copy"><b>{!summary.all ? "Veri bekleniyor" : healthScore > 80 ? "Her şey yolunda" : healthScore > 60 ? "Takip gerekli" : "Müdahale gerekli"}</b><small>{summary.alarm ? `${summary.alarm} araç aksiyon bekliyor` : "Kritik alarm görünmüyor"}</small></div></div>
+                            <div className="command-progress"><i style={{width: `${summary.all ? healthScore : 0}%`}}/></div>
+                            <div className="command-health-mini"><div><span>GPS kapsama</span><b>{summary.all ? `%${Math.round((summary.all-summary.gpsMissing)/summary.all*100)}` : "—"}</b></div><div><span>Hareket oranı</span><b>{summary.all ? `%${Math.round(summary.moving/summary.all*100)}` : "—"}</b></div></div>
+                        </section>
 
-                                <div className="dash-selected-speed">
-                                    {getSpeed(selectedVehicle)}
-                                    <small>km/h</small>
-                                </div>
-
-                                <p>
-                                    {getAddress(selectedVehicle)}
-                                </p>
-
-                                <small>
-                                    {getRelativeTime(
-                                        getLastDate(
-                                            selectedVehicle
-                                        )
-                                    )}
-                                </small>
-                            </button>
-                        ) : (
-                            <div className="dash-empty">
-                                Araç seçilmedi.
+                        <section className="command-attention-panel">
+                            <div className="command-section-title"><div><span>AKSİYON MERKEZİ</span><h2>Dikkat isteyenler</h2></div><BellRing size={20}/></div>
+                            <div className="command-attention-list">
+                                {criticalVehicles.length === 0 ? <div className="command-clear"><ShieldCheck size={25}/><strong>Kritik durum yok</strong><span>Filo normal çalışıyor.</span></div> : criticalVehicles.slice(0,4).map(({vehicle,alarmCount,gpsAvailable}) => <button key={getVehiclePlate(vehicle)} onClick={() => openVehicle(vehicle)}><span className={gpsAvailable ? "attention-icon alarm" : "attention-icon gps"}>{gpsAvailable ? <BellRing size={16}/> : <WifiOff size={16}/>}</span><span><strong>{getVehiclePlate(vehicle)}</strong><small>{!gpsAvailable ? "GPS konumu alınamıyor" : `${alarmCount} aktif bildirim`}</small></span><ChevronRight size={16}/></button>)}
                             </div>
-                        )}
-                    </section>
+                            <button className="command-side-link" onClick={() => onNavigate?.("Alarm Merkezi")}>Tüm uyarıları incele <ChevronRight size={16}/></button>
+                        </section>
+                    </aside>
+                </div>
 
-                    <section className="dash-panel">
-                        <div className="dash-panel-title-row">
-                            <h2>Kritik Araçlar</h2>
-
-                            <span>
-                                {criticalVehicles.length}
-                            </span>
-                        </div>
-
-                        <div className="dashboard-critical-list">
-                            {criticalVehicles.length === 0 ? (
-                                <div className="dash-empty">
-                                    Kritik araç bulunmuyor.
-                                </div>
-                            ) : (
-                                criticalVehicles.map(
-                                    ({
-                                        vehicle,
-                                        alarmCount,
-                                        gpsAvailable,
-                                        lastDate,
-                                    }) => (
-                                        <button
-                                            type="button"
-                                            key={
-                                                vehicle?.id ||
-                                                getVehiclePlate(
-                                                    vehicle
-                                                )
-                                            }
-                                            onClick={() =>
-                                                openVehicle(
-                                                    vehicle
-                                                )
-                                            }
-                                        >
-                                            <div>
-                                                <strong>
-                                                    {getVehiclePlate(
-                                                        vehicle
-                                                    )}
-                                                </strong>
-
-                                                <span>
-                                                    {getStatusText(
-                                                        vehicle
-                                                    )}{" "}
-                                                    ·{" "}
-                                                    {getSpeed(
-                                                        vehicle
-                                                    )}{" "}
-                                                    km/h
-                                                </span>
-                                            </div>
-
-                                            <div className="dashboard-critical-meta">
-                                                {!gpsAvailable && (
-                                                    <em>
-                                                        GPS Yok
-                                                    </em>
-                                                )}
-
-                                                {alarmCount > 0 && (
-                                                    <b>
-                                                        {alarmCount} Alarm
-                                                    </b>
-                                                )}
-
-                                                <small>
-                                                    {getRelativeTime(
-                                                        lastDate
-                                                    )}
-                                                </small>
-                                            </div>
-                                        </button>
-                                    )
-                                )
-                            )}
+                <div className="command-lower-grid">
+                    <section className="command-feed-panel">
+                        <div className="command-section-title"><div><span>AKIŞ</span><h2>Canlı operasyon günlüğü</h2></div><Activity size={20}/></div>
+                        <div className="command-feed">
+                            {operationFeed.length === 0 ? <div className="command-clear"><Clock3 size={25}/><strong>Yeni hareket yok</strong><span>Canlı aktiviteler burada akacak.</span></div> : operationFeed.slice(0,6).map((item,index) => <button key={`${item.plate}-${index}`} onClick={() => openVehicleByPlate(item.plate)}><i className={item.type}/><span><strong>{item.plate}</strong><small>{item.text}</small></span><em>{getRelativeTime(item.time)}</em></button>)}
                         </div>
                     </section>
-
-                    <section className="dash-panel">
-                        <h2>Son Alarmlar</h2>
-
-                        <div className="dash-alarm-list">
-                            {alarms.length === 0 ? (
-                                <div className="dash-empty">
-                                    Aktif alarm yok.
-                                </div>
-                            ) : (
-                                alarms.map(
-                                    (alarm, index) => {
-                                        const vehicle =
-                                            findVehicleByPlate(
-                                                alarm.plate
-                                            );
-
-                                        return (
-                                            <button
-                                                type="button"
-                                                className={`dash-alarm ${alarm.level
-                                                    } ${vehicle
-                                                        ? "clickable"
-                                                        : ""
-                                                    }`}
-                                                key={`${alarm.plate}-${alarm.title}-${index}`}
-                                                onClick={() =>
-                                                    openVehicleByPlate(
-                                                        alarm.plate
-                                                    )
-                                                }
-                                                disabled={!vehicle}
-                                            >
-                                                <span>
-                                                    {alarm.title}
-                                                </span>
-
-                                                <strong>
-                                                    {alarm.plate}
-                                                </strong>
-
-                                                <p>
-                                                    {alarm.message}
-                                                </p>
-
-                                                <small>
-                                                    {formatDate(
-                                                        alarm.createdAt
-                                                    )}
-                                                </small>
-                                            </button>
-                                        );
-                                    }
-                                )
-                            )}
-                        </div>
+                    <section className="command-insight-panel">
+                        <div className="command-section-title"><div><span>GÜNLÜK ÖZET</span><h2>Bugünün görünümü</h2></div><Sparkles size={20}/></div>
+                        <div className="command-insight-hero"><span><BarChart3 size={21}/></span><div><strong>{summary.moving + summary.idle}</strong><small>araç şu anda operasyonda</small></div></div>
+                        <div className="command-insight-grid"><div><span>Parkta</span><b>{summary.park}</b></div><div><span>Alarm</span><b>{summary.alarm}</b></div><div><span>GPS eksik</span><b>{summary.gpsMissing}</b></div></div>
+                        <div className="command-update"><RefreshCw size={15}/><span>{lastRefresh ? `Son senkronizasyon ${lastRefresh.toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"})}` : "İlk senkronizasyon bekleniyor"}</span></div>
                     </section>
-
-                    <section className="dash-panel">
-                        <h2>Operasyon Akışı</h2>
-
-                        <div className="operation-feed">
-                            {operationFeed.length === 0 ? (
-                                <div className="dash-empty">
-                                    Operasyon kaydı yok.
-                                </div>
-                            ) : (
-                                operationFeed.map(
-                                    (item, index) => {
-                                        const vehicle =
-                                            findVehicleByPlate(
-                                                item.plate
-                                            );
-
-                                        return (
-                                            <button
-                                                type="button"
-                                                className={`operation-item ${item.type
-                                                    } ${vehicle
-                                                        ? "clickable"
-                                                        : ""
-                                                    }`}
-                                                key={`${item.plate}-${item.type}-${index}`}
-                                                onClick={() =>
-                                                    openVehicleByPlate(
-                                                        item.plate
-                                                    )
-                                                }
-                                                disabled={!vehicle}
-                                            >
-                                                <time>
-                                                    {formatDate(
-                                                        item.time
-                                                    )}
-                                                </time>
-
-                                                <span>
-                                                    {item.title}
-                                                </span>
-
-                                                <strong>
-                                                    {item.plate}
-                                                </strong>
-
-                                                <p>
-                                                    {item.text}
-                                                </p>
-                                            </button>
-                                        );
-                                    }
-                                )
-                            )}
-                        </div>
-                    </section>
-
-                    <section className="dash-panel">
-                        <h2>En Hızlı Araçlar</h2>
-
-                        <div className="fast-vehicles">
-                            {fastestVehicles.length === 0 ? (
-                                <div className="dash-empty">
-                                    Hareketli araç bulunmuyor.
-                                </div>
-                            ) : (
-                                fastestVehicles.map(
-                                    (vehicle) => (
-                                        <button
-                                            type="button"
-                                            className="fast-vehicle clickable"
-                                            key={
-                                                vehicle?.id ||
-                                                getVehiclePlate(
-                                                    vehicle
-                                                )
-                                            }
-                                            onClick={() =>
-                                                openVehicle(
-                                                    vehicle
-                                                )
-                                            }
-                                        >
-                                            <div>
-                                                <strong>
-                                                    {getVehiclePlate(
-                                                        vehicle
-                                                    )}
-                                                </strong>
-
-                                                <small>
-                                                    {getAddress(
-                                                        vehicle
-                                                    )}
-                                                </small>
-                                            </div>
-
-                                            <span>
-                                                {getSpeed(
-                                                    vehicle
-                                                )}{" "}
-                                                km/h
-                                            </span>
-                                        </button>
-                                    )
-                                )
-                            )}
-                        </div>
-                    </section>
-                </aside>
-            </div>
-
-            <VehicleDrawer
-                open={drawerOpen}
-                vehicle={selectedVehicle}
-                onClose={() => setDrawerOpen(false)}
-                onGoPlayback={handleGoPlayback}
-                onOpenOperations={handleOpenOperations}
-            />
+                </div>
+            </section>
+            <VehicleDrawer open={drawerOpen} vehicle={selectedVehicle} onClose={() => setDrawerOpen(false)} onGoPlayback={handleGoPlayback} onOpenOperations={handleOpenOperations}/>
         </div>
     );
 }

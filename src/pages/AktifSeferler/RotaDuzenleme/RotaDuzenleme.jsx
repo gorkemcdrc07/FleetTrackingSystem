@@ -1,18 +1,8 @@
+import { GripVertical, ArrowUp, ArrowDown, X } from "lucide-react";
 ﻿import { useMemo, useState } from "react";
 import "./RotaDuzenleme.css";
 
-function IconGrip() {
-    return (
-        <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="9" cy="6" r="1.5" fill="currentColor" />
-            <circle cx="15" cy="6" r="1.5" fill="currentColor" />
-            <circle cx="9" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="15" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="9" cy="18" r="1.5" fill="currentColor" />
-            <circle cx="15" cy="18" r="1.5" fill="currentColor" />
-        </svg>
-    );
-}
+const IconGrip=()=> <GripVertical size={18}/>;
 
 function RotaDuzenleme({ route, onClose, onSave }) {
     const [items, setItems] = useState(() => route || []);
@@ -74,17 +64,23 @@ function RotaDuzenleme({ route, onClose, onSave }) {
         });
     }
 
+    function moveDelivery(index,direction){
+        const next=[...teslimItems];const target=index+direction;
+        if(target<0||target>=next.length)return;
+        [next[index],next[target]]=[next[target],next[index]];
+        setItems([...yuklemeItems,...next].map((item,i)=>({...item,sira:i+1})));
+    }
     return (
         <div className="rota-duzenle-overlay" onMouseDown={onClose}>
-            <div className="rota-duzenle-panel" onMouseDown={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label="Teslim sırası düzenle" className="rota-duzenle-panel" onMouseDown={(e) => e.stopPropagation()}>
                 <div className="rota-duzenle-head">
                     <div>
                         <div className="rota-duzenle-eyebrow">Rota Yönetimi</div>
                         <h3>Teslim Sırası Düzenle</h3>
-                        <p>Yükleme noktaları sabit kalır. Teslim noktalarını sürükleyerek sıralayın.</p>
+                        <p>Yükleme noktaları sabit kalır. Teslim noktalarını sürükleyerek veya oklarla sıralayın.</p>
                     </div>
 
-                    <button type="button" className="rota-duzenle-close" onClick={onClose}>
+                    <button type="button" aria-label="Sıralamayı kapat" className="rota-duzenle-close" onClick={onClose}>
                         ×
                     </button>
                 </div>
@@ -129,6 +125,7 @@ function RotaDuzenleme({ route, onClose, onSave }) {
                                         overId === key && dragId !== key ? "is-over" : "",
                                     ].filter(Boolean).join(" ")}
                                 >
+                                    <div className="delivery-move"><button aria-label={`${index+1}. teslimi yukarı taşı`} disabled={index===0} onClick={()=>moveDelivery(index,-1)}><ArrowUp size={15}/></button><button aria-label={`${index+1}. teslimi aşağı taşı`} disabled={index===teslimItems.length-1} onClick={()=>moveDelivery(index,1)}><ArrowDown size={15}/></button></div>
                                     <div className="rota-duzenle-grip">
                                         <IconGrip />
                                     </div>

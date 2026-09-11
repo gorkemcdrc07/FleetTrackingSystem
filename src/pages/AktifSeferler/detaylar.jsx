@@ -1,3 +1,6 @@
+import { calculateRoadRoute } from "../../services/routePlanning";
+import { routeDateIssues, parseMaskedDate, durationLabel, applyDrivingPlan } from "../../domain/routeTiming";
+import { Save, X, ListOrdered, RefreshCw, TriangleAlert } from "lucide-react";
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import L from "leaflet";
@@ -75,30 +78,8 @@ function maskDateTimeInput(value) {
     return result;
 }
 
-function maskedDateTimeToIso(value) {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length < 12) return "";
-
-    const day = digits.slice(0, 2);
-    const month = digits.slice(2, 4);
-    const year = digits.slice(4, 8);
-    const hour = digits.slice(8, 10);
-    const minute = digits.slice(10, 12);
-
-    const date = new Date(`${year}-${month}-${day}T${hour}:${minute}`);
-    if (isNaN(date)) return "";
-
-    return date.toISOString();
-}
-
-function formatEta(min) {
-    if (!min && min !== 0) return "—";
-    const h = Math.floor(min / 60);
-    const m = Math.round(min % 60);
-    if (h <= 0) return `${m} dk`;
-    if (m === 0) return `${h} sa`;
-    return `${h} sa ${m} dk`;
-}
+const maskedDateTimeToIso = parseMaskedDate;
+const formatEta = durationLabel;
 
 function formatKm(km) {
     if (!km && km !== 0) return "—";
@@ -175,6 +156,9 @@ function buildRoute(row) {
 
             return {
                 type,
+                source: item,
+                lat: item.lat ?? item.latitude,
+                lng: item.lng ?? item.lon ?? item.longitude,
                 nokta: item.nokta,
                 il: item.il,
                 ilce: item.ilce,
@@ -277,123 +261,7 @@ function buildRoute(row) {
     }));
 }
 
-const geoCache = new Map();
-
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function geocodeAddress(query) {
-    if (!query) return null;
-
-    const cacheKey = query.trim().toLowerCase();
-
-    if (geoCache.has(cacheKey)) {
-        return geoCache.get(cacheKey);
-    }
-
-    try {
-        await sleep(900);
-
-        const url =
-            `https://nominatim.openstreetmap.org/search?` +
-            new URLSearchParams({
-                q: query,
-                format: "json",
-                limit: 1,
-                countrycodes: "tr",
-            });
-
-        const response = await fetch(url, {
-            headers: {
-                Accept: "application/json",
-            },
-        });
-
-        if (!response.ok) {
-            console.warn("Geocode HTTP error:", response.status);
-            return null;
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data) || !data.length) {
-            return null;
-        }
-
-        const result = {
-            lat: Number(data[0].lat),
-            lon: Number(data[0].lon),
-        };
-
-        geoCache.set(cacheKey, result);
-
-        return result;
-
-    } catch (err) {
-        console.error("Geocode error:", err);
-        return null;
-    }
-}
-async function fetchOsrmRoute(points) {
-    if (points.length < 2) return null;
-
-    const coords = points.map((p) => `${p.lng},${p.lat}`).join(";");
-    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    const route = data?.routes?.[0];
-    if (!route) return null;
-
-    return {
-        distanceKm: route.distance / 1000,
-        durationMin: route.duration / 60,
-        geometry: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
-        legs: route.legs.map((leg) => ({
-            distanceKm: leg.distance / 1000,
-            durationMin: leg.duration / 60,
-        })),
-    };
-}
-
-function applyLegalEtaToLeg(driveMin, state) {
-    let remaining = driveMin;
-    let totalMin = 0;
-    let breakMin = 0;
-    let restMin = 0;
-
-    while (remaining > 0) {
-        if (state.driveInBlock >= DRIVE_BLOCK_MIN) {
-            if (state.blocksInDay === 0) {
-                totalMin += SHORT_BREAK_MIN;
-                breakMin += SHORT_BREAK_MIN;
-                state.blocksInDay = 1;
-            } else {
-                totalMin += DAILY_REST_MIN;
-                restMin += DAILY_REST_MIN;
-                state.blocksInDay = 0;
-            }
-
-            state.driveInBlock = 0;
-        }
-
-        const available = DRIVE_BLOCK_MIN - state.driveInBlock;
-        const drivingNow = Math.min(remaining, available);
-
-        totalMin += drivingNow;
-        state.driveInBlock += drivingNow;
-        remaining -= drivingNow;
-    }
-
-    return {
-        legalDurationMin: totalMin,
-        breakMin,
-        restMin,
-        state,
-    };
-}
+const applyLegalEtaToLeg = applyDrivingPlan;
 
 function buildSegments(route, legs, baseDate) {
     const state = {
@@ -409,12 +277,13 @@ function buildSegments(route, legs, baseDate) {
     return route.map((stop, index) => {
         const leg = index > 0 ? legs?.[index - 1] : null;
         const actualArrival = parseDate(stop.varis);
-        const actualDeparture = parseDate(stop.cikis);
+        const parsedDeparture = parseDate(stop.cikis);
+        const actualDeparture = actualArrival && parsedDeparture && parsedDeparture < actualArrival ? null : parsedDeparture;
 
         let segment = null;
         let calculatedArrival = index === 0 ? new Date(cursor) : null;
 
-        if (leg) {
+        if (leg && cursor) {
             const eta = applyLegalEtaToLeg(leg.durationMin, state);
 
             cumulativeLegalMin += eta.legalDurationMin;
@@ -436,9 +305,9 @@ function buildSegments(route, legs, baseDate) {
         }
 
         const estimatedArrival = actualArrival || calculatedArrival;
-        const nextCursor = actualDeparture || actualArrival || calculatedArrival || cursor;
+        const nextCursor = actualDeparture || actualArrival || calculatedArrival;
 
-        cursor = new Date(nextCursor);
+        cursor = nextCursor ? new Date(nextCursor) : null;
 
         return {
             ...stop,
@@ -691,7 +560,7 @@ function RoutePoint({ item, index, total, showDriveDetail, onChangeStopDateTime 
                             <span>Net sürüş <strong>{formatEta(segment.netDriveMin)}</strong></span>
                             <span>Mola <strong>{formatEta(segment.breakMin)}</strong></span>
                             <span>Dinlenme <strong>{formatEta(segment.restMin)}</strong></span>
-                            <span>Gerçek ETA <strong>{formatEta(segment.legalDurationMin)}</strong></span>
+                            <span>Planlı süre <strong>{formatEta(segment.legalDurationMin)}</strong></span>
                         </div>
                     </div>
                 )}
@@ -765,17 +634,20 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
         setEditableRoute(buildRoute(row));
     }, [row]);
 
+    const [routeRetry,setRouteRetry]=useState(0);
+    const [routeProgress,setRouteProgress]=useState("");
+    const dateIssues=useMemo(()=>routeDateIssues(editableRoute),[editableRoute]);
     const routeGeoKey = useMemo(() => {
         return editableRoute
-            .map((x) => `${x.type}|${x.nokta}|${x.il}|${x.ilce}`)
+            .map((x) => `${x.type}|${x.nokta}|${x.il}|${x.ilce}|${x.lat}|${x.lng}`)
             .join(";;");
     }, [editableRoute]);
 
     const enrichedRoute = useMemo(() => {
         if (!row) return [];
         const baseDate = getBaseDate(row);
-        return buildSegments(editableRoute, mapRoute?.legs || [], baseDate);
-    }, [row, editableRoute, mapRoute]);
+        return buildSegments(editableRoute, dateIssues.length ? [] : mapRoute?.legs || [], baseDate);
+    }, [row, editableRoute, mapRoute, dateIssues]);
 
     function showToast(type, message) {
         setToast({ type, message });
@@ -827,14 +699,20 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
     async function handleSaveRouteDetails() {
         if (!row) return;
 
+        if(dateIssues.length){showToast("error",dateIssues[0]);return;}
         setSaving(true);
 
         try {
             const rotaDetaylari = editableRoute.map((item, index) => ({
+                ...item.source,
+                gerceklesen_varis: item.varis || null,
+                gerceklesen_cikis: item.cikis || null,
                 tip: item.type === "Yükleme" ? "yukleme" : "teslim",
                 type: item.type,
                 sira: index + 1,
 
+                lat: item.lat ?? null,
+                lng: item.lng ?? null,
                 nokta: item.nokta || null,
                 il: item.il || null,
                 ilce: item.ilce || null,
@@ -862,7 +740,8 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                 query = query.eq("sefer_no", row.sefer_no);
             }
 
-            const { error } = await query;
+            const { data: saved, error } = await query.select("sefer_no").abortSignal(AbortSignal.timeout(30000));
+            if(!error && !saved?.length)throw new Error("Rota kaydı güncellenemedi. Yetkiyi ve kaydı kontrol edin.");
 
             if (error) throw error;
 
@@ -921,70 +800,15 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
         }
     }
     useEffect(() => {
-        if (!row || editableRoute.length < 2) {
-            setMapRoute(null);
-            return;
-        }
-
-        let cancelled = false;
-
-        async function loadRoute() {
-            setRouteLoading(true);
-            setRouteError("");
-            setShowDriveDetail(false);
-
-            try {
-                const points = [];
-                const pointStops = [];
-
-                for (const stop of editableRoute) {
-                    const addresses = buildAddressCandidates(stop);
-                    const point = await geocodeAddress(addresses);
-
-                    if (point) {
-                        points.push(point);
-                        pointStops.push(stop);
-                    }
-
-                    await new Promise((resolve) => setTimeout(resolve, 350));
-                }
-
-                if (cancelled) return;
-
-                if (points.length < 2) {
-                    setMapRoute(null);
-                    setRouteError("Harita için yeterli koordinat bulunamadı.");
-                    return;
-                }
-
-                const osrm = await fetchOsrmRoute(points);
-
-                if (cancelled) return;
-
-                setMapRoute({
-                    stops: pointStops,
-                    points,
-                    geometry: osrm?.geometry || points.map((p) => [p.lat, p.lng]),
-                    distanceKm: osrm?.distanceKm,
-                    durationMin: osrm?.durationMin,
-                    legs: osrm?.legs || [],
-                });
-            } catch {
-                if (!cancelled) {
-                    setMapRoute(null);
-                    setRouteError("Rota hesaplanırken hata oluştu.");
-                }
-            } finally {
-                if (!cancelled) setRouteLoading(false);
-            }
-        }
-
-        loadRoute();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [row, routeGeoKey]);
+        setMapRoute(null);setRouteError("");
+        if(!row || editableRoute.length<2){setRouteLoading(false);return;}
+        const controller=new AbortController();setRouteLoading(true);
+        calculateRoadRoute(editableRoute,{signal:controller.signal,onProgress:setRouteProgress})
+            .then(result=>{if(!controller.signal.aborted)setMapRoute(result);})
+            .catch(error=>{if(!controller.signal.aborted)setRouteError(error.message || "Rota hesaplanamadı.");})
+            .finally(()=>{if(!controller.signal.aborted)setRouteLoading(false);});
+        return()=>controller.abort();
+    }, [row?.sefer_no,routeGeoKey,routeRetry]);
 
     useEffect(() => {
         if (!row) return;
@@ -1012,32 +836,34 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
 
     return (
         <div className="detay-overlay" onClick={onClose}>
-            <div className="detay-panel" onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label="Sefer detayı" className="detay-panel" onClick={(e) => e.stopPropagation()}>
                 <div className="detay-header">
                     <div>
                         <div className="detay-eyebrow">Rota Detayı</div>
                         <h2>{row.sefer_no || "Sefer Detayı"}</h2>
                     </div>
 
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="detay-header-actions">
                         <button
                             className="detay-close-btn"
+                            title="Teslim noktalarının sırasını düzenle"
                             onClick={() => setShowRouteEditor(true)}
                             disabled={saving}
                         >
-                            Teslim Sırası Düzenle
+                            <ListOrdered size={15}/> Teslim sırası
                         </button>
 
                         <button
-                            className="detay-close-btn"
+                            className="detay-close-btn primary"
+                            title="Rota ve zaman değişikliklerini kaydet"
                             onClick={handleSaveRouteDetails}
                             disabled={saving}
                         >
-                            {saving ? "Kaydediliyor..." : "Kaydet"}
+                            <Save size={15}/>{saving ? "Kaydediliyor..." : "Kaydet"}
                         </button>
 
-                        <button className="detay-close-btn" onClick={onClose}>
-                            Kapat
+                        <button className="detay-close-btn" title="Detay panelini kapat" onClick={onClose}>
+                            <X size={15}/> Kapat
                         </button>
                     </div>
                 </div>
@@ -1051,8 +877,8 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                     <span>{editableRoute.length} rota noktası</span>
                     <span>{manualCount} gerçek zaman</span>
                     <span>{mapRoute?.distanceKm ? `${mapRoute.distanceKm.toFixed(1)} km` : "Mesafe —"}</span>
-                    <span>Net sürüş {mapRoute?.durationMin ? formatEta(mapRoute.durationMin) : "—"}</span>
-                    <span>Gerçek ETA {totalLegalMin ? formatEta(totalLegalMin) : "—"}</span>
+                    <span>Net sürüş {mapRoute ? formatEta(mapRoute.durationMin) : "—"}</span>
+                    <span>Planlı süre {mapRoute && !dateIssues.length ? formatEta(totalLegalMin) : "—"}</span>
 
                     <button
                         type="button"
@@ -1063,13 +889,14 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                     </button>
                 </div>
 
+                {dateIssues.length>0 && <div className="route-date-error" role="alert"><TriangleAlert size={18}/><span>{dateIssues.join(" ")} Tarihleri düzeltmeden yeni ETA hesaplanmaz.</span></div>}
                 <div className="detay-helper-card">
                     Varış veya çıkış saati girildiğinde, sonraki noktaların tahmini varış hesabı bu gerçek zamana göre yeniden hesaplanır.
                 </div>
 
                 {showDriveDetail && (
                     <div className="detay-drive-detail">
-                        <div className="detay-drive-title">ETA Hesap Mantığı</div>
+                        <div className="detay-drive-title">Süre planlama varsayımları</div>
 
                         <div className="detay-eta-rule">
                             <strong>Döngü:</strong>
@@ -1092,12 +919,12 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
 
                             <div>
                                 <span>Net Sürüş</span>
-                                <strong>{mapRoute?.durationMin ? formatEta(mapRoute.durationMin) : "—"}</strong>
+                                <strong>{mapRoute ? formatEta(mapRoute.durationMin) : "—"}</strong>
                             </div>
 
                             <div>
-                                <span>Gerçek ETA</span>
-                                <strong>{totalLegalMin ? formatEta(totalLegalMin) : "—"}</strong>
+                                <span>Planlı süre</span>
+                                <strong>{mapRoute && !dateIssues.length ? formatEta(totalLegalMin) : "—"}</strong>
                             </div>
                         </div>
                     </div>
@@ -1105,17 +932,17 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
 
                 {activeTab === "genel" && (
                     <>
-                        <div className="detay-map-card">
+                        <div className={`detay-map-card ${!mapRoute ? "is-pending" : ""}`}>
 
                             {routeLoading && (
                                 <div className="detay-map-loading">
-                                    Harita hesaplanıyor...
+                                    {routeProgress || "Rota hesaplanıyor…"}
                                 </div>
                             )}
 
                             {!routeLoading && routeError && (
                                 <div className="detay-map-error">
-                                    {routeError}
+                                    {routeError}<button type="button" onClick={()=>setRouteRetry(v=>v+1)}><RefreshCw size={15}/> Yeniden hesapla</button>
                                 </div>
                             )}
 
@@ -1148,6 +975,7 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                     </>
                 )}
 
+                {mapRoute?.approximate && activeTab==="genel" && <p className="route-estimate-note">Adres eşleşmelerine göre tahmini rota · Konum: © OpenStreetMap / Photon · Yol: OSRM. Araç kısıtları ve canlı trafik dahil değildir.</p>}
                 {activeTab === "mobiliz" && (
                     <MobilizBilgileri
                         plaka={row.plaka}
@@ -1157,12 +985,14 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                 {activeTab === "rota" && (
                     <RotaGecmisi plaka={row.plaka} />
                 )}
+                {activeTab === "eta" && routeLoading && <div className="mobiliz-loading" role="status">{routeProgress || "Rota hesaplanıyor…"}</div>}
+                {activeTab === "eta" && routeError && <div className="mobiliz-error" role="alert"><span>{routeError}</span><button onClick={()=>setRouteRetry(v=>v+1)}>Yeniden hesapla</button></div>}
                 {activeTab === "eta" && (
                     <EtaAnalizi
-                        toplamMola={formatEta(totalBreakMin)}
-                        toplamDinlenme={formatEta(totalRestMin)}
-                        netSurus={mapRoute?.durationMin ? formatEta(mapRoute.durationMin) : "—"}
-                        gercekEta={totalLegalMin ? formatEta(totalLegalMin) : "—"}
+                        toplamMola={mapRoute && !dateIssues.length ? formatEta(totalBreakMin) : "—"}
+                        toplamDinlenme={mapRoute && !dateIssues.length ? formatEta(totalRestMin) : "—"}
+                        netSurus={mapRoute ? formatEta(mapRoute.durationMin) : "—"}
+                        gercekEta={mapRoute && !dateIssues.length ? formatEta(totalLegalMin) : "—"}
                     />
                 )}
                 {toast && (
@@ -1172,7 +1002,7 @@ function Detaylar({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                         </div>
 
                         <div>
-                            <strong>{toast.type === "success" ? "Kaydedildi" : "Hata"}</strong>
+                            <strong>{toast.type === "success" ? "İşlem tamamlandı" : "Hata"}</strong>
                             <span>{toast.message}</span>
                         </div>
                     </div>

@@ -1,170 +1,350 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
 import { notificationEngine } from "../../services/notificationEngine";
+import { useTrackedVehicles } from "../../context/TrackedVehiclesContext";
+
 import "./NotificationToasts.css";
 
-function getIcon(item) {
-    if (item?.type === "speed") return "🚨";
-    if (item?.type === "idle") return "⏱️";
-    if (item?.type === "oldData") return "🕓";
-    if (item?.type === "gps") return "📡";
-    if (item?.type === "geofence") return "📍";
-    if (item?.type === "test") return "🧪";
+function normalizePlate(value) {
+    return String(value || "")
+        .replace(/\s/g, "")
+        .toUpperCase();
+}
 
-    if (item?.level === "critical") return "⛔";
-    if (item?.level === "warning") return "⚠️";
-    if (item?.level === "danger") return "❗";
-
+function getIcon(level) {
+    if (level === "critical") return "⛔";
+    if (level === "danger") return "🔴";
+    if (level === "warning") return "⚠️";
+    if (level === "success") return "✅";
     return "🔔";
 }
 
-export default function NotificationToasts({
-    onOpenVehicle,
-}) {
-    const [toasts, setToasts] = useState([]);
-    const timersRef = useRef(new Map());
+function formatTime(value) {
+    if (!value) return "";
 
-    function removeToast(id) {
-        setToasts((current) =>
-            current.filter((item) => item.id !== id)
-        );
+    const date = new Date(value);
 
-        const timer = timersRef.current.get(id);
-
-        if (timer) {
-            window.clearTimeout(timer);
-            timersRef.current.delete(id);
-        }
+    if (Number.isNaN(date.getTime())) {
+        return "";
     }
 
-    function scheduleRemoval(item) {
-        const currentTimer =
-            timersRef.current.get(item.id);
+    return date.toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
 
-        if (currentTimer) {
-            window.clearTimeout(currentTimer);
-        }
+export default function NotificationToasts() {
+    const {
+        trackedPlates,
+        hasTrackedVehicles,
+    } = useTrackedVehicles();
 
-        const timer = window.setTimeout(() => {
-            removeToast(item.id);
-        }, 6500);
+    const [
+        allNotifications,
+        setAllNotifications,
+    ] = useState(() =>
+        notificationEngine.getAll()
+    );
 
-        timersRef.current.set(item.id, timer);
-    }
+    const [
+        trackedDrawerOpen,
+        setTrackedDrawerOpen,
+    ] = useState(false);
 
-    function addToasts(items) {
+    const refresh = useCallback(() => {
         const settings =
             notificationEngine.getSettings();
 
         if (settings.toastEnabled === false) {
-            setToasts([]);
+            setAllNotifications([]);
             return;
         }
 
-        const incoming = Array.isArray(items)
-            ? items
-            : [];
-
-        if (incoming.length === 0) return;
-
-        setToasts((current) => {
-            const merged = [...incoming, ...current];
-
-            const unique = merged.filter(
-                (item, index, array) =>
-                    array.findIndex(
-                        (candidate) =>
-                            candidate.id === item.id
-                    ) === index
-            );
-
-            return unique.slice(0, 4);
-        });
-
-        incoming.forEach(scheduleRemoval);
-    }
+        setAllNotifications(
+            notificationEngine.getAll()
+        );
+    }, []);
 
     useEffect(() => {
-        function handleToastEvent(event) {
-            addToasts(event?.detail || []);
-        }
+        refresh();
+
+        window.addEventListener(
+            notificationEngine.eventName,
+            refresh
+        );
 
         window.addEventListener(
             notificationEngine.toastEventName,
-            handleToastEvent
+            refresh
+        );
+
+        window.addEventListener(
+            "storage",
+            refresh
         );
 
         return () => {
             window.removeEventListener(
-                notificationEngine.toastEventName,
-                handleToastEvent
+                notificationEngine.eventName,
+                refresh
             );
 
-            timersRef.current.forEach((timer) => {
-                window.clearTimeout(timer);
-            });
+            window.removeEventListener(
+                notificationEngine.toastEventName,
+                refresh
+            );
 
-            timersRef.current.clear();
+            window.removeEventListener(
+                "storage",
+                refresh
+            );
+        };
+    }, [refresh]);
+
+    useEffect(() => {
+        function handleDrawerState(event) {
+            setTrackedDrawerOpen(
+                Boolean(
+                    event?.detail?.open
+                )
+            );
+        }
+
+        window.addEventListener(
+            "fts_tracked_drawer_state",
+            handleDrawerState
+        );
+
+        return () => {
+            window.removeEventListener(
+                "fts_tracked_drawer_state",
+                handleDrawerState
+            );
         };
     }, []);
 
-    function handleOpen(item) {
-        if (!item?.plate || item.plate === "-") {
-            removeToast(item.id);
-            return;
+    const notifications = useMemo(() => {
+        const unread =
+            allNotifications.filter(
+                (item) => !item.read
+            );
+
+        if (!hasTrackedVehicles) {
+            return unread.slice(0, 20);
         }
 
-        notificationEngine.markRead(item.id);
+        const allowedPlates = new Set(
+            trackedPlates.map(
+                normalizePlate
+            )
+        );
+
+        return unread
+            .filter((item) =>
+                allowedPlates.has(
+                    normalizePlate(
+                        item?.plate
+                    )
+                )
+            )
+            .slice(0, 20);
+    }, [
+        allNotifications,
+        trackedPlates,
+        hasTrackedVehicles,
+    ]);
+
+    const tickerItems = useMemo(() => {
+        return notifications.map((item) => ({
+            ...item,
+
+            tickerKey:
+                item.id ||
+                `${item.type}-${item.plate}-${item.ref}`,
+        }));
+    }, [notifications]);
+
+    function handleOpen(item) {
+        if (!item?.plate) return;
 
         localStorage.setItem(
             "fts_focus_plate",
             item.plate
         );
 
-        onOpenVehicle?.(item.plate);
-        removeToast(item.id);
+        window.dispatchEvent(
+            new CustomEvent(
+                "fts_notification_vehicle_open",
+                {
+                    detail: {
+                        plate: item.plate,
+                        notificationId:
+                            item.id,
+                    },
+                }
+            )
+        );
     }
 
-    if (toasts.length === 0) return null;
+    function dismiss(item, event) {
+        event.stopPropagation();
+
+        if (item?.id) {
+            notificationEngine.remove(
+                item.id
+            );
+        }
+
+        refresh();
+    }
+
+    function hideVisibleNotifications() {
+        const visibleIds = new Set(
+            tickerItems
+                .map((item) => item.id)
+                .filter(Boolean)
+        );
+
+        notificationEngine
+            .getAll()
+            .forEach((item) => {
+                if (
+                    visibleIds.has(item.id) &&
+                    !item.read
+                ) {
+                    notificationEngine.markRead(
+                        item.id
+                    );
+                }
+            });
+
+        refresh();
+    }
+
+    if (
+        tickerItems.length === 0 ||
+        trackedDrawerOpen
+    ) {
+        return null;
+    }
 
     return (
-        <div
-            className="notification-toasts"
-            aria-live="polite"
-        >
-            {toasts.map((item) => (
-                <article
-                    key={item.id}
-                    className={`notification-toast ${item.level || ""
-                        }`}
-                >
-                    <button
-                        type="button"
-                        className="notification-toast-main"
-                        onClick={() => handleOpen(item)}
-                    >
-                        <div className="notification-toast-icon">
-                            {getIcon(item)}
-                        </div>
+        <div className="notification-ticker">
+            <div className="notification-ticker-label">
+                <span className="notification-ticker-pulse" />
 
-                        <div className="notification-toast-content">
-                            <span>{item.plate}</span>
-                            <strong>{item.title}</strong>
-                            <p>{item.message}</p>
-                        </div>
-                    </button>
+                <strong>
+                    CANLI ALARMLAR
+                </strong>
 
-                    <button
-                        type="button"
-                        className="notification-toast-close"
-                        onClick={() =>
-                            removeToast(item.id)
-                        }
-                        aria-label="Bildirimi kapat"
-                    >
-                        ×
-                    </button>
-                </article>
-            ))}
+                <em>
+                    {tickerItems.length}
+                </em>
+            </div>
+
+            <div className="notification-ticker-viewport">
+                <div className="notification-ticker-track">
+                    {[
+                        ...tickerItems,
+                        ...tickerItems,
+                    ].map((item, index) => (
+                        <button
+                            key={`${item.tickerKey}-${index}`}
+                            type="button"
+                            className={[
+                                "notification-ticker-item",
+                                item.level ||
+                                    "info",
+                            ]
+                                .filter(
+                                    Boolean
+                                )
+                                .join(" ")}
+                            onClick={() =>
+                                handleOpen(item)
+                            }
+                        >
+                            <span className="notification-ticker-icon">
+                                {getIcon(
+                                    item.level
+                                )}
+                            </span>
+
+                            <strong>
+                                {item.plate ||
+                                    "-"}
+                            </strong>
+
+                            <span>
+                                {item.title ||
+                                    "Bildirim"}
+                            </span>
+
+                            {item.message && (
+                                <small>
+                                    {
+                                        item.message
+                                    }
+                                </small>
+                            )}
+
+                            <time>
+                                {formatTime(
+                                    item.createdAt
+                                )}
+                            </time>
+
+                            <span
+                                role="button"
+                                tabIndex={0}
+                                className="notification-ticker-close"
+                                onClick={(
+                                    event
+                                ) =>
+                                    dismiss(
+                                        item,
+                                        event
+                                    )
+                                }
+                                onKeyDown={(
+                                    event
+                                ) => {
+                                    if (
+                                        event.key ===
+                                            "Enter" ||
+                                        event.key ===
+                                            " "
+                                    ) {
+                                        dismiss(
+                                            item,
+                                            event
+                                        );
+                                    }
+                                }}
+                                aria-label="Bildirimi kapat"
+                            >
+                                ×
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <button
+                type="button"
+                className="notification-ticker-clear"
+                onClick={
+                    hideVisibleNotifications
+                }
+            >
+                Görünenleri Gizle
+            </button>
         </div>
     );
 }

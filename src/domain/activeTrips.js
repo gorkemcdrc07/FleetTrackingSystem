@@ -2,6 +2,10 @@ export const ALLOWED_WORKING_TYPES = [
     "FİLO",
     "DENTAŞ ÇORLU KİRALIK",
     "PEPSİ KİRALIK",
+    "DENTAŞ ESKİŞEHİR KİRALIK",
+    "ES GLOBAL FİLO",
+    "GOLD HARVEST KİRALIK",
+    "MODERN AMBALAJ FİLO",
 ];
 
 function split(value) {
@@ -59,10 +63,19 @@ export function createRouteDetails(row) {
     return [...loadingStops, ...deliveryStops];
 }
 
+function normalizeWorkingType(value) {
+    return String(value || "")
+        .toLocaleUpperCase("tr-TR")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+const ALLOWED_WORKING_TYPE_SET = new Set(
+    ALLOWED_WORKING_TYPES.map(normalizeWorkingType)
+);
+
 export function isAllowedWorkingType(value) {
-    return ALLOWED_WORKING_TYPES.includes(
-        String(value || "").toLocaleUpperCase("tr-TR").trim()
-    );
+    return ALLOWED_WORKING_TYPE_SET.has(normalizeWorkingType(value));
 }
 
 export function prepareActiveTrips(rows, { completed, passive }) {

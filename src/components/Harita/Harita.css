@@ -574,6 +574,400 @@
     .arac-tech-card strong {
         color: #0f172a;
     }
+/* =========================================================
+   FLEET MAP PRO
+========================================================= */
+
+.harita-shell {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 22px;
+    background: #e2e8f0;
+    isolation: isolate;
+}
+
+    .harita-shell.is-fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        border: 0;
+        border-radius: 0;
+        background: #0f172a;
+    }
+
+.harita-map-area {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+}
+
+.harita-toolbar-pro + .harita-map-area {
+    height: calc(100% - 70px);
+}
+
+.harita-map {
+    width: 100%;
+    height: 100%;
+    min-height: inherit;
+    z-index: 1;
+}
+
+/* Toolbar */
+
+.harita-toolbar-pro {
+    position: relative;
+    z-index: 1000;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    background: radial-gradient( circle at top right, rgba(99, 102, 241, 0.12), transparent 40% ), rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(16px);
+}
+
+.harita-toolbar-identity {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+    .harita-toolbar-identity > div:last-child {
+        min-width: 0;
+    }
+
+    .harita-toolbar-identity strong {
+        display: block;
+        overflow: hidden;
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .harita-toolbar-identity span {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.harita-live-indicator {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #bbf7d0;
+    border-radius: 13px;
+    background: #f0fdf4;
+}
+
+    .harita-live-indicator i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.13);
+        animation: fleetMapLivePulse 1.6s infinite;
+    }
+
+@keyframes fleetMapLivePulse {
+    50% {
+        box-shadow: 0 0 0 11px rgba(34, 197, 94, 0);
+    }
+}
+
+.harita-toolbar-actions {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.harita-tool-button,
+.harita-fullscreen-button {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    box-sizing: border-box;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 11px;
+    background: #f8fafc;
+    color: #475569;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+    .harita-tool-button span {
+        font-size: 14px;
+    }
+
+    .harita-tool-button b {
+        font-size: 10px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .harita-tool-button:hover,
+    .harita-fullscreen-button:hover {
+        transform: translateY(-1px);
+        border-color: #c7d2fe;
+        background: #eef2ff;
+        color: #3730a3;
+    }
+
+    .harita-tool-button.active {
+        border-color: #a5b4fc;
+        background: #eef2ff;
+        color: #3730a3;
+    }
+
+.harita-fullscreen-button {
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Tema seçimi */
+
+.harita-theme-select {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 9px;
+    background: #f8fafc;
+}
+
+    .harita-theme-select > span {
+        color: #94a3b8;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .harita-theme-select select {
+        min-width: 84px;
+        height: 34px;
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: #334155;
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+/* Alt durum çubuğu */
+
+.harita-status-bar {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 9px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+    backdrop-filter: blur(12px);
+}
+
+    .harita-status-bar > div {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        font-size: 9px;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+        .harita-status-bar > div + div {
+            padding-left: 7px;
+            border-left: 1px solid #e2e8f0;
+        }
+
+    .harita-status-bar strong {
+        color: #15803d;
+        font-size: 9px;
+    }
+
+.harita-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+}
+
+/* Leaflet düzenlemeleri */
+
+.harita-shell .leaflet-control-zoom {
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.94) !important;
+    border-radius: 13px !important;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14) !important;
+}
+
+    .harita-shell .leaflet-control-zoom a {
+        width: 36px !important;
+        height: 36px !important;
+        display: grid !important;
+        place-items: center !important;
+        border: 0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #334155 !important;
+        font-size: 18px !important;
+        line-height: 1 !important;
+    }
+
+        .harita-shell .leaflet-control-zoom a:last-child {
+            border-bottom: 0 !important;
+        }
+
+        .harita-shell .leaflet-control-zoom a:hover {
+            background: #eef2ff !important;
+            color: #3730a3 !important;
+        }
+
+.harita-shell .leaflet-control-scale-line {
+    border: 1px solid rgba(15, 23, 42, 0.7);
+    border-top: 0;
+    background: rgba(255, 255, 255, 0.82);
+    color: #0f172a;
+    font-size: 9px;
+    font-weight: 800;
+    backdrop-filter: blur(8px);
+}
+
+.harita-shell .leaflet-control-attribution {
+    max-width: 55vw;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.76) !important;
+    color: #64748b;
+    font-size: 8px !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+}
+
+/* Koyu tema kontrol uyumu */
+
+.harita-shell.theme-koyu .harita-status-bar {
+    border-color: rgba(71, 85, 105, 0.9);
+    background: rgba(15, 23, 42, 0.9);
+}
+
+    .harita-shell.theme-koyu .harita-status-bar > div {
+        color: #cbd5e1;
+    }
+
+        .harita-shell.theme-koyu
+        .harita-status-bar > div + div {
+            border-left-color: #475569;
+        }
+
+/* Tam ekran */
+
+.harita-shell.is-fullscreen .harita-toolbar-pro {
+    min-height: 74px;
+}
+
+.harita-shell.is-fullscreen .harita-map-area {
+    height: calc(100vh - 74px);
+}
+
+.harita-shell.is-fullscreen .harita-status-bar {
+    right: 18px;
+    bottom: 18px;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+    .harita-toolbar-pro {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .harita-toolbar-actions {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+    }
+
+        .harita-toolbar-actions::-webkit-scrollbar {
+            display: none;
+        }
+
+    .harita-toolbar-pro + .harita-map-area {
+        height: calc(100% - 118px);
+    }
+
+    .harita-shell.is-fullscreen .harita-map-area {
+        height: calc(100vh - 118px);
+    }
+}
+
+@media (max-width: 600px) {
+    .harita-tool-button b,
+    .harita-theme-select > span {
+        display: none;
+    }
+
+    .harita-tool-button {
+        width: 40px;
+        min-width: 40px;
+        padding: 0;
+    }
+
+    .harita-theme-select select {
+        min-width: 78px;
+    }
+
+    .harita-status-bar {
+        right: 8px;
+        bottom: 8px;
+    }
+
+        .harita-status-bar > div:nth-child(2),
+        .harita-status-bar > div:nth-child(3) {
+            display: none;
+        }
+
+    .harita-shell .leaflet-control-attribution {
+        max-width: 70vw;
+    }
+}
 
 @media (max-width: 900px) {
     .arac-ozet-grid,
@@ -591,3 +985,19 @@
         height: 360px;
     }
 }
+
+/* v31 - follow application light/dark theme */
+:root[data-theme="dark"] .harita-shell .harita-toolbar-pro{border-bottom-color:#273247!important;background:radial-gradient(circle at top right,rgba(124,108,255,.16),transparent 42%),rgba(15,22,33,.97)!important}
+:root[data-theme="dark"] .harita-shell .harita-toolbar-identity strong{color:#f5f7fb!important}
+:root[data-theme="dark"] .harita-shell .harita-toolbar-identity span{color:#98a2b3!important}
+:root[data-theme="dark"] .harita-shell .harita-live-indicator{border-color:#235b4c!important;background:#102921!important}
+:root[data-theme="dark"] .harita-shell :is(.harita-tool-button,.harita-fullscreen-button,.harita-theme-select){background:#121925!important;border-color:#2b374b!important;color:#dbe0ea!important}
+:root[data-theme="dark"] .harita-shell .harita-tool-button:hover,:root[data-theme="dark"] .harita-shell .harita-fullscreen-button:hover,:root[data-theme="dark"] .harita-shell .harita-tool-button.active{background:#292d50!important;border-color:#6f67d9!important;color:#f1efff!important}
+:root[data-theme="dark"] .harita-shell .harita-theme-select>span{color:#7f8a9e!important}
+:root[data-theme="dark"] .harita-shell .harita-theme-select select{color:#e7eaf2!important;color-scheme:dark}
+:root[data-theme="dark"] .harita-shell .harita-status-bar{background:rgba(15,22,33,.92)!important;border-color:#344158!important}
+:root[data-theme="dark"] .harita-shell .harita-status-bar>div{color:#c7cedb!important}
+:root[data-theme="dark"] .harita-shell .leaflet-control-zoom{border-color:#344158!important}
+:root[data-theme="dark"] .harita-shell .leaflet-control-zoom a{background:#141b28!important;color:#e7eaf2!important;border-color:#344158!important}
+:root[data-theme="dark"] .harita-shell .leaflet-control-zoom a:hover{background:#292d50!important;color:#fff!important}
+:root[data-theme="dark"] .harita-shell .leaflet-control-attribution{background:rgba(15,22,33,.82)!important;color:#98a2b3!important}

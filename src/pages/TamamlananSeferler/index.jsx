@@ -1,7 +1,9 @@
-﻿// TamamlananSeferler.jsx
+import { Columns3, SlidersHorizontal, X, Search, ChevronDown, RefreshCw, Pencil, ArrowUpDown, Truck, Clock3, Weight, TriangleAlert, TrendingUp, CircleCheck, CircleAlert, Download, ChevronLeft, ChevronRight, Rows3, CalendarDays, FolderKanban, UserRoundCheck, RotateCcw, Copy, Sparkles } from "lucide-react";
+// TamamlananSeferler.jsx
 import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { supabase } from "../../supabaseClient";
 import "./TamamlananSeferler.css";
+import "./CompletedModern.css";
 import SutunDuzeni from "../AktifSeferler/Gorunum/SutunDuzeni";
 import * as XLSX from "xlsx-js-style";
 
@@ -115,151 +117,21 @@ function getRowKey(row) {
 
 /* ---------------------------------- İkonlar ---------------------------------- */
 
-function IconColumns() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
-            <path d="M9 4v16M15 4v16" stroke="currentColor" strokeWidth="2" />
-        </svg>
-    );
-}
-
-function IconFilter() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M4 5h16l-6 8v6l-4-2v-4L4 5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconX() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconSearch() {
-    return (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-            <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconChevronDown() {
-    return (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconRefresh({ spinning }) {
-    return (
-        <svg
-            className={spinning ? "spin-icon" : ""}
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-        >
-            <path
-                d="M20 11A8 8 0 1 0 18.5 16.5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-            <path d="M20 5v6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconEdit() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconSort({ direction }) {
-    return (
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className={`sort-icon-svg ${direction || ""}`}>
-            <path d="M7 10l5-6 5 6" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" className="sort-arrow up" />
-            <path d="M7 14l5 6 5-6" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" className="sort-arrow down" />
-        </svg>
-    );
-}
-
-function IconTruck() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="7" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="2" />
-            <path d="M14 10h4l3 3v3h-7z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            <circle cx="7" cy="18" r="1.6" stroke="currentColor" strokeWidth="1.8" />
-            <circle cx="17.5" cy="18" r="1.6" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
-    );
-}
-
-function IconClock() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconWeight() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="6" r="2.6" stroke="currentColor" strokeWidth="2" />
-            <path d="M7.5 10h9l2 10h-13z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconAlertTriangle() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 4 2 20h20L12 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M12 10v4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="12" cy="17.4" r="0.9" fill="currentColor" />
-        </svg>
-    );
-}
-
-function IconTrendUp() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M3 16l6-6 4 4 8-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M15 5h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconCheckCircle() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-            <path d="M8 12.5l2.6 2.6L16 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconAlertCircle() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 8v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="12" cy="16.2" r="0.9" fill="currentColor" />
-        </svg>
-    );
-}
+const IconColumns=()=> <Columns3 size={16}/>;
+const IconFilter=()=> <SlidersHorizontal size={16}/>;
+const IconX=()=> <X size={16}/>;
+const IconSearch=()=> <Search size={17}/>;
+const IconChevronDown=()=> <ChevronDown size={15}/>;
+const IconRefresh=({spinning})=> <RefreshCw size={16} className={spinning?'spin-icon':''}/>;
+const IconEdit=()=> <Pencil size={14}/>;
+const IconSort=({direction})=> <ArrowUpDown size={12} className={direction?'sort-active':''}/>;
+const IconTruck=()=> <Truck size={21}/>;
+const IconClock=()=> <Clock3 size={21}/>;
+const IconWeight=()=> <Weight size={21}/>;
+const IconAlertTriangle=()=> <TriangleAlert size={21}/>;
+const IconTrendUp=()=> <TrendingUp size={21}/>;
+const IconCheckCircle=()=> <CircleCheck size={18}/>;
+const IconAlertCircle=()=> <CircleAlert size={18}/>;
 
 function EtaBadge({ delayed }) {
     return (
@@ -740,7 +612,7 @@ function EditSeferModal({ row, saving, onClose, onSave }) {
     }
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="edit-modal edit-modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label="Sefer düzenle" className="edit-modal edit-modal-wide" onClick={(e) => e.stopPropagation()}>
                 <div className="edit-modal-header">
                     <div>
                         <span className="edit-modal-eyebrow">Sefer Düzenle</span>
@@ -1080,12 +952,14 @@ async function enrichEta(row) {
 
 function TamamlananSeferler() {
     const [rows, setRows] = useState([]);
+    const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(() => Number(localStorage.getItem("tamamlananPageSize")) || 25),[compact,setCompact]=useState(() => localStorage.getItem("tamamlananCompact") === "1");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [onlyEtaMismatch, setOnlyEtaMismatch] = useState(false);
+    const [projectFilter, setProjectFilter] = useState("");
     const [expandedRows, setExpandedRows] = useState({});
     const [showFilters, setShowFilters] = useState(false);
     const [columnFilters, setColumnFilters] = useState({});
@@ -1131,6 +1005,19 @@ function TamamlananSeferler() {
             return defaultKeys;
         }
     });
+
+
+    useEffect(() => { localStorage.setItem("tamamlananPageSize", String(pageSize)); }, [pageSize]);
+    useEffect(() => { localStorage.setItem("tamamlananCompact", compact ? "1" : "0"); }, [compact]);
+
+    const applyDatePreset = useCallback((preset) => {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        if (preset === "today") { setStartDate(fmt(now)); setEndDate(fmt(now)); }
+        if (preset === "7d") { const d = new Date(now); d.setDate(d.getDate()-6); setStartDate(fmt(d)); setEndDate(fmt(now)); }
+        if (preset === "month") { const d = new Date(now.getFullYear(), now.getMonth(), 1); setStartDate(fmt(d)); setEndDate(fmt(now)); }
+    }, []);
 
     /* ------------------------------- Toast yardımcıları ------------------------------- */
 
@@ -1247,6 +1134,25 @@ function TamamlananSeferler() {
         return Number((total / delayed.length).toFixed(1));
     }, [rows]);
 
+    const projectStats = useMemo(() => {
+        const map = new Map();
+        rows.forEach((r) => {
+            const name = String(r.proje_adi || "Projesiz").trim() || "Projesiz";
+            map.set(name, (map.get(name) || 0) + 1);
+        });
+        return Array.from(map.entries()).map(([name,count]) => ({ name, count })).sort((a,b) => b.count-a.count || a.name.localeCompare(b.name, "tr-TR"));
+    }, [rows]);
+
+    const completedTodayCount = useMemo(() => {
+        const today = new Date();
+        return rows.filter((r) => {
+            const d = parseDate(r.tamamlanma_tarihi || r.sefer_tarihi);
+            return d && d.toDateString() === today.toDateString();
+        }).length;
+    }, [rows]);
+
+    const uniqueDriverCount = useMemo(() => new Set(rows.map(r => String(r.surucu_ad_soyad || "").trim()).filter(Boolean)).size, [rows]);
+
     // Araç statü sütunu için mevcut verideki benzersiz değerlerden dinamik seçenek listesi.
     const aracStatuOptions = useMemo(() => {
         return Array.from(new Set(rows.map((r) => r.arac_statu).filter(Boolean))).sort((a, b) =>
@@ -1259,7 +1165,7 @@ function TamamlananSeferler() {
         [columnFilters]
     );
 
-    const activeFilterCount = activeColumnFilterEntries.length + (globalSearch ? 1 : 0);
+    const activeFilterCount = activeColumnFilterEntries.length + (globalSearch ? 1 : 0) + (projectFilter ? 1 : 0) + (onlyEtaMismatch ? 1 : 0);
 
     const filteredRows = useMemo(() => {
         return rows.filter((row) => {
@@ -1274,6 +1180,7 @@ function TamamlananSeferler() {
             }
 
             if (onlyEtaMismatch && !row.eta_gecikme) return false;
+            if (projectFilter && String(row.proje_adi || "Projesiz").trim() !== projectFilter) return false;
 
             if (!matchGlobalSearch(row, globalSearch)) return false;
 
@@ -1284,7 +1191,7 @@ function TamamlananSeferler() {
 
             return true;
         });
-    }, [rows, startDate, endDate, onlyEtaMismatch, activeColumnFilterEntries, globalSearch]);
+    }, [rows, startDate, endDate, onlyEtaMismatch, projectFilter, activeColumnFilterEntries, globalSearch]);
 
     const sortedRows = useMemo(() => {
         if (!sortConfig.key) return filteredRows;
@@ -1305,6 +1212,11 @@ function TamamlananSeferler() {
 
         return copy;
     }, [filteredRows, sortConfig]);
+
+    const pageCount=Math.max(1,Math.ceil(sortedRows.length/pageSize));
+    const currentPage=Math.min(page,pageCount);
+    const pageRows=sortedRows.slice((currentPage-1)*pageSize,currentPage*pageSize);
+    useEffect(()=>{setPage(1);},[startDate,endDate,globalSearch,columnFilters,onlyEtaMismatch,projectFilter,pageSize,sortConfig]);
 
     const selectedCount = useMemo(
         () => Object.values(selectedIds).filter(Boolean).length,
@@ -1786,52 +1698,34 @@ function TamamlananSeferler() {
     }
 
     return (
-        <div className="tamamlanan-page">
+        <div className={`tamamlanan-page completed-modern ${compact?"completed-compact":""}`}>
             <ToastStack toasts={toasts} onDismiss={dismissToast} />
 
             <div className="tamamlanan-header">
                 <div className="tamamlanan-title-area">
-                    <span className="tamamlanan-eyebrow">Operasyon Yönetimi</span>
-                    <h1>Tamamlanan Seferler</h1>
+                    <span className="tamamlanan-eyebrow">OPERASYON / SEFER ARŞİVİ</span>
+                    <h1>Tamamlanan Seferler</h1><p>Teslim edilen seferleri inceleyin, performansı karşılaştırın ve raporlayın.</p>
                 </div>
 
                 <div className="tamamlanan-stats">
-                    <div className="stat-card">
-                        <span className="stat-icon-wrap"><IconTruck /></span>
-                        <strong>{filteredRows.length}</strong>
-                        <span>Toplam Sefer</span>
-                    </div>
-
-                    <div className="stat-card danger">
-                        <span className="stat-icon-wrap"><IconClock /></span>
-                        <strong>{delayedCount}</strong>
-                        <span>ETA Gecikmiş</span>
-                    </div>
-
-                    <div className="stat-card warning">
-                        <span className="stat-icon-wrap"><IconWeight /></span>
-                        <strong>{tonajCount}</strong>
-                        <span>Tonajlı</span>
-                    </div>
-
-                    <div className="stat-card danger">
-                        <span className="stat-icon-wrap"><IconAlertTriangle /></span>
-                        <strong>{ikazCount}</strong>
-                        <span>İkazlı</span>
-                    </div>
-
-                    <div className="stat-card info">
-                        <span className="stat-icon-wrap"><IconTrendUp /></span>
-                        <strong>{avgDelayDays}</strong>
-                        <span>Ort. Gecikme (Gün)</span>
-                    </div>
+                    <div className="stat-card"><span className="stat-icon-wrap"><IconTruck /></span><strong>{rows.length}</strong><span>Toplam tamamlanan</span></div>
+                    <div className="stat-card info"><span className="stat-icon-wrap"><CircleCheck size={21}/></span><strong>{completedTodayCount}</strong><span>Bugün tamamlanan</span></div>
+                    <div className="stat-card danger"><span className="stat-icon-wrap"><IconClock /></span><strong>{delayedCount}</strong><span>ETA gecikmiş</span></div>
+                    <div className="stat-card warning"><span className="stat-icon-wrap"><IconWeight /></span><strong>{tonajCount}</strong><span>Tonajlı sefer</span></div>
+                    <div className="stat-card"><span className="stat-icon-wrap"><UserRoundCheck size={21}/></span><strong>{uniqueDriverCount}</strong><span>Aktif sürücü</span></div>
+                    <div className="stat-card danger"><span className="stat-icon-wrap"><IconAlertTriangle /></span><strong>{ikazCount}</strong><span>İkazlı sefer</span></div>
                 </div>
             </div>
 
             <div className="tamamlanan-toolbar">
                 <div className="date-filter">
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    <label>Başlangıç<input aria-label="Başlangıç tarihi" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></label>
+                    <label>Bitiş<input aria-label="Bitiş tarihi" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></label>
+                </div>
+                <div className="completed-date-presets">
+                    <button type="button" onClick={() => applyDatePreset("today")}><CalendarDays size={14}/>Bugün</button>
+                    <button type="button" onClick={() => applyDatePreset("7d")}>Son 7 gün</button>
+                    <button type="button" onClick={() => applyDatePreset("month")}>Bu ay</button>
                 </div>
 
                 <div className={`global-search-wrap ${globalSearch ? "is-active" : ""}`}>
@@ -1840,7 +1734,7 @@ function TamamlananSeferler() {
                     </span>
                     <input
                         type="text"
-                        placeholder="Tüm sütunlarda ara..."
+                        aria-label="Tamamlanan seferlerde ara" placeholder="Sefer, plaka, sürücü veya müşteri ara…"
                         value={globalSearch}
                         onChange={(e) => setGlobalSearch(e.target.value)}
                     />
@@ -1866,31 +1760,13 @@ function TamamlananSeferler() {
                     Yenile
                 </button>
 
-                <button
-                    className={`listele-btn ${onlyEtaMismatch ? "danger-btn" : ""}`}
-                    type="button"
-                    onClick={() => {
-                        if (!onlyEtaMismatch) {
-                            setOnlyEtaMismatch(true);
-                            return;
-                        }
-
-                        const exported = exportEtaMismatchToExcel();
-
-                        if (exported) {
-                            setOnlyEtaMismatch(false);
-                        }
-                    }}
-                >
-                    {onlyEtaMismatch ? "ETA Raporunu Al" : "ETA Uyumsuzlukları Göster"}
-                </button>
-
+                <button className="listele-btn eta-report-btn" type="button" onClick={exportEtaMismatchToExcel}><Clock3 size={16}/> ETA raporu</button>
                 <button
                     className="listele-btn success-btn"
                     type="button"
                     onClick={exportAllToExcel}
                 >
-                    Excel'e Aktar
+                    <Download size={16}/> Excel'e Aktar
                 </button>
 
                 <button
@@ -1913,6 +1789,14 @@ function TamamlananSeferler() {
                 </button>
             </div>
 
+            <section className="completed-project-strip">
+                <div className="completed-section-heading"><div><FolderKanban size={18}/><span><b>Proje dağılımı</b><small>Projeye tıklayarak tabloyu anında daraltın.</small></span></div>{projectFilter && <button type="button" onClick={() => setProjectFilter("")}><RotateCcw size={14}/>Tüm projeler</button>}</div>
+                <div className="completed-project-chips">
+                    <button type="button" className={!projectFilter ? "active" : ""} onClick={() => setProjectFilter("")}><span>Tüm projeler</span><b>{rows.length}</b></button>
+                    {projectStats.map((item) => <button type="button" key={item.name} className={projectFilter===item.name ? "active" : ""} onClick={() => setProjectFilter(projectFilter===item.name ? "" : item.name)}><span>{item.name}</span><b>{item.count}</b></button>)}
+                </div>
+            </section>
+
             {selectedCount > 0 && (
                 <div className="bulk-actions-bar">
                     <span className="bulk-actions-label">
@@ -1930,6 +1814,8 @@ function TamamlananSeferler() {
             {showFilters && activeFilterCount > 0 && (
                 <div className="active-filters-bar">
                     <span className="active-filters-label">Aktif filtreler:</span>
+                    {projectFilter && <span className="filter-chip">Proje: <b>{projectFilter}</b><button type="button" onClick={() => setProjectFilter("")}><IconX /></button></span>}
+                    {onlyEtaMismatch && <span className="filter-chip">ETA: <b>Gecikmeler</b><button type="button" onClick={() => setOnlyEtaMismatch(false)}><IconX /></button></span>}
                     {globalSearch && (
                         <span className="filter-chip">
                             Genel Arama: <b>{globalSearch}</b>
@@ -1955,6 +1841,10 @@ function TamamlananSeferler() {
                         onClick={() => {
                             clearColumnFilters();
                             setGlobalSearch("");
+                            setProjectFilter("");
+                            setOnlyEtaMismatch(false);
+                            setStartDate("");
+                            setEndDate("");
                         }}
                     >
                         Tümünü Temizle
@@ -1963,6 +1853,8 @@ function TamamlananSeferler() {
             )}
 
             <div className="tamamlanan-card">
+                <div className="completed-viewbar"><div className="completed-tabs"><button aria-pressed={!onlyEtaMismatch} className={!onlyEtaMismatch?'active':''} onClick={()=>setOnlyEtaMismatch(false)}>Tüm seferler <span>{rows.length}</span></button><button aria-pressed={onlyEtaMismatch} className={onlyEtaMismatch?'active':''} onClick={()=>setOnlyEtaMismatch(true)}>ETA gecikmeleri <span>{delayedCount}</span></button></div><div className="completed-view-actions"><span className="completed-result-pill">{filteredRows.length} kayıt</span><button className="completed-density" aria-pressed={compact} onClick={()=>setCompact(v=>!v)}><Rows3 size={16}/>{compact?'Kompakt':'Rahat'}</button></div></div>
+                <div className="completed-table-caption"><span><Sparkles size={14}/> Satıra tıklayınca rota/zaman akışı açılır. Sütun başlıklarıyla sıralayabilirsiniz.</span><span>Üst seçim kutusu filtrelenen tüm seferleri seçer.</span></div>
                 <div className="table-wrapper">
                     <table className="tamamlanan-table">
                         <colgroup>
@@ -1999,12 +1891,12 @@ function TamamlananSeferler() {
                                             ].filter(Boolean).join(" ")}
                                             style={col.sticky ? { left: col.left } : undefined}
                                         >
-                                            <span className="th-label-btn" onClick={() => requestSort(col.key)}>
+                                            <button type="button" className="th-label-btn" onClick={() => requestSort(col.key)}>
                                                 <span>{col.label}</span>
                                                 <span className="sort-icon">
                                                     <IconSort direction={isSorted ? sortConfig.direction : null} />
                                                 </span>
-                                            </span>
+                                            </button>
                                             <span className="column-resizer" onMouseDown={(e) => startResize(e, col)} />
                                         </th>
                                     );
@@ -2071,7 +1963,7 @@ function TamamlananSeferler() {
                                 </tr>
                             )}
 
-                            {!loading && sortedRows.map((row) => {
+                            {!loading && pageRows.map((row) => {
                                 const rowId = getRowKey(row);
                                 const isSelected = Boolean(selectedIds[rowId]);
 
@@ -2129,6 +2021,7 @@ function TamamlananSeferler() {
                 </div>
             </div>
 
+            <nav className="completed-pagination" aria-label="Sefer sayfaları"><span>{sortedRows.length?`${(currentPage-1)*pageSize+1}–${Math.min(currentPage*pageSize,sortedRows.length)}`:'0'} / {sortedRows.length} sefer</span><div><label>Sayfada <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>{[25,50,100].map(n=><option key={n}>{n}</option>)}</select></label><button aria-label="Önceki sayfa" disabled={currentPage===1} onClick={()=>setPage(currentPage-1)}><ChevronLeft size={17}/></button><span>{currentPage} / {pageCount}</span><button aria-label="Sonraki sayfa" disabled={currentPage===pageCount} onClick={()=>setPage(currentPage+1)}><ChevronRight size={17}/></button></div></nav>
             {showSutunDuzeni && (
                 <SutunDuzeni
                     columns={orderedColumns}

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     MapContainer,
     TileLayer,
@@ -17,10 +17,47 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { mobilizService } from "../services/mobiliz";
+import {
+    Activity,
+    CalendarDays,
+    CarFront,
+    ChevronLeft,
+    ChevronRight,
+    CircleGauge,
+    Clock3,
+    Gauge,
+    LocateFixed,
+    MapPinned,
+    Navigation,
+    Pause,
+    Play,
+    RefreshCw,
+    RotateCcw,
+    Route,
+    TimerReset,
+    Download,
+    CalendarClock,
+    ExternalLink,
+} from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./Playback.css";
 
 const MAP_CENTER = [39.0, 35.0];
+
+function toLocalDateInput(value = new Date()) {
+    const date = new Date(value);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function shiftDate(days) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return toLocalDateInput(date);
+}
+
 
 const truckIcon = L.divIcon({
     className: "playback-truck-marker",
@@ -175,7 +212,7 @@ export default function Playback() {
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicleFromDrawer, setSelectedVehicleFromDrawer] = useState(null);
     const [plate, setPlate] = useState("");
-    const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [date, setDate] = useState(() => toLocalDateInput());
     const [route, setRoute] = useState([]);
     const [index, setIndex] = useState(0);
     const [speed, setSpeed] = useState(1);
@@ -246,12 +283,12 @@ export default function Playback() {
             setPlaying(false);
             setIndex(0);
 
-            const start = `${targetDate}T00:00:00+0000`;
-            const end = `${targetDate}T23:59:59+0000`;
+            const start = `${targetDate}T00:00:00+0300`;
+            const end = `${targetDate}T23:59:59+0300`;
 
             const data = await mobilizService.rotaDetayi(targetPlate, start, end);
 
-            const points = data
+            const points = (Array.isArray(data) ? data : [])
                 .map(getPoint)
                 .filter(Boolean)
                 .sort(
@@ -273,7 +310,7 @@ export default function Playback() {
             }
         } catch (err) {
             console.error(err);
-            setError("Playback verisi alınamadı.");
+            setError(err?.message || "Playback verisi alınamadı.");
         } finally {
             setLoading(false);
         }
@@ -329,18 +366,55 @@ export default function Playback() {
         return () => clearInterval(timerRef.current);
     }, [playing, route, speed]);
 
+
+    function exportRouteCsv() {
+        if (!route.length) return;
+
+        const rows = [
+            ["Plaka", "Tarih", "Hız (km/h)", "Enlem", "Boylam", "Adres"],
+            ...route.map((point) => [
+                plate,
+                formatDate(point.date),
+                point.speed,
+                point.lat,
+                point.lng,
+                String(point.address || "").replace(/;/g, ","),
+            ]),
+        ];
+
+        const csv = "\ufeff" + rows.map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `playback-${plate || "arac"}-${date}.csv`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function openCurrentPointInMaps() {
+        if (!selectedPoint) return;
+        window.open(`https://www.google.com/maps?q=${selectedPoint.lat},${selectedPoint.lng}`, "_blank", "noopener,noreferrer");
+    }
+
     return (
         <div className="playback-page">
             <div className="playback-head">
                 <div>
-                    <span>Geçmiş Rota Oynatma</span>
+                    <span className="playback-eyebrow"><Route size={14} /> Geçmiş Rota Oynatma</span>
                     <h1>Playback</h1>
-                    <p>Araçların geçmiş konumlarını harita üzerinde oynat.</p>
+                    <p>Araçların günlük rota geçmişini, hızını ve duraklamalarını tek ekrandan inceleyin.</p>
                 </div>
 
-                <button onClick={() => loadPlayback()} disabled={loading || !plate}>
-                    {loading ? "Rota Yükleniyor..." : "Rotayı Getir"}
-                </button>
+                <div className="playback-head-actions">
+                    <button className="playback-secondary-btn" type="button" onClick={exportRouteCsv} disabled={!route.length}>
+                        <Download size={16} /> CSV Dışa Aktar
+                    </button>
+                    <button className="playback-primary-btn" onClick={() => loadPlayback()} disabled={loading || !plate}>
+                        <RefreshCw size={16} className={loading ? "is-spinning" : ""} />
+                        {loading ? "Rota Yükleniyor..." : "Rotayı Getir"}
+                    </button>
+                </div>
             </div>
 
             {selectedVehicleFromDrawer && (
@@ -372,7 +446,7 @@ export default function Playback() {
 
             <div className="playback-toolbar">
                 <label>
-                    Araç
+                    <span className="playback-field-label"><CarFront size={14} /> Araç</span>
                     <select
                         value={plate}
                         onChange={(e) => {
@@ -392,16 +466,20 @@ export default function Playback() {
                 </label>
 
                 <label>
-                    Tarih
+                    <span className="playback-field-label"><CalendarDays size={14} /> Tarih</span>
                     <input
                         type="date"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
                     />
+                    <div className="playback-date-shortcuts">
+                        <button type="button" onClick={() => setDate(shiftDate(-1))}>Dün</button>
+                        <button type="button" onClick={() => setDate(shiftDate(0))}>Bugün</button>
+                    </div>
                 </label>
 
                 <label>
-                    Hız
+                    <span className="playback-field-label"><Gauge size={14} /> Oynatma Hızı</span>
                     <div className="speed-buttons">
                         {[1, 2, 4, 8, 16].map((item) => (
                             <button
@@ -417,7 +495,19 @@ export default function Playback() {
                 </label>
             </div>
 
-            {error && <div className="playback-error">{error}</div>}
+            {!error && !loading && route.length > 1 && (
+                <div className="playback-success">
+                    <CalendarClock size={17} />
+                    <span>{plate} için {date} tarihli rota hazır: {route.length} GPS noktası işlendi.</span>
+                </div>
+            )}
+
+            {error && (
+                <div className="playback-error">
+                    <Activity size={17} />
+                    <span>{error}</span>
+                </div>
+            )}
 
             <div className="playback-grid">
                 <section className="playback-map-card">
@@ -511,7 +601,7 @@ export default function Playback() {
                     </MapContainer>
 
                     <div className="playback-map-floating">
-                        <span>Canlı Playback</span>
+                        <span><Navigation size={13} /> Playback Konumu</span>
                         <strong>{plate || "-"}</strong>
                         <p>{selectedPoint ? `${selectedPoint.speed} km/h` : "-"}</p>
 
@@ -527,7 +617,7 @@ export default function Playback() {
 
                 <aside className="playback-side">
                     <section>
-                        <h2>Rota Özeti</h2>
+                        <h2><MapPinned size={17} /> Rota Özeti</h2>
 
                         <div className="playback-kpi">
                             <div>
@@ -570,7 +660,7 @@ export default function Playback() {
                     </section>
 
                     <section>
-                        <h2>Oynatma</h2>
+                        <h2><TimerReset size={17} /> Oynatma</h2>
 
                         <div className="playback-timeline-info">
                             <span>
@@ -588,7 +678,7 @@ export default function Playback() {
                                 onClick={() => setIndex(0)}
                                 disabled={route.length === 0}
                             >
-                                ⏮ Baştan
+                                <RotateCcw size={15} /> Baştan
                             </button>
 
                             <button
@@ -598,7 +688,7 @@ export default function Playback() {
                                 }
                                 disabled={route.length === 0}
                             >
-                                ← Geri
+                                <ChevronLeft size={15} /> Geri
                             </button>
 
                             <button
@@ -606,7 +696,8 @@ export default function Playback() {
                                 onClick={() => setPlaying((prev) => !prev)}
                                 disabled={route.length <= 1}
                             >
-                                {playing ? "⏸ Duraklat" : "▶ Oynat"}
+                                {playing ? <Pause size={15} /> : <Play size={15} />}
+                                {playing ? "Duraklat" : "Oynat"}
                             </button>
 
                             <button
@@ -618,7 +709,7 @@ export default function Playback() {
                                 }
                                 disabled={route.length === 0}
                             >
-                                İleri →
+                                İleri <ChevronRight size={15} />
                             </button>
                         </div>
 
@@ -638,7 +729,7 @@ export default function Playback() {
                     </section>
 
                     <section>
-                        <h2>Anlık Nokta</h2>
+                        <h2><LocateFixed size={17} /> Anlık Nokta</h2>
 
                         {selectedPoint ? (
                             <div className="point-card">
@@ -648,6 +739,9 @@ export default function Playback() {
                                 <small>
                                     {selectedPoint.lat}, {selectedPoint.lng}
                                 </small>
+                                <button type="button" className="playback-point-map-btn" onClick={openCurrentPointInMaps}>
+                                    <ExternalLink size={14} /> Haritada Aç
+                                </button>
                             </div>
                         ) : (
                             <div className="playback-empty">Rota seçilmedi.</div>
@@ -655,7 +749,7 @@ export default function Playback() {
                     </section>
 
                     <section>
-                        <h2>Hız Grafiği</h2>
+                        <h2><CircleGauge size={17} /> Hız Grafiği</h2>
 
                         {speedChartData.length === 0 ? (
                             <div className="playback-empty">Grafik verisi yok.</div>
@@ -687,7 +781,7 @@ export default function Playback() {
                     </section>
 
                     <section>
-                        <h2>Duraklamalar</h2>
+                        <h2><Clock3 size={17} /> Duraklamalar</h2>
 
                         {stops.length === 0 ? (
                             <div className="playback-empty">

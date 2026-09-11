@@ -2,17 +2,41 @@ import { apiUrl } from "../config/api";
 
 const MOBILIZ_API_URL = apiUrl("/api/mobiliz");
 
+function unwrapList(data) {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== "object") return [];
+
+    const candidates = [
+        data.data,
+        data.result,
+        data.results,
+        data.items,
+        data.list,
+        data.records,
+        data.activities,
+        data.locations,
+    ];
+
+    return candidates.find(Array.isArray) || [];
+}
+
 async function request(path, options = {}) {
-    const response = await fetch(`${MOBILIZ_API_URL}${path}`, {
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {}),
-        },
-        ...options,
-    });
+    let response;
+
+    try {
+        response = await fetch(`${MOBILIZ_API_URL}${path}`, {
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+            },
+            ...options,
+        });
+    } catch (error) {
+        throw new Error(`Mobiliz servisine ulaşılamadı: ${error?.message || "bağlantı hatası"}`);
+    }
 
     const text = await response.text();
-
     let data = null;
 
     try {
@@ -25,8 +49,8 @@ async function request(path, options = {}) {
         const message =
             data?.error ||
             data?.message ||
+            data?.detail ||
             `Mobiliz isteği başarısız oldu. HTTP ${response.status}`;
-
         throw new Error(message);
     }
 
@@ -34,24 +58,22 @@ async function request(path, options = {}) {
 }
 
 export const mobilizService = {
-    araclar() {
-        return request("/activity-last");
+    async araclar() {
+        return unwrapList(await request("/activity-last"));
     },
 
-    rotaDetayi(plate, startTime, endTime) {
-        const params = new URLSearchParams({
-            plate,
-            startTime,
-            endTime,
-        });
-
-        return request(`/activity-detail?${params.toString()}`);
+    async sonKonum() {
+        return this.araclar();
     },
 
-    locations(params = {}) {
+    async rotaDetayi(plate, startTime, endTime) {
+        const params = new URLSearchParams({ plate, startTime, endTime });
+        return unwrapList(await request(`/activity-detail?${params.toString()}`));
+    },
+
+    async locations(params = {}) {
         const searchParams = new URLSearchParams(params);
-
-        return request(`/locations?${searchParams.toString()}`);
+        return unwrapList(await request(`/locations?${searchParams.toString()}`));
     },
 };
 

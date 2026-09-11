@@ -21,3 +21,26 @@ test("tamamlanan, pasif ve izin verilmeyen seferleri aktif yükten çıkarır", 
     ], { completed: new Set(["SFR-2"]), passive: new Set(["SFR-3"]) });
     assert.deepEqual(result.map((row) => row.sefer_no), ["SFR-1"]);
 });
+
+test("yeni izinli proje/çalışma tipi adlarını aktif sefere dahil eder", () => {
+    const allowed = [
+        "DENTAŞ ESKİŞEHİR KİRALIK",
+        "ES GLOBAL FİLO",
+        "GOLD HARVEST KİRALIK",
+        "MODERN AMBALAJ FİLO",
+        "  es   global   filo  ",
+    ];
+
+    const result = prepareActiveTrips(
+        allowed.map((name, index) => ({
+            sefer_no: `SFR-NEW-${index + 1}`,
+            vehicle_working_type_name: name,
+        })),
+        { completed: new Set(), passive: new Set() }
+    );
+
+    assert.deepEqual(
+        result.map((row) => row.sefer_no),
+        ["SFR-NEW-1", "SFR-NEW-2", "SFR-NEW-3", "SFR-NEW-4", "SFR-NEW-5"]
+    );
+});

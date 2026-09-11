@@ -1,4 +1,6 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { Truck, Gauge, KeyRound, MapPin, Clock3, Satellite, RefreshCw } from "lucide-react";
+import { requestJson, responseList } from "../../../services/requestJson";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Detay.css";
 import CanliHarita from "./CanliHarita";
 import { apiUrl } from "../../../config/api";
@@ -23,22 +25,15 @@ function formatDate(value) {
     return date.toLocaleString("tr-TR");
 }
 
-function getResponseList(json) {
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json?.data)) return json.data;
-    if (Array.isArray(json?.result)) return json.result;
-    if (Array.isArray(json?.items)) return json.items;
-
-    return [];
-}
-
 export default function MobilizBilgileri({ plaka }) {
     const [loading, setLoading] = useState(true);
     const [vehicle, setVehicle] = useState(null);
     const [error, setError] = useState("");
     const [lastRefresh, setLastRefresh] = useState(null);
 
-    const loadVehicle = useCallback(async () => {
+    const generation=useRef(0);
+    const loadVehicle = useCallback(async (signal) => {
+        const id=++generation.current;
         if (!plaka) {
             setVehicle(null);
             setError("Plaka bilgisi bulunamadı.");
@@ -47,40 +42,12 @@ export default function MobilizBilgileri({ plaka }) {
         }
 
         try {
-            setLoading((current) => current || !vehicle);
+            setLoading(true);
             setError("");
 
-            const response = await fetch(API_URL, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            const contentType = response.headers.get("content-type") || "";
-
-            let json;
-
-            if (contentType.includes("application/json")) {
-                json = await response.json();
-            } else {
-                const text = await response.text();
-
-                throw new Error(
-                    text || `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    json?.message ||
-                    json?.error ||
-                    `Mobiliz isteği başarısız oldu. HTTP ${response.status}`
-                );
-            }
-
-            const list = getResponseList(json);
-
+            const json=await requestJson(API_URL,{signal},{timeoutMs:25000,retries:1});
+            const list=responseList(json);
+            if(id!==generation.current)return;
             const found = list.find(
                 (item) =>
                     normalizePlate(
@@ -93,6 +60,7 @@ export default function MobilizBilgileri({ plaka }) {
             setVehicle(found || null);
             setLastRefresh(new Date());
         } catch (err) {
+            if(signal?.aborted || id!==generation.current)return;
             console.error("Mobiliz araç bilgisi alınamadı:", err);
 
             setError(
@@ -101,21 +69,16 @@ export default function MobilizBilgileri({ plaka }) {
                     : "Mobiliz servisine ulaşılamadı."
             );
         } finally {
-            setLoading(false);
+            if(!signal?.aborted && id===generation.current)setLoading(false);
         }
-    }, [plaka, vehicle]);
+    }, [plaka]);
 
-    useEffect(() => {
-        loadVehicle();
-
-        const timer = window.setInterval(() => {
-            loadVehicle();
-        }, 30000);
-
-        return () => {
-            window.clearInterval(timer);
-        };
-    }, [loadVehicle]);
+    useEffect(()=>{
+        const controller=new AbortController();setVehicle(null);
+        loadVehicle(controller.signal);
+        const timer=setInterval(()=>loadVehicle(controller.signal),30000);
+        return()=>{controller.abort();generation.current++;clearInterval(timer);};
+    },[loadVehicle]);
 
     const vehicleInfo = useMemo(() => {
         if (!vehicle) return null;
@@ -132,9 +95,9 @@ export default function MobilizBilgileri({ plaka }) {
 
             hiz,
 
-            kontak: Boolean(
-                vehicle?.ignition ||
-                vehicle?.engine ||
+            kontak: [true,1,"true","1"].includes(
+                vehicle?.ignition ??
+                vehicle?.engine ??
                 vehicle?.contact
             ),
 
@@ -180,7 +143,7 @@ export default function MobilizBilgileri({ plaka }) {
         return "park";
     }, [vehicleInfo]);
 
-    if (loading) {
+    if (loading && !vehicle) {
         return (
             <div className="mobiliz-loading">
                 Mobiliz bilgileri yükleniyor...
@@ -196,7 +159,7 @@ export default function MobilizBilgileri({ plaka }) {
 
                 <button
                     type="button"
-                    onClick={loadVehicle}
+                    onClick={()=>loadVehicle()}
                 >
                     Tekrar Dene
                 </button>
@@ -212,7 +175,7 @@ export default function MobilizBilgileri({ plaka }) {
 
                 <button
                     type="button"
-                    onClick={loadVehicle}
+                    onClick={()=>loadVehicle()}
                 >
                     Yeniden Kontrol Et
                 </button>
@@ -224,7 +187,7 @@ export default function MobilizBilgileri({ plaka }) {
         <div className="mobiliz-wrapper">
             <div className="mobiliz-header">
                 <div>
-                    <h2>Araç Kontrol Merkezi</h2>
+                    <h2><Satellite size={21}/> Mobiliz araç bilgileri</h2>
                     <span>{vehicleInfo.plaka}</span>
 
                     {lastRefresh && (
@@ -239,34 +202,35 @@ export default function MobilizBilgileri({ plaka }) {
                     )}
                 </div>
 
+                <button className="panel-refresh" disabled={loading} onClick={()=>loadVehicle()}><RefreshCw size={16} className={loading?"trip-spin":""}/> Yenile</button>
                 <div className={`mobiliz-status ${status}`}>
-                    {status === "moving" && "🟢 Hareket Halinde"}
-                    {status === "idle" && "🟡 Rölantide"}
-                    {status === "park" && "⚪ Park Halinde"}
-                    {status === "offline" && "🔴 Çevrimdışı"}
+                    {status === "moving" && "Hareket Halinde"}
+                    {status === "idle" && "Rölantide"}
+                    {status === "park" && "Park Halinde"}
+                    {status === "offline" && "Çevrimdışı"}
                 </div>
             </div>
 
             <div className="mobiliz-grid">
                 <div className="mobiliz-card">
-                    <span>🚚 Plaka</span>
+                    <span><Truck size={16}/> Plaka</span>
                     <strong>{vehicleInfo.plaka}</strong>
                 </div>
 
                 <div className="mobiliz-card">
-                    <span>⚡ Hız</span>
+                    <span><Gauge size={16}/> Hız</span>
                     <strong>{vehicleInfo.hiz} km/h</strong>
                 </div>
 
                 <div className="mobiliz-card">
-                    <span>🔑 Kontak</span>
+                    <span><KeyRound size={16}/> Kontak</span>
                     <strong>
                         {vehicleInfo.kontak ? "Açık" : "Kapalı"}
                     </strong>
                 </div>
 
                 <div className="mobiliz-card">
-                    <span>📡 GPS</span>
+                    <span><MapPin size={16}/> GPS</span>
                     <strong>
                         {vehicleInfo.latitude !== ""
                             ? vehicleInfo.latitude
@@ -279,19 +243,19 @@ export default function MobilizBilgileri({ plaka }) {
                 </div>
 
                 <div className="mobiliz-card full">
-                    <span>📍 Adres</span>
+                    <span><MapPin size={16}/> Adres</span>
                     <strong>{vehicleInfo.adres}</strong>
                 </div>
 
                 <div className="mobiliz-card">
-                    <span>🕒 Son Güncelleme</span>
+                    <span><Clock3 size={16}/> Son Güncelleme</span>
                     <strong>
                         {formatDate(vehicleInfo.sonGuncelleme)}
                     </strong>
                 </div>
 
                 <div className="mobiliz-card">
-                    <span>🛰 Uydu</span>
+                    <span><Satellite size={16}/> Uydu</span>
                     <strong>{vehicleInfo.uydu}</strong>
                 </div>
             </div>

@@ -1,9 +1,10 @@
-﻿import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "../../supabaseClient";
+import { CalendarDays, ChevronDown, ChevronUp, Download, FilterX, RefreshCw, Search } from "lucide-react";
 import "./TeslimdeBekleme.css";
 
 dayjs.locale("tr");
@@ -282,6 +283,25 @@ export default function TeslimdeBekleme() {
         return `${dayjs(startDate).format("DD.MM.YYYY")} → ${dayjs(endDate).format("DD.MM.YYYY")}`;
     }, [startDate, endDate]);
 
+    const applyRange = (preset) => {
+        const today = dayjs();
+        if (preset === "today") { setStartDate(today.format("YYYY-MM-DD")); setEndDate(today.format("YYYY-MM-DD")); }
+        if (preset === "7") { setStartDate(today.subtract(6, "day").format("YYYY-MM-DD")); setEndDate(today.format("YYYY-MM-DD")); }
+        if (preset === "month") { setStartDate(today.startOf("month").format("YYYY-MM-DD")); setEndDate(today.format("YYYY-MM-DD")); }
+    };
+
+    const resetFilters = () => {
+        setStartDate(dayjs().startOf("month").format("YYYY-MM-DD"));
+        setEndDate(dayjs().format("YYYY-MM-DD"));
+        setSearch("");
+        setOpenRows({});
+    };
+
+    const toggleAll = (open) => {
+        if (!open) return setOpenRows({});
+        setOpenRows(Object.fromEntries(filteredRows.map((row) => [row.unique_key, true])));
+    };
+
     const toggleRow = (key) => {
         setOpenRows((prev) => ({
             ...prev,
@@ -481,6 +501,12 @@ export default function TeslimdeBekleme() {
             </div>
 
             <div className="tb-filter-card">
+                <div className="tb-quick-ranges">
+                    <span><CalendarDays size={15} /> Hızlı tarih</span>
+                    <button type="button" onClick={() => applyRange("today")}>Bugün</button>
+                    <button type="button" onClick={() => applyRange("7")}>Son 7 Gün</button>
+                    <button type="button" onClick={() => applyRange("month")}>Bu Ay</button>
+                </div>
                 <div className="tb-filter-grid">
                     <label>
                         <span>Başlangıç Tarihi</span>
@@ -501,7 +527,7 @@ export default function TeslimdeBekleme() {
                     </label>
 
                     <label>
-                        <span>Arama</span>
+                        <span><Search size={14} /> Arama</span>
                         <input
                             type="text"
                             placeholder="Plaka, sefer no, proje ara..."
@@ -512,12 +538,16 @@ export default function TeslimdeBekleme() {
                 </div>
 
                 <div className="tb-actions">
-                    <button onClick={fetchViolations} disabled={loading}>
-                        {loading ? "Analiz ediliyor..." : "İhlalleri Getir"}
+                    <button className="primary" onClick={fetchViolations} disabled={loading}>
+                        <RefreshCw size={16} className={loading ? "spin" : ""} /> {loading ? "Analiz ediliyor..." : "Analizi Yenile"}
+                    </button>
+
+                    <button className="secondary" onClick={resetFilters}>
+                        <FilterX size={16} /> Filtreleri Temizle
                     </button>
 
                     <button className="secondary" onClick={exportExcel} disabled={!rows.length}>
-                        Excel İndir
+                        <Download size={16} /> Excel İndir
                     </button>
 
                     <div className="tb-range-pill">{rangeLabel}</div>
@@ -578,7 +608,11 @@ export default function TeslimdeBekleme() {
                                 </p>
                             </div>
 
-                            <span>{filteredRows.length} sefer</span>
+                            <div className="tb-table-tools">
+                                <button type="button" onClick={() => toggleAll(true)} disabled={!filteredRows.length}><ChevronDown size={15} /> Tümünü Aç</button>
+                                <button type="button" onClick={() => toggleAll(false)} disabled={!filteredRows.length}><ChevronUp size={15} /> Tümünü Kapat</button>
+                                <span>{filteredRows.length} sefer</span>
+                            </div>
                         </div>
 
                         <div className="tb-table-wrap">

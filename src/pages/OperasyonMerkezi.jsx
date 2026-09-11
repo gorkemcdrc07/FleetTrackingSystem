@@ -18,6 +18,7 @@ import EmptyState from "../components/UI/EmptyState";
 
 import VehicleDrawer from "../components/VehicleDrawer/VehicleDrawer";
 import OperationFeed from "../components/OperationFeed/OperationFeed";
+import FleetIntelligence from "../components/FleetIntelligence/FleetIntelligence";
 
 import {
     operationEventEngine,
@@ -28,7 +29,9 @@ import {
 } from "../services/notificationEngine";
 
 import { apiUrl } from "../config/api";
-
+import DispatchBoard from "../components/DispatchBoard/DispatchBoard";
+import TrackedVehicleDrawer from "../components/TrackedVehicleSelector/TrackedVehicleDrawer";
+import { useTrackedVehicles } from "../context/TrackedVehiclesContext";
 const API_URL = apiUrl(
     "/api/mobiliz/activity-last"
 );
@@ -252,6 +255,22 @@ export default function OperasyonMerkezi({
         setQuickFilter,
     ] = useState("all");
 
+    const [
+        intelligenceFilter,
+        setIntelligenceFilter,
+    ] = useState(null);
+
+    const {
+        trackedPlates,
+        setTrackedPlates,
+        filterVehicles,
+    } = useTrackedVehicles();
+
+    const [
+        trackedDrawerOpen,
+        setTrackedDrawerOpen,
+    ] = useState(false);
+
     const [loading, setLoading] =
         useState(false);
 
@@ -384,21 +403,27 @@ export default function OperasyonMerkezi({
                 |--------------------------------------------------------------------------
                 */
 
-                notificationEngine.processVehicles(
-                    data
-                );
+const trackedData =
+    filterVehicles(data);
 
-                notificationEngine.processGeofenceEvents();
+const trackedPlateSet = new Set(
+    trackedData.map((vehicle) =>
+        normalizePlate(
+            getPlate(vehicle)
+        )
+    )
+);
 
-                /*
-                |--------------------------------------------------------------------------
-                | Operasyon olay sistemi
-                |--------------------------------------------------------------------------
-                */
+const trackedGeofenceEvents =
+    nextGeofenceEvents.filter(
+        (event) =>
+            trackedPlateSet.has(
+                normalizePlate(
+                    event?.plate
+                )
+            )
+    );
 
-                operationEventEngine.processVehicles(
-                    data
-                );
 
                 operationEventEngine.processGeofenceEvents(
                     nextGeofenceEvents
@@ -471,11 +496,12 @@ export default function OperasyonMerkezi({
                 }
             }
         },
-        [
-            findVehicleByPlate,
-            focusVehicleByPlate,
-        ]
-    );
+[
+    findVehicleByPlate,
+    focusVehicleByPlate,
+    filterVehicles,
+]
+);
 
     useEffect(() => {
         const controller =
@@ -493,6 +519,7 @@ export default function OperasyonMerkezi({
             window.clearInterval(timer);
         };
     }, [loadData]);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -537,104 +564,135 @@ export default function OperasyonMerkezi({
         };
     }, [findVehicleByPlate]);
 
-    const filteredVehicles =
-        useMemo(() => {
-            return vehicles.filter(
-                (vehicle) => {
-                    const plateMatch =
-                        normalizePlate(
-                            getPlate(vehicle)
-                        ).includes(
-                            normalizePlate(
-                                search
-                            )
-                        );
+    const trackedVehicles = useMemo(
+        () => filterVehicles(vehicles),
+        [vehicles, filterVehicles]
+    );
+    useEffect(() => {
+    if (trackedPlates.length === 0) {
+        return;
+    }
 
-                    const statusMatch =
-                        statusFilter ===
-                        "all" ||
-                        getStatus(vehicle) ===
-                        statusFilter;
+    const allowedPlates = new Set(
+        trackedPlates.map(normalizePlate)
+    );
 
-                    const quickMatch =
-                        quickFilter ===
-                        "all" ||
-                        (quickFilter ===
-                            "moving" &&
-                            getStatus(
-                                vehicle
-                            ) ===
-                            "moving") ||
-                        (quickFilter ===
-                            "idle" &&
-                            getStatus(
-                                vehicle
-                            ) ===
-                            "idle") ||
-                        (quickFilter ===
-                            "park" &&
-                            getStatus(
-                                vehicle
-                            ) ===
-                            "park") ||
-                        (quickFilter ===
-                            "gpsMissing" &&
-                            !hasGps(
-                                vehicle
-                            )) ||
-                        (quickFilter ===
-                            "alarm" &&
-                            notificationEngine.getByPlate(
-                                getPlate(
-                                    vehicle
-                                ),
-                                1
-                            ).length >
-                            0);
-
-                    return (
-                        plateMatch &&
-                        statusMatch &&
-                        quickMatch
-                    );
-                }
+    const filteredNotifications =
+        notificationEngine
+            .getAll()
+            .filter((item) =>
+                allowedPlates.has(
+                    normalizePlate(item?.plate)
+                )
             );
-        }, [
-            vehicles,
-            search,
-            statusFilter,
-            quickFilter,
-        ]);
+
+    localStorage.setItem(
+        "fts_notifications",
+        JSON.stringify(filteredNotifications)
+    );
+
+    window.dispatchEvent(
+        new CustomEvent(
+            notificationEngine.eventName,
+            {
+                detail: filteredNotifications,
+            }
+        )
+    );
+}, [trackedPlates]);
+
+    const filteredVehicles = useMemo(() => {
+        return trackedVehicles.filter((vehicle) => {
+            const plateMatch = normalizePlate(
+                getPlate(vehicle)
+            ).includes(normalizePlate(search));
+
+            const statusMatch =
+                statusFilter === "all" ||
+                getStatus(vehicle) === statusFilter;
+
+            const quickMatch =
+                quickFilter === "all" ||
+                (quickFilter === "moving" &&
+                    getStatus(vehicle) === "moving") ||
+                (quickFilter === "idle" &&
+                    getStatus(vehicle) === "idle") ||
+                (quickFilter === "park" &&
+                    getStatus(vehicle) === "park") ||
+                (quickFilter === "gpsMissing" &&
+                    !hasGps(vehicle)) ||
+                (quickFilter === "alarm" &&
+                    notificationEngine.getByPlate(
+                        getPlate(vehicle),
+                        1
+                    ).length > 0);
+
+            const intelligenceMatch =
+                !intelligenceFilter ||
+                intelligenceFilter.plates.includes(
+                    normalizePlate(getPlate(vehicle))
+                );
+
+            return (
+                plateMatch &&
+                statusMatch &&
+                quickMatch &&
+                intelligenceMatch
+            );
+        });
+    }, [
+        trackedVehicles,
+        search,
+        statusFilter,
+        quickFilter,
+        intelligenceFilter,
+    ]);
+
+    useEffect(() => {
+        if (!selectedVehicle) return;
+
+        const selectedPlate = normalizePlate(
+            getPlate(selectedVehicle)
+        );
+
+        const stillVisible = filteredVehicles.some(
+            (vehicle) =>
+                normalizePlate(getPlate(vehicle)) ===
+                selectedPlate
+        );
+
+        if (!stillVisible) {
+            setSelectedVehicle(
+                filteredVehicles[0] || null
+            );
+            setDrawerOpen(false);
+        }
+    }, [filteredVehicles, selectedVehicle]);
 
     const summary = useMemo(() => {
         return {
-            total: vehicles.length,
+            total: trackedVehicles.length,
 
-            moving: vehicles.filter(
+            moving: trackedVehicles.filter(
                 (vehicle) =>
-                    getStatus(vehicle) ===
-                    "moving"
+                    getStatus(vehicle) === "moving"
             ).length,
 
-            idle: vehicles.filter(
+            idle: trackedVehicles.filter(
                 (vehicle) =>
-                    getStatus(vehicle) ===
-                    "idle"
+                    getStatus(vehicle) === "idle"
             ).length,
 
-            park: vehicles.filter(
+            park: trackedVehicles.filter(
                 (vehicle) =>
-                    getStatus(vehicle) ===
-                    "park"
+                    getStatus(vehicle) === "park"
             ).length,
 
-            gpsMissing:
-                vehicles.filter(
-                    (vehicle) =>
-                        !hasGps(vehicle)
-                ).length,
+            gpsMissing: trackedVehicles.filter(
+                (vehicle) => !hasGps(vehicle)
+            ).length,
 
-            alarm: vehicles.filter(
+            alarm: trackedVehicles.filter(
                 (vehicle) =>
                     notificationEngine.getByPlate(
                         getPlate(vehicle),
@@ -642,17 +700,33 @@ export default function OperasyonMerkezi({
                     ).length > 0
             ).length,
 
-            geofence:
-                geofenceEvents.filter(
-                    (event) =>
-                        event.status ===
-                        "inside"
-                ).length,
+            geofence: geofenceEvents.filter((event) => {
+                const eventPlate = normalizePlate(
+                    event?.plate
+                );
+
+                const trackedPlate =
+                    trackedVehicles.some(
+                        (vehicle) =>
+                            normalizePlate(
+                                getPlate(vehicle)
+                            ) === eventPlate
+                    );
+
+                return (
+                    trackedPlate &&
+                    event.status === "inside"
+                );
+            }).length,
         };
     }, [
-        vehicles,
+        trackedVehicles,
         geofenceEvents,
     ]);
+
+    const intelligenceNotifications = useMemo(() => {
+        return notificationEngine.getAll();
+    }, [vehicles, geofenceEvents]);
 
     function handleVehicleSelect(vehicle) {
         if (!vehicle) return;
@@ -707,17 +781,35 @@ export default function OperasyonMerkezi({
                         : ""
                     }`}
                 actions={
-                    <button
-                        type="button"
-                        onClick={() =>
-                            loadData()
-                        }
-                        disabled={loading}
-                    >
-                        {loading
-                            ? "Yenileniyor..."
-                            : "Yenile"}
-                    </button>
+                    <div className="operasyon-header-actions">
+                        <button
+                            type="button"
+                            className="operasyon-tracked-open-btn"
+                            onClick={() =>
+                                setTrackedDrawerOpen(true)
+                            }
+                        >
+                            <span>
+                                Takip Edilen Araçlar
+                            </span>
+
+                            <strong>
+                                {trackedPlates.length > 0
+                                    ? trackedPlates.length
+                                    : "Tümü"}
+                            </strong>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => loadData()}
+                            disabled={loading}
+                        >
+                            {loading
+                                ? "Yenileniyor..."
+                                : "Yenile"}
+                        </button>
+                    </div>
                 }
             />
 
@@ -839,28 +931,50 @@ export default function OperasyonMerkezi({
                             key={key}
                             type="button"
                             className={
-                                quickFilter ===
-                                    key
+                                quickFilter === key
                                     ? "active"
                                     : ""
                             }
-                            onClick={() =>
-                                setQuickFilter(
-                                    key
-                                )
-                            }
+                            onClick={() => {
+                                setQuickFilter(key);
+                                setIntelligenceFilter(null);
+                            }}
                         >
-                            <span>
-                                {label}
-                            </span>
-
-                            <strong>
-                                {count}
-                            </strong>
+                            <span>{label}</span>
+                            <strong>{count}</strong>
                         </button>
                     )
                 )}
             </div>
+
+            {intelligenceFilter && (
+                <div className="operasyon-intelligence-filter">
+                    <div>
+                        <span>Akıllı filtre aktif</span>
+
+                        <strong>
+                            {intelligenceFilter.title}
+                        </strong>
+
+                        <small>
+                            {
+                                intelligenceFilter.plates
+                                    .length
+                            }{" "}
+                            araç gösteriliyor
+                        </small>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setIntelligenceFilter(null)
+                        }
+                    >
+                        Filtreyi Temizle
+                    </button>
+                </div>
+            )}
 
             <div className="operasyon-layout">
                 <div className="operasyon-main-column">
@@ -870,30 +984,65 @@ export default function OperasyonMerkezi({
                         subtitle={`${filteredVehicles.length} araç görüntüleniyor`}
                     >
                         <Harita
-                            vehicles={
-                                filteredVehicles
-                            }
+                            vehicles={filteredVehicles}
                             selectedPlate={
                                 selectedVehicle
-                                    ? getPlate(
-                                        selectedVehicle
-                                    )
+                                    ? getPlate(selectedVehicle)
                                     : undefined
                             }
-                            onVehicleClick={
-                                handleVehicleSelect
-                            }
+                            onVehicleClick={handleVehicleSelect}
                             height="720px"
                             zoom={6}
                         />
                     </Panel>
 
+                    <FleetIntelligence
+                        vehicles={trackedVehicles}
+                        notifications={intelligenceNotifications}
+                        geofenceEvents={geofenceEvents}
+                        compact
+                        onOpenVehicle={(vehicle) => {
+                            if (!vehicle) return;
+
+                            setSelectedVehicle(vehicle);
+                            setSearch(getPlate(vehicle));
+                            setDrawerOpen(true);
+                        }}
+                        onShowVehicles={(insightVehicles, insight) => {
+                            const normalizedPlates = (
+                                insightVehicles || []
+                            ).map((vehicle) =>
+                                normalizePlate(getPlate(vehicle))
+                            );
+
+                            setIntelligenceFilter({
+                                key: insight?.key || "custom",
+                                title:
+                                    insight?.title ||
+                                    "Akıllı filo filtresi",
+                                plates: normalizedPlates,
+                            });
+
+                            setSearch("");
+                            setStatusFilter("all");
+                            setQuickFilter("all");
+
+                            const firstVehicle =
+                                insightVehicles?.[0];
+
+                            if (firstVehicle) {
+                                setSelectedVehicle(firstVehicle);
+                            }
+                        }}
+                    />
                     <OperationFeed
                         title="Canlı Operasyon Akışı"
                         maxItems={100}
-                        onOpenVehicle={
-                            handleOperationVehicleOpen
-                        }
+                        onOpenVehicle={handleOperationVehicleOpen}
+                    />
+
+                    <DispatchBoard
+                        onOpenVehicle={handleOperationVehicleOpen}
                     />
                 </div>
 
@@ -905,35 +1054,22 @@ export default function OperasyonMerkezi({
                         <FilterBar>
                             <input
                                 value={search}
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSearch(
-                                        event
-                                            .target
-                                            .value
-                                    )
-                                }
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setIntelligenceFilter(null);
+                                }}
                                 placeholder="Plaka ara..."
                             />
 
                             <select
-                                value={
-                                    statusFilter
-                                }
-                                onChange={(
-                                    event
-                                ) =>
-                                    setStatusFilter(
-                                        event
-                                            .target
-                                            .value
-                                    )
-                                }
+                                value={statusFilter}
+                                onChange={(event) => {
+                                    setStatusFilter(event.target.value);
+                                    setIntelligenceFilter(null);
+                                }}
                             >
                                 <option value="all">
-                                    Tüm
-                                    Durumlar
+                                    Tüm Durumlar
                                 </option>
 
                                 <option value="moving">
@@ -951,152 +1087,100 @@ export default function OperasyonMerkezi({
                         </FilterBar>
 
                         <div className="operasyon-vehicle-list">
-                            {filteredVehicles.length ===
-                                0 ? (
+                            {filteredVehicles.length === 0 ? (
                                 <EmptyState
                                     title="Araç bulunamadı."
                                     description="Arama veya filtre kriterlerini değiştir."
                                 />
                             ) : (
-                                filteredVehicles.map(
-                                    (
-                                        vehicle
-                                    ) => {
-                                        const plate =
-                                            getPlate(
-                                                vehicle
-                                            );
+                                filteredVehicles.map((vehicle) => {
+                                    const plate = getPlate(vehicle);
 
-                                        const alarmCount =
-                                            notificationEngine.getByPlate(
-                                                plate,
-                                                50
-                                            )
-                                                .length;
+                                    const alarmCount =
+                                        notificationEngine.getByPlate(
+                                            plate,
+                                            50
+                                        ).length;
 
-                                        const lastDate =
-                                            getLastDate(
-                                                vehicle
-                                            );
+                                    const lastDate =
+                                        getLastDate(vehicle);
 
-                                        const active =
-                                            normalizePlate(
-                                                getPlate(
-                                                    selectedVehicle
-                                                )
-                                            ) ===
-                                            normalizePlate(
-                                                plate
-                                            );
+                                    const active =
+                                        normalizePlate(
+                                            getPlate(selectedVehicle)
+                                        ) === normalizePlate(plate);
 
-                                        return (
-                                            <button
-                                                key={
-                                                    vehicle?.id ||
-                                                    plate
-                                                }
-                                                type="button"
-                                                className={[
-                                                    "operasyon-vehicle-card",
-                                                    active
-                                                        ? "active"
-                                                        : "",
-                                                ]
-                                                    .filter(
-                                                        Boolean
-                                                    )
-                                                    .join(
-                                                        " "
-                                                    )}
-                                                onClick={() =>
-                                                    handleVehicleSelect(
-                                                        vehicle
-                                                    )
-                                                }
-                                            >
-                                                <div className="op-vehicle-main">
-                                                    <div>
-                                                        <strong>
-                                                            {
-                                                                plate
-                                                            }
-                                                        </strong>
-
-                                                        <span>
-                                                            {getAddress(
-                                                                vehicle
-                                                            )}
-                                                        </span>
-                                                    </div>
-
-                                                    <em>
-                                                        {getSpeed(
-                                                            vehicle
-                                                        )}{" "}
-                                                        km/h
-                                                    </em>
-                                                </div>
-
-                                                <div className="op-vehicle-meta">
-                                                    <VehicleStatusBadge
-                                                        status={getStatus(
-                                                            vehicle
-                                                        )}
-                                                    />
-
-                                                    <small
-                                                        className={
-                                                            getIgnition(
-                                                                vehicle
-                                                            )
-                                                                ? "on"
-                                                                : "off"
-                                                        }
-                                                    >
-                                                        Kontak{" "}
-                                                        {getIgnition(
-                                                            vehicle
-                                                        )
-                                                            ? "Açık"
-                                                            : "Kapalı"}
-                                                    </small>
-
-                                                    {!hasGps(
-                                                        vehicle
-                                                    ) && (
-                                                            <small className="danger">
-                                                                GPS
-                                                                Yok
-                                                            </small>
-                                                        )}
-
-                                                    {alarmCount >
-                                                        0 && (
-                                                            <small className="alarm">
-                                                                {
-                                                                    alarmCount
-                                                                }{" "}
-                                                                Alarm
-                                                            </small>
-                                                        )}
-                                                </div>
-
-                                                <div className="op-vehicle-footer">
-                                                    <span>
-                                                        Son
-                                                        veri
-                                                    </span>
-
+                                    return (
+                                        <button
+                                            key={vehicle?.id || plate}
+                                            type="button"
+                                            className={[
+                                                "operasyon-vehicle-card",
+                                                active ? "active" : "",
+                                            ]
+                                                .filter(Boolean)
+                                                .join(" ")}
+                                            onClick={() =>
+                                                handleVehicleSelect(vehicle)
+                                            }
+                                        >
+                                            <div className="op-vehicle-main">
+                                                <div>
                                                     <strong>
-                                                        {formatLastData(
-                                                            lastDate
-                                                        )}
+                                                        {plate}
                                                     </strong>
+
+                                                    <span>
+                                                        {getAddress(vehicle)}
+                                                    </span>
                                                 </div>
-                                            </button>
-                                        );
-                                    }
-                                )
+
+                                                <em>
+                                                    {getSpeed(vehicle)} km/h
+                                                </em>
+                                            </div>
+
+                                            <div className="op-vehicle-meta">
+                                                <VehicleStatusBadge
+                                                    status={getStatus(vehicle)}
+                                                />
+
+                                                <small
+                                                    className={
+                                                        getIgnition(vehicle)
+                                                            ? "on"
+                                                            : "off"
+                                                    }
+                                                >
+                                                    Kontak{" "}
+                                                    {getIgnition(vehicle)
+                                                        ? "Açık"
+                                                        : "Kapalı"}
+                                                </small>
+
+                                                {!hasGps(vehicle) && (
+                                                    <small className="danger">
+                                                        GPS Yok
+                                                    </small>
+                                                )}
+
+                                                {alarmCount > 0 && (
+                                                    <small className="alarm">
+                                                        {alarmCount} Alarm
+                                                    </small>
+                                                )}
+                                            </div>
+
+                                            <div className="op-vehicle-footer">
+                                                <span>Son veri</span>
+
+                                                <strong>
+                                                    {formatLastData(lastDate)}
+                                                </strong>
+                                            </div>
+                                        </button>
+                                    );
+                                })
                             )}
                         </div>
                     </Panel>
@@ -1109,92 +1193,66 @@ export default function OperasyonMerkezi({
                             <div className="operasyon-selected">
                                 <div className="operasyon-selected-head">
                                     <strong>
-                                        {getPlate(
-                                            selectedVehicle
-                                        )}
+                                        {getPlate(selectedVehicle)}
                                     </strong>
 
                                     <VehicleStatusBadge
-                                        status={getStatus(
-                                            selectedVehicle
-                                        )}
+                                        status={getStatus(selectedVehicle)}
                                     />
                                 </div>
 
                                 <div className="operasyon-selected-grid">
                                     <div>
-                                        <small>
-                                            Hız
-                                        </small>
+                                        <small>Hız</small>
 
                                         <b>
-                                            {getSpeed(
-                                                selectedVehicle
-                                            )}{" "}
-                                            km/h
+                                            {getSpeed(selectedVehicle)} km/h
                                         </b>
                                     </div>
 
                                     <div>
-                                        <small>
-                                            Kontak
-                                        </small>
+                                        <small>Kontak</small>
 
                                         <b>
-                                            {getIgnition(
-                                                selectedVehicle
-                                            )
+                                            {getIgnition(selectedVehicle)
                                                 ? "Açık"
                                                 : "Kapalı"}
                                         </b>
                                     </div>
 
                                     <div>
-                                        <small>
-                                            GPS
-                                        </small>
+                                        <small>GPS</small>
 
                                         <b>
-                                            {hasGps(
-                                                selectedVehicle
-                                            )
+                                            {hasGps(selectedVehicle)
                                                 ? "Aktif"
                                                 : "Yok"}
                                         </b>
                                     </div>
 
                                     <div>
-                                        <small>
-                                            Alarm
-                                        </small>
+                                        <small>Alarm</small>
 
                                         <b>
                                             {
                                                 notificationEngine.getByPlate(
-                                                    getPlate(
-                                                        selectedVehicle
-                                                    ),
+                                                    getPlate(selectedVehicle),
                                                     50
-                                                )
-                                                    .length
+                                                ).length
                                             }
                                         </b>
                                     </div>
                                 </div>
 
                                 <p>
-                                    {getAddress(
-                                        selectedVehicle
-                                    )}
+                                    {getAddress(selectedVehicle)}
                                 </p>
 
                                 <button
                                     type="button"
                                     className="operasyon-selected-detail-btn"
                                     onClick={() =>
-                                        setDrawerOpen(
-                                            true
-                                        )
+                                        setDrawerOpen(true)
                                     }
                                 >
                                     Detayları Aç
@@ -1209,6 +1267,22 @@ export default function OperasyonMerkezi({
                     </Panel>
                 </aside>
             </div>
+            <TrackedVehicleDrawer
+                open={trackedDrawerOpen}
+                vehicles={vehicles}
+                selectedPlates={trackedPlates}
+                onClose={() =>
+                    setTrackedDrawerOpen(false)
+                }
+                onSave={(plates) => {
+                    setTrackedPlates(plates);
+                    setTrackedDrawerOpen(false);
+                    setSearch("");
+                    setStatusFilter("all");
+                    setQuickFilter("all");
+                    setIntelligenceFilter(null);
+                }}
+            />
 
             <VehicleDrawer
                 open={drawerOpen}

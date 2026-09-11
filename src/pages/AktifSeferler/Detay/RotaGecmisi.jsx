@@ -1,8 +1,10 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { Route, RefreshCw } from "lucide-react";
+import { requestJson, responseList } from "../../../services/requestJson";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Detay.css";
 import { apiUrl } from "../../../config/api";
 
-const API_URL = apiUrl("/api/mobiliz/locations");
+const API_URL = apiUrl("/api/mobiliz/activity-detail");
 
 function pad(value) {
     return String(value).padStart(2, "0");
@@ -11,7 +13,7 @@ function pad(value) {
 function formatDateForMobiliz(date) {
     return (
         `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-        `T${pad(date.getHours())}:${pad(date.getMinutes())}+0300`
+        `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}+0300`
     );
 }
 
@@ -65,6 +67,8 @@ function getLongitude(item) {
 function getLocationDate(item) {
     return (
         item?.gpsDate ||
+        item?.timestamp ||
+        item?.time ||
         item?.date ||
         item?.activityDate ||
         item?.dataTime ||
@@ -83,6 +87,7 @@ function getAddress(item) {
 }
 
 export default function RotaGecmisi({ plaka }) {
+    const generation=useRef(0);
     const [loading, setLoading] = useState(false);
     const [locations, setLocations] = useState([]);
     const [error, setError] = useState("");
@@ -95,6 +100,7 @@ export default function RotaGecmisi({ plaka }) {
 
     const loadLocations = useCallback(
         async (signal) => {
+            const id=++generation.current;
             if (!normalizedPlate) {
                 setLocations([]);
                 setError("Plaka bilgisi bulunamadı.");
@@ -113,46 +119,13 @@ export default function RotaGecmisi({ plaka }) {
 
                 const params = new URLSearchParams({
                     plate: normalizedPlate,
-                    start: formatDateForMobiliz(startDate),
-                    end: formatDateForMobiliz(endDate),
+                    startTime: formatDateForMobiliz(startDate),
+                    endTime: formatDateForMobiliz(endDate),
                 });
 
-                const response = await fetch(
-                    `${API_URL}?${params.toString()}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            Accept: "application/json",
-                        },
-                        signal,
-                    }
-                );
-
-                const contentType =
-                    response.headers.get("content-type") || "";
-
-                let json;
-
-                if (contentType.includes("application/json")) {
-                    json = await response.json();
-                } else {
-                    const text = await response.text();
-
-                    throw new Error(
-                        text ||
-                        `Sunucu geçersiz cevap döndürdü. HTTP ${response.status}`
-                    );
-                }
-
-                if (!response.ok) {
-                    throw new Error(
-                        json?.message ||
-                        json?.error ||
-                        `Rota geçmişi isteği başarısız oldu. HTTP ${response.status}`
-                    );
-                }
-
-                const data = getResponseList(json)
+                const json=await requestJson(`${API_URL}?${params.toString()}`,{signal},{timeoutMs:30000,retries:1});
+                if(id!==generation.current)return;
+                const data = responseList(json)
                     .filter(Boolean)
                     .sort((a, b) => {
                         const aTime = new Date(
@@ -169,7 +142,7 @@ export default function RotaGecmisi({ plaka }) {
                 setLocations(data);
                 setLastRefresh(new Date());
             } catch (err) {
-                if (err?.name === "AbortError") return;
+                if (signal?.aborted || id!==generation.current || err?.name === "AbortError") return;
 
                 console.error(
                     "Mobiliz rota geçmişi alınamadı:",
@@ -183,7 +156,7 @@ export default function RotaGecmisi({ plaka }) {
                         : "Mobiliz rota geçmişi alınamadı."
                 );
             } finally {
-                if (!signal?.aborted) {
+                if (!signal?.aborted && id===generation.current) {
                     setLoading(false);
                 }
             }
@@ -197,7 +170,7 @@ export default function RotaGecmisi({ plaka }) {
         loadLocations(controller.signal);
 
         return () => {
-            controller.abort();
+            controller.abort();generation.current++;
         };
     }, [loadLocations]);
 
@@ -209,7 +182,7 @@ export default function RotaGecmisi({ plaka }) {
         <div className="rota-gecmisi">
             <div className="rota-gecmisi-head">
                 <div>
-                    <h2>🛣️ Rota Geçmişi</h2>
+                    <h2><Route size={22}/> Rota geçmişi</h2>
 
                     <p>
                         {plaka || "-"} için son 24 saatlik Mobiliz
@@ -233,7 +206,7 @@ export default function RotaGecmisi({ plaka }) {
                     onClick={handleRefresh}
                     disabled={loading || !normalizedPlate}
                 >
-                    {loading ? "Yükleniyor..." : "Yenile"}
+                    <RefreshCw size={16} className={loading ? "trip-spin" : ""}/> {loading ? "Yükleniyor..." : "Yenile"}
                 </button>
             </div>
 
@@ -271,7 +244,7 @@ export default function RotaGecmisi({ plaka }) {
             {!error && !loading && locations.length > 0 && (
                 <>
                     <div className="rota-gecmisi-summary">
-                        <span>Toplam Konum</span>
+                        <span>Toplam konum{locations.length>100 ? " · En güncel 100 kayıt gösteriliyor" : ""}</span>
                         <strong>{locations.length}</strong>
                     </div>
 

@@ -25,6 +25,9 @@ import VehicleStatusBadge from "../UI/VehicleStatusBadge";
 import EmptyState from "../UI/EmptyState";
 
 import { notificationEngine } from "../../services/notificationEngine";
+import { calculateVehicleHealth } from "../../services/vehicleHealthService";
+import VehicleTimeline from "../VehicleTimeline/VehicleTimeline";
+import { operationEventEngine } from "../../services/operationEventEngine";
 
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
 
@@ -270,6 +273,23 @@ export default function VehicleDrawer({
     onOpenOperations,
 }) {
     const [notifications, setNotifications] = useState([]);
+    const health = useMemo(() => {
+        if (!vehicle) {
+            return {
+                score: 0,
+                status: {
+                    key: "critical",
+                    label: "Bilinmiyor",
+                },
+                reasons: [],
+            };
+        }
+
+        return calculateVehicleHealth(
+            vehicle,
+            notifications
+        );
+    }, [vehicle, notifications]);
     const [copied, setCopied] = useState(false);
 
     const plate = getPlate(vehicle);
@@ -283,6 +303,49 @@ export default function VehicleDrawer({
         () => getLatestGeofenceEvent(plate),
         [plate, open]
     );
+    const timelineNotifications = useMemo(() => {
+    if (!vehicle || plate === "-") {
+        return [];
+    }
+
+    return notificationEngine.getByPlate(
+        plate,
+        100
+    );
+}, [vehicle, plate, notifications, open]);
+
+
+const vehicleGeofenceEvents = useMemo(() => {
+    if (!vehicle || plate === "-") {
+        return [];
+    }
+
+    const normalizedPlate =
+        normalizePlate(plate);
+
+    return readGeofenceEvents()
+        .filter(
+            (event) =>
+                normalizePlate(
+                    event?.plate
+                ) === normalizedPlate
+        )
+        .sort((a, b) => {
+            const firstDate = new Date(
+                a?.createdAt ||
+                a?.date ||
+                0
+            ).getTime();
+
+            const secondDate = new Date(
+                b?.createdAt ||
+                b?.date ||
+                0
+            ).getTime();
+
+            return secondDate - firstDate;
+        });
+}, [vehicle, plate, open]);
 
     const mapsUrl = coordinate.hasCoordinate
         ? `https://www.google.com/maps?q=${coordinate.latitude},${coordinate.longitude}`
@@ -503,8 +566,80 @@ export default function VehicleDrawer({
                                     </strong>
                                 </div>
                             </div>
-                        </section>
+                            </section>
 
+
+                            <section className="vehicle-command-section">
+                                <div className="vehicle-command-section-head">
+                                    <div>
+                                        <span>Araç Analizi</span>
+                                        <h3>Araç sağlık skoru</h3>
+                                    </div>
+
+                                    <strong>
+                                        {health.score}
+                                    </strong>
+                                </div>
+
+                                <div
+                                    className={`vehicle-health-card ${health.status.key}`}
+                                >
+                                    <div className="vehicle-health-score">
+                                        <div
+                                            className="vehicle-health-ring"
+                                            style={{
+                                                "--health-score": health.score,
+                                            }}
+                                        >
+                                            <div>
+                                                <strong>
+                                                    {health.score}
+                                                </strong>
+
+                                                <span>/100</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="vehicle-health-summary">
+                                            <span>
+                                                Genel Durum
+                                            </span>
+
+                                            <strong>
+                                                {health.status.label}
+                                            </strong>
+
+                                            <p>
+                                                Araç telemetri ve alarm
+                                                verilerine göre hesaplandı.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="vehicle-health-reasons">
+                                        {health.reasons.map(
+                                            (reason, index) => (
+                                                <div
+                                                    key={`${reason.type}-${index}`}
+                                                    className={`vehicle-health-reason ${reason.level}`}
+                                                >
+                                                    <i />
+
+                                                    <span>
+                                                        {reason.label}
+                                                    </span>
+
+                                                    {reason.penalty > 0 && (
+                                                        <strong>
+                                                            -{reason.penalty}
+                                                        </strong>
+                                                    )}
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
                         <section className="vehicle-command-section">
                             <div className="vehicle-command-section-head">
                                 <div>
@@ -623,6 +758,50 @@ export default function VehicleDrawer({
                                 </div>
                             </div>
                         </section>
+                        <section className="vehicle-command-section">
+    <div className="vehicle-command-section-head">
+        <div>
+            <span>Araç Geçmişi</span>
+            <h3>Operasyon zaman çizelgesi</h3>
+        </div>
+
+        <strong>
+            {timelineNotifications.length +
+                vehicleOperationEvents.length +
+                vehicleGeofenceEvents.length}
+        </strong>
+    </div>
+
+    <VehicleTimeline
+        vehicle={vehicle}
+        notifications={timelineNotifications}
+        operationEvents={vehicleOperationEvents}
+        geofenceEvents={vehicleGeofenceEvents}
+        maxItems={150}
+        onEventClick={(event) => {
+            const latitude =
+                event?.metadata?.latitude ??
+                event?.metadata?.lat;
+
+            const longitude =
+                event?.metadata?.longitude ??
+                event?.metadata?.lng;
+
+            if (
+                latitude == null ||
+                longitude == null
+            ) {
+                return;
+            }
+
+            window.open(
+                `https://www.google.com/maps?q=${latitude},${longitude}`,
+                "_blank",
+                "noopener,noreferrer"
+            );
+        }}
+    />
+</section>
 
                         <section className="vehicle-command-section">
                             <div className="vehicle-command-section-head">

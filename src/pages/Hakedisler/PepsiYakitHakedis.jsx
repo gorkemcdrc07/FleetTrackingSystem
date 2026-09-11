@@ -1,938 +1,1721 @@
-﻿import { useMemo, useRef, useState } from "react";
-import * as XLSX from "xlsx";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { applyHakedisWorkbookBranding } from "./shared/hakedisExcelBranding";
+import {
+    Box,
+    Stack,
+    Paper,
+    Typography,
+    Button,
+    CircularProgress,
+    Alert,
+    Grid,
+    Snackbar,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Table,
+    TableHead,
+    TableRow,
+    TableCell,
+    TableBody,
+    Chip,
+    Divider,
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RotateRightIcon from "@mui/icons-material/RotateRight";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import FilterDramaIcon from "@mui/icons-material/FilterDrama";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import BusinessIcon from "@mui/icons-material/Business";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
 import { supabase } from "../../supabaseClient";
-import { islemLogla } from "../../utils/islemLogla";
 import "./PepsiYakitHakedis.css";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
-const PEPSI_CUSTOMERS = ["PEPSI", "PEPSİ"];
+/* ------------------------ Tema ------------------------ */
+const DARK = {
+    pageBg: "var(--pepsi-page-bg)",
+    surface: "var(--pepsi-surface)",
+    surface2: "var(--pepsi-surface-2)",
+    border: "var(--pepsi-border)",
+    text: "var(--pepsi-text)",
+    textMuted: "var(--pepsi-text-muted)",
+    zebra: "var(--pepsi-zebra)",
+    primary: "var(--pepsi-primary)",
+    mint: "var(--pepsi-success)",
+    red: "var(--pepsi-danger)",
+};
 
-function normalizeText(v) {
-    return String(v || "").toLocaleUpperCase("tr-TR").replace(/\s+/g, " ").trim();
-}
+const withAlpha = (color, opacity) =>
+    `color-mix(in srgb, ${color} ${Math.round(opacity * 100)}%, transparent)`;
 
-function normalizePlate(v) {
-    return String(v || "").toLocaleUpperCase("tr-TR").replace(/\s+/g, "").trim();
-}
+/* ------------------------ Yardımcı Bileşenler ------------------------ */
+const Glass = ({ children, sx, className }) => (
+    <Paper
+        variant="outlined"
+        className={className}
+        sx={{
+            borderRadius: 3,
+            borderColor: withAlpha(DARK.border, 0.9),
+            bgcolor: withAlpha(DARK.surface, 0.78),
+            backdropFilter: "blur(10px)",
+            boxShadow: `0 12px 40px ${withAlpha("#000", 0.35)}`,
+            ...sx,
+        }}
+    >
+        {children}
+    </Paper>
+);
 
-function normalizeHeader(v) {
-    return String(v || "")
-        .toLocaleLowerCase("tr-TR")
-        .replaceAll("ı", "i")
-        .replaceAll("ğ", "g")
-        .replaceAll("ü", "u")
-        .replaceAll("ş", "s")
-        .replaceAll("ö", "o")
-        .replaceAll("ç", "c")
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
-}
+const SectionTitle = ({ icon, title, subtitle, right }) => (
+    <Stack
+        direction={{ xs: "column", md: "row" }}
+        alignItems={{ xs: "flex-start", md: "center" }}
+        spacing={1.5}
+    >
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
+            <Box
+                sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 3,
+                    display: "grid",
+                    placeItems: "center",
+                    bgcolor: withAlpha(DARK.primary, 0.14),
+                    border: `1px solid ${withAlpha(DARK.primary, 0.25)}`,
+                }}
+            >
+                {icon}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+                <Typography
+                    variant="h5"
+                    sx={{ fontWeight: 950, color: DARK.text, letterSpacing: 0.2 }}
+                >
+                    {title}
+                </Typography>
+                {subtitle ? (
+                    <Typography variant="body2" sx={{ color: DARK.textMuted }}>
+                        {subtitle}
+                    </Typography>
+                ) : null}
+            </Box>
+        </Stack>
+        <Box sx={{ ml: "auto", width: { xs: "100%", md: "auto" } }}>{right}</Box>
+    </Stack>
+);
 
-function parseNumber(v) {
-    if (v === null || v === undefined || v === "") return 0;
-    if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+const KpiCard = ({ label, value, icon, tone = "default" }) => {
+    const palette =
+        tone === "success"
+            ? { bg: withAlpha(DARK.mint, 0.12), bd: withAlpha(DARK.mint, 0.35), fg: DARK.mint }
+            : tone === "danger"
+                ? { bg: withAlpha(DARK.red, 0.12), bd: withAlpha(DARK.red, 0.35), fg: DARK.red }
+                : { bg: withAlpha(DARK.primary, 0.1), bd: withAlpha(DARK.primary, 0.28), fg: DARK.text };
 
-    let s = String(v).replace(/₺/g, "").replace(/\s/g, "").trim();
+    return (
+        <Glass
+            sx={{
+                p: 2,
+                borderColor: palette.bd,
+                bgcolor: palette.bg,
+                height: "100%",
+            }}
+        >
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Box
+                    sx={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 2,
+                        display: "grid",
+                        placeItems: "center",
+                        bgcolor: withAlpha(DARK.surface2, 0.65),
+                        border: `1px solid ${withAlpha(DARK.border, 0.9)}`,
+                    }}
+                >
+                    {icon}
+                </Box>
 
-    if (s.includes(".") && s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
-    else if (s.includes(",")) s = s.replace(",", ".");
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ color: DARK.textMuted }}>
+                        {label}
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 900, color: palette.fg, lineHeight: 1.15 }}
+                    >
+                        {value}
+                    </Typography>
+                </Box>
+            </Stack>
+        </Glass>
+    );
+};
 
-    s = s.replace(/[^\d.-]/g, "");
+const UploadCard = ({ title, icon, loaded, children }) => (
+    <Glass
+        sx={{
+            p: 2,
+            flex: 1,
+            borderColor: loaded ? withAlpha(DARK.mint, 0.45) : withAlpha(DARK.border, 0.9),
+        }}
+    >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+                {icon}
+                <Typography variant="h6" sx={{ color: DARK.text, fontWeight: 800 }}>
+                    {title}
+                </Typography>
+            </Stack>
+            {loaded ? <Chip label="Hazır" size="small" sx={{ bgcolor: DARK.mint }} /> : null}
+        </Stack>
+        {children}
+    </Glass>
+);
 
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
-}
+const ProgressStep = ({ step, currentStep, description, icon }) => {
+    const isActive = step === currentStep;
+    const isCompleted = step < currentStep;
 
-function formatTL(v) {
-    return Number(v || 0).toLocaleString("tr-TR", {
+    const color = isCompleted ? DARK.mint : isActive ? DARK.primary : DARK.textMuted;
+    const IconComponent = isCompleted ? CheckCircleIcon : isActive ? RotateRightIcon : icon;
+
+    return (
+        <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            sx={{ opacity: isCompleted || isActive ? 1 : 0.6 }}
+        >
+            <Box sx={{ position: "relative", width: 24, height: 24 }}>
+                {isActive ? (
+                    <CircularProgress size={24} sx={{ color }} />
+                ) : (
+                    <IconComponent sx={{ color, fontSize: 24 }} />
+                )}
+            </Box>
+            <Typography
+                variant="body1"
+                fontWeight={isActive ? 700 : 400}
+                color={isActive ? DARK.text : isCompleted ? DARK.text : DARK.textMuted}
+            >
+                {description}
+            </Typography>
+        </Stack>
+    );
+};
+
+/* ------------------------ Yardımcı Formatlayıcılar ------------------------ */
+const formatNumber = (value) =>
+    new Intl.NumberFormat("tr-TR", {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4,
+    }).format(Number(value || 0));
+
+const formatCurrency = (value) =>
+    new Intl.NumberFormat("tr-TR", {
         style: "currency",
         currency: "TRY",
         minimumFractionDigits: 4,
         maximumFractionDigits: 4,
-    });
-}
+    }).format(Number(value || 0));
 
-function formatNumber(v) {
-    return Number(v || 0).toLocaleString("tr-TR", {
-        minimumFractionDigits: 4,
-        maximumFractionDigits: 4,
-    });
-}
+const roundToDecimal = (num, decimals = 4) => {
+    const factor = Math.pow(10, decimals);
+    return Math.round((Number(num || 0) * factor)) / factor;
+};
 
-function mapRow(row) {
-    const mapped = {};
-    Object.entries(row).forEach(([key, value]) => {
-        mapped[normalizeHeader(key)] = value;
-    });
-    return mapped;
-}
+const toIntOrNull = (v) => {
+    if (v === null || v === undefined || v === "") return null;
+    const s = String(v).trim().replace(",", ".");
+    const n = Number(s);
+    if (!Number.isFinite(n)) return null;
+    return Math.trunc(n);
+};
 
-function pick(row, keys) {
-    for (const key of keys) {
-        const normalized = normalizeHeader(key);
-        if (row[normalized] !== undefined && row[normalized] !== "") return row[normalized];
-    }
-    return "";
-}
+const toNumOrNull = (v) => {
+    if (v === null || v === undefined || v === "") return null;
+    const s = String(v).trim().replace(",", ".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+};
 
-function readExcel(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+const toStrOrNull = (v) => {
+    const s = String(v ?? "").trim();
+    return s || null;
+};
 
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                resolve(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
-            } catch (err) {
-                reject(err);
-            }
-        };
+const toBigIntStringOrNull = (v) => {
+    if (v === null || v === undefined || v === "") return null;
 
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-    });
-}
+    const s = String(v).trim();
 
-function downloadExcel(rows, fileName, sheetName = "Rapor") {
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    XLSX.writeFile(wb, fileName);
-}
-
-function getRateByMusteri(musteriAdi) {
-    const musteri = normalizeText(musteriAdi);
-    const isPepsi = PEPSI_CUSTOMERS.some((x) => musteri.includes(x));
-    return isPepsi ? 0.38 : 0.37;
-}
-
-function parseClipboardRows(text) {
-    const clean = String(text || "").trim();
-    if (!clean) return [];
-
-    const lines = clean.split(/\r?\n/).filter((line) => line.trim());
-    if (lines.length < 2) return [];
-
-    const separator = lines[0].includes("\t") ? "\t" : ";";
-    const headers = lines[0].split(separator).map((h) => h.trim());
-
-    return lines.slice(1).map((line) => {
-        const values = line.split(separator);
-        const row = {};
-
-        headers.forEach((header, index) => {
-            row[header] = values[index] ?? "";
-        });
-
-        return row;
-    });
-}
-
-export default function PepsiYakitHakedis() {
-    const yakitInputRef = useRef(null);
-    const seferInputRef = useRef(null);
-
-    const [yakitRows, setYakitRows] = useState([]);
-    const [seferRows, setSeferRows] = useState([]);
-
-    const [loading, setLoading] = useState(false);
-    const [activeStep, setActiveStep] = useState(1);
-    const [calculated, setCalculated] = useState(false);
-
-    const [snackbar, setSnackbar] = useState("");
-    const [pasteOpen, setPasteOpen] = useState(false);
-    const [pasteText, setPasteText] = useState("");
-    const [dragOver, setDragOver] = useState(false);
-
-    const [previewTitle, setPreviewTitle] = useState("");
-    const [previewRows, setPreviewRows] = useState([]);
-
-    const yakitReady = yakitRows.length > 0;
-    const seferReady = seferRows.length > 0;
-    const canCalculate = yakitReady && seferReady && !loading;
-
-    function showSnackbar(text) {
-        setSnackbar(text);
-        window.setTimeout(() => setSnackbar(""), 3200);
+    if (/e\+?/i.test(s)) {
+        const n = Number(s);
+        if (!Number.isFinite(n)) return null;
+        return String(Math.trunc(n));
     }
 
-    function createYakitTemplate() {
-        downloadExcel(
-            [
-                {
-                    plaka: "34ABC123",
-                    cari_id: "10001",
-                    cari_adi: "PEPSI ÖRNEK CARİ",
-                    birim_fiyat: 42.1,
-                    iskontosuz_birim_fiyat: 45.5,
-                    yakit_litresi: 120.5,
-                },
-            ],
-            "pepsi_yakit_sablon.xlsx",
-            "Yakıt Şablonu"
-        );
-    }
+    const digits = s.replace(/\D/g, "");
+    return digits ? digits : null;
+};
 
-    function createSeferTemplate() {
-        downloadExcel(
-            [
-                {
-                    musteri_adi: "PEPSI",
-                    sefer_no: "SF001",
-                    tms_despatch_id: "123456789012345678",
-                    plaka: "34ABC123",
-                    toplam_km: 450,
-                },
-            ],
-            "pepsi_sefer_sablon.xlsx",
-            "Sefer Şablonu"
-        );
-    }
+/* ===================== MÜŞTERİYE GÖRE ORAN (%38 / %37) ===================== */
+const normalizeCompany = (s) =>
+    String(s || "")
+        .toLocaleUpperCase("tr-TR")
+        .replace(/\s+/g, " ")
+        .trim();
 
-    async function processYakitRows(rawRows, sourceName = "Yapıştırılan Veri") {
-        setLoading(true);
-        setCalculated(false);
+const SPECIAL_CUSTOMERS_38 = new Set([
+    normalizeCompany("PEPSİ-COLA SERVİS VE DAĞITIM LİMİTED ŞİRKETİ"),
+]);
 
-        try {
-            const parsed = rawRows
-                .map((raw) => {
-                    const row = mapRow(raw);
+const getRateByMusteri = (musteriAdi) => {
+    const n = normalizeCompany(musteriAdi);
+    return SPECIAL_CUSTOMERS_38.has(n) ? 0.38 : 0.37;
+};
+/* ========================================================================== */
 
-                    return {
-                        plaka: normalizePlate(pick(row, ["plaka"])),
-                        cari_id: String(pick(row, ["cari_id", "cari id"]) || ""),
-                        cari_adi: String(pick(row, ["cari_adi", "cari adı", "cari adi"]) || ""),
-                        birim_fiyat: parseNumber(pick(row, ["birim_fiyat", "birim fiyat"])),
-                        iskontosuz_birim_fiyat: parseNumber(
-                            pick(row, ["iskontosuz_birim_fiyat", "iskontosuz birim fiyat"])
-                        ),
-                        yakit_litresi: parseNumber(pick(row, ["yakit_litresi", "yakıt litresi", "yakit litresi"])),
-                    };
-                })
-                .filter((x) => x.plaka && x.yakit_litresi > 0);
+/* ------------------------ Liste Bileşenleri ------------------------ */
+const PlakaKmList = ({ kmMap, mode = "km" }) => {
+    if (!kmMap || Object.keys(kmMap).length === 0) return null;
 
-            await supabase
-                .from("frigo_yakit_tmp")
-                .delete()
-                .neq("id", "00000000-0000-0000-0000-000000000000");
-
-            if (parsed.length) {
-                const { error } = await supabase.from("frigo_yakit_tmp").insert(parsed);
-                if (error) throw error;
-            }
-
-            setYakitRows(parsed);
-            setPasteOpen(false);
-            setPasteText("");
-            setActiveStep(2);
-
-            islemLogla({
-                islem_tipi: "PEPSI_YAKIT_EXCEL_YUKLEME",
-                islem_aciklama: "Pepsi yakıt verisi yüklendi",
-                tablo_adi: "frigo_yakit_tmp",
-                detay: { dosya: sourceName, kayit_sayisi: parsed.length },
-            });
-
-            showSnackbar(`Yakıt verileri yüklendi. ${parsed.length} kayıt bulundu.`);
-        } catch (err) {
-            console.error(err);
-            alert("Yakıt verileri okunamadı.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function processSeferRows(rawRows, sourceName = "Yapıştırılan Veri") {
-        setLoading(true);
-        setCalculated(false);
-
-        try {
-            const parsed = rawRows
-                .map((raw) => {
-                    const row = mapRow(raw);
-
-                    return {
-                        musteri_adi: String(pick(row, ["musteri_adi", "müşteri adı", "musteri adi"]) || ""),
-                        sefer_no: String(pick(row, ["sefer_no", "sefer no"]) || ""),
-                        tms_despatch_id: String(pick(row, ["tms_despatch_id", "tms despatch id"]) || ""),
-                        plaka: normalizePlate(pick(row, ["plaka"])),
-                        toplam_km: parseNumber(pick(row, ["toplam_km", "toplam km", "km"])),
-                    };
-                })
-                .filter((x) => x.plaka && x.toplam_km > 0);
-
-            await supabase
-                .from("frigo_sefer_tmp")
-                .delete()
-                .neq("id", "00000000-0000-0000-0000-000000000000");
-
-            if (parsed.length) {
-                const { error } = await supabase.from("frigo_sefer_tmp").insert(parsed);
-                if (error) throw error;
-            }
-
-            setSeferRows(parsed);
-            setPasteOpen(false);
-            setPasteText("");
-            setActiveStep(3);
-
-            islemLogla({
-                islem_tipi: "PEPSI_SEFER_EXCEL_YUKLEME",
-                islem_aciklama: "Pepsi sefer verisi yüklendi",
-                tablo_adi: "frigo_sefer_tmp",
-                detay: { dosya: sourceName, kayit_sayisi: parsed.length },
-            });
-
-            showSnackbar(`Sefer verileri yüklendi. ${parsed.length} kayıt bulundu.`);
-        } catch (err) {
-            console.error(err);
-            alert("Sefer verileri okunamadı.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function processFile(file) {
-        if (!file) return;
-
-        const rawRows = await readExcel(file);
-
-        if (activeStep === 1) await processYakitRows(rawRows, file.name);
-        if (activeStep === 2) await processSeferRows(rawRows, file.name);
-    }
-
-    async function handleYakitUpload(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        await processYakitRows(await readExcel(file), file.name);
-        e.target.value = "";
-    }
-
-    async function handleSeferUpload(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        await processSeferRows(await readExcel(file), file.name);
-        e.target.value = "";
-    }
-
-    async function handlePasteSubmit() {
-        const rows = parseClipboardRows(pasteText);
-
-        if (!rows.length) {
-            alert("Yapıştırılan veri okunamadı. İlk satırda başlıklar olmalı.");
-            return;
-        }
-
-        if (activeStep === 1) await processYakitRows(rows);
-        if (activeStep === 2) await processSeferRows(rows);
-    }
-
-    function goBackStep() {
-        setPasteOpen(false);
-        setPasteText("");
-        setDragOver(false);
-        setCalculated(false);
-
-        if (activeStep === 2) {
-            setSeferRows([]);
-            setActiveStep(1);
-        }
-
-        if (activeStep === 3) {
-            setActiveStep(2);
-        }
-
-        if (activeStep === 4) {
-            setActiveStep(3);
-        }
-    }
-
-    function resetAll() {
-        setYakitRows([]);
-        setSeferRows([]);
-        setCalculated(false);
-        setActiveStep(1);
-        setPasteOpen(false);
-        setPasteText("");
-        setDragOver(false);
-        setPreviewRows([]);
-        setPreviewTitle("");
-    }
-
-    const yakitByPlate = useMemo(() => {
-        const map = new Map();
-
-        yakitRows.forEach((row) => {
-            const plaka = normalizePlate(row.plaka);
-
-            if (!map.has(plaka)) {
-                map.set(plaka, {
-                    plaka,
-                    cari_id: row.cari_id,
-                    cari_adi: row.cari_adi,
-                    toplam_yakit_litresi: 0,
-                    birim_fiyat_sum: 0,
-                    iskontosuz_birim_fiyat_sum: 0,
-                    fiyat_count: 0,
-                });
-            }
-
-            const item = map.get(plaka);
-            item.toplam_yakit_litresi += Number(row.yakit_litresi || 0);
-
-            if (row.birim_fiyat || row.iskontosuz_birim_fiyat) {
-                item.birim_fiyat_sum += Number(row.birim_fiyat || 0);
-                item.iskontosuz_birim_fiyat_sum += Number(row.iskontosuz_birim_fiyat || 0);
-                item.fiyat_count += 1;
-            }
-        });
-
-        map.forEach((item) => {
-            item.birim_fiyat = item.fiyat_count > 0 ? item.birim_fiyat_sum / item.fiyat_count : 0;
-            item.iskontosuz_birim_fiyat =
-                item.fiyat_count > 0 ? item.iskontosuz_birim_fiyat_sum / item.fiyat_count : 0;
-        });
-
-        return map;
-    }, [yakitRows]);
-
-    const summaryRows = useMemo(() => {
-        if (!calculated) return [];
-
-        const map = new Map();
-
-        seferRows.forEach((row) => {
-            const plaka = normalizePlate(row.plaka);
-            const rate = getRateByMusteri(row.musteri_adi);
-            const km = Number(row.toplam_km || 0);
-
-            if (!map.has(plaka)) {
-                map.set(plaka, {
-                    plaka,
-                    km_38: 0,
-                    km_37: 0,
-                    toplam_km: 0,
-                    toplam_tuketim: 0,
-                    gercek_yakit: 0,
-                    litre_farki: 0,
-                    birim_fiyat: 0,
-                    iskontosuz_birim_fiyat: 0,
-                    duzeltme_maliyeti: 0,
-                    tl_km: 0,
-                    durum: "",
-                    cari_id: "",
-                    cari_adi: "",
-                });
-            }
-
-            const item = map.get(plaka);
-
-            if (rate === 0.38) item.km_38 += km;
-            else item.km_37 += km;
-
-            item.toplam_km += km;
-            item.toplam_tuketim += km * rate;
-        });
-
-        map.forEach((item, plaka) => {
-            const fuel = yakitByPlate.get(plaka);
-
-            item.gercek_yakit = fuel?.toplam_yakit_litresi || 0;
-            item.birim_fiyat = fuel?.birim_fiyat || 0;
-            item.iskontosuz_birim_fiyat = fuel?.iskontosuz_birim_fiyat || 0;
-            item.litre_farki = item.toplam_tuketim - item.gercek_yakit;
-
-            item.duzeltme_maliyeti =
-                item.litre_farki >= 0
-                    ? item.litre_farki * item.birim_fiyat
-                    : -Math.abs(item.litre_farki) * item.iskontosuz_birim_fiyat;
-
-            item.tl_km = item.toplam_km > 0 ? item.duzeltme_maliyeti / item.toplam_km : 0;
-            item.durum = item.duzeltme_maliyeti >= 0 ? "HAKEDİŞ" : "CEZA";
-            item.cari_id = fuel?.cari_id || "";
-            item.cari_adi = fuel?.cari_adi || "";
-        });
-
-        return Array.from(map.values()).sort((a, b) => a.plaka.localeCompare(b.plaka, "tr"));
-    }, [calculated, seferRows, yakitByPlate]);
-
-    const distributionRows = useMemo(() => {
-        if (!calculated) return [];
-
-        const summaryMap = new Map(summaryRows.map((x) => [x.plaka, x]));
-
-        return seferRows.map((row) => {
-            const plaka = normalizePlate(row.plaka);
-            const summary = summaryMap.get(plaka);
-            const km = Number(row.toplam_km || 0);
-
-            return {
-                sefer_no: row.sefer_no,
-                tms_despatch_id: row.tms_despatch_id,
-                musteri_adi: row.musteri_adi,
-                plaka,
-                km,
-                oran: getRateByMusteri(row.musteri_adi),
-                sefer_hakedisi_tl: km * Number(summary?.tl_km || 0),
-                cari_unvan_id: summary?.cari_id || "",
-                cari_adi: summary?.cari_adi || "",
-            };
-        });
-    }, [calculated, seferRows, summaryRows]);
-
-    const totals = useMemo(() => {
-        return summaryRows.reduce(
-            (acc, row) => {
-                acc.plaka += 1;
-                acc.km += row.toplam_km;
-                acc.litre += row.litre_farki;
-                acc.tutar += row.duzeltme_maliyeti;
-                acc.tahmini += row.toplam_tuketim;
-                acc.gercek += row.gercek_yakit;
-                return acc;
-            },
-            { plaka: 0, km: 0, litre: 0, tutar: 0, tahmini: 0, gercek: 0 }
-        );
-    }, [summaryRows]);
-
-    function handleCalculate() {
-        if (!canCalculate) return;
-        setCalculated(true);
-        setActiveStep(4);
-        showSnackbar("Pepsi yakıt hakediş hesaplaması tamamlandı.");
-    }
-
-    function exportSeferRaporu() {
-        const rows = distributionRows.map((x) => ({
-            sefer_no: x.sefer_no,
-            tms_despatch_id: x.tms_despatch_id,
-            plaka: x.plaka,
-            musteri_adi: x.musteri_adi,
-            km: Number(x.km.toFixed(4)),
-            oran: x.oran,
-            sefer_hakedisi_tl: Number(x.sefer_hakedisi_tl.toFixed(4)),
-            cari_unvan_id: x.cari_unvan_id,
-        }));
-
-        downloadExcel(rows, "pepsi_sefer_hakedisleri_raporu.xlsx", "Sefer Hakedişleri");
-    }
-
-    function exportOzetRaporu() {
-        const rows = summaryRows.map((x) => ({
-            plaka: x.plaka,
-            KM_38: Number(x.km_38.toFixed(4)),
-            KM_37: Number(x.km_37.toFixed(4)),
-            toplam_km: Number(x.toplam_km.toFixed(4)),
-            TOPLAM_TUKETIM: Number(x.toplam_tuketim.toFixed(4)),
-            gercek_yakit: Number(x.gercek_yakit.toFixed(4)),
-            litre_farki: Number(x.litre_farki.toFixed(4)),
-            birim_fiyat: Number(x.birim_fiyat.toFixed(4)),
-            iskontosuz_birim_fiyat: Number(x.iskontosuz_birim_fiyat.toFixed(4)),
-            DUZELTME_MALIYETI: Number(x.duzeltme_maliyeti.toFixed(4)),
-            durum: x.durum,
-        }));
-
-        downloadExcel(rows, "pepsi_ozet_data.xlsx", "Özet Data");
-    }
-
-    const detectedPasteRows = parseClipboardRows(pasteText).length;
+    const list = Object.entries(kmMap).map(([plaka, data]) => ({ plaka, ...data }));
 
     return (
-        <div className="pepsi-page">
-            <input ref={yakitInputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleYakitUpload} />
-            <input ref={seferInputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleSeferUpload} />
-
-            <div className="pepsi-brand">
-                <div className="pepsi-brand-badge">
-                    <span className="brand-dot"></span>
-                    <div>
-                        <strong>PEPSI</strong>
-                        <small>Yakıt Hakediş Yönetimi</small>
-                    </div>
-                </div>
-            </div>
-
-            {snackbar && <div className="pepsi-snackbar">{snackbar}</div>}
-
-            {activeStep < 4 && (
-                <div className="pepsi-wizard">
-                    {activeStep === 1 && (
-                        <section className="upload-screen single-screen">
-                            <div className="upload-main">
-                                <div className="template-actions">
-                                    <button className="ghost-btn" onClick={createYakitTemplate}>
-                                        Yakıt Şablonu İndir
-                                    </button>
-                                    <button className="ghost-btn" onClick={createSeferTemplate}>
-                                        Sefer Şablonu İndir
-                                    </button>
-                                </div>
-
-                                <h2>Yakıt verilerini yükle</h2>
-                                <p>
-                                    Önce örnek şablonu indirebilir, ardından yakıt Excelini sürükle bırak, dosya seç veya
-                                    Excel’den kopyaladığın veriyi yapıştır.
-                                </p>
-
-                                <div
-                                    className={`drop-zone ${dragOver ? "drag-over" : ""}`}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        setDragOver(true);
-                                    }}
-                                    onDragLeave={() => setDragOver(false)}
-                                    onDrop={async (e) => {
-                                        e.preventDefault();
-                                        setDragOver(false);
-                                        await processFile(e.dataTransfer.files?.[0]);
-                                    }}
-                                >
-                                    <div className="drop-icon">⛽</div>
-                                    <h3>Yakıt Excelini buraya bırak</h3>
-                                    <p>Gerekli kolonlar: plaka, cari_id, cari_adi, birim_fiyat, iskontosuz_birim_fiyat, yakit_litresi</p>
-
-                                    <div className="upload-actions">
-                                        <button className="big-action primary" onClick={() => yakitInputRef.current?.click()} disabled={loading}>
-                                            Dosya Seç
-                                        </button>
-
-                                        <button className="ghost-btn" onClick={() => setPasteOpen((v) => !v)} disabled={loading}>
-                                            Ekrana Yapıştır
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {pasteOpen && (
-                                    <div className="paste-panel">
-                                        <textarea
-                                            value={pasteText}
-                                            onChange={(e) => setPasteText(e.target.value)}
-                                            placeholder={`plaka	cari_id	cari_adi	birim_fiyat	iskontosuz_birim_fiyat	yakit_litresi
-34ABC123	10001	PEPSI ÖRNEK	42,10	45,50	120,5`}
-                                        />
-
-                                        <div className="paste-actions">
-                                            <span>{detectedPasteRows} satır algılandı</span>
-                                            <button className="primary" onClick={handlePasteSubmit} disabled={loading || !pasteText.trim()}>
-                                                Veriyi Kullan
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-                    )}
-
-                    {activeStep === 2 && (
-                        <section className="upload-screen">
-                            <div className="upload-main">
-                                <div className="screen-actions-top">
-                                    <button className="back-btn" onClick={goBackStep} disabled={loading}>
-                                        ← Geri Gel
-                                    </button>
-                                </div>
-
-                                <h2>Sefer verilerini yükle</h2>
-                                <p>Pepsi sefer Excelini yükle. Pepsi müşterisi için tüketim oranı %38, diğer müşteriler için %37 uygulanır.</p>
-
-                                <div
-                                    className={`drop-zone ${dragOver ? "drag-over" : ""}`}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        setDragOver(true);
-                                    }}
-                                    onDragLeave={() => setDragOver(false)}
-                                    onDrop={async (e) => {
-                                        e.preventDefault();
-                                        setDragOver(false);
-                                        await processFile(e.dataTransfer.files?.[0]);
-                                    }}
-                                >
-                                    <div className="drop-icon">🚚</div>
-                                    <h3>Sefer Excelini buraya bırak</h3>
-                                    <p>Gerekli kolonlar: musteri_adi, sefer_no, tms_despatch_id, plaka, toplam_km</p>
-
-                                    <div className="upload-actions">
-                                        <button className="big-action primary" onClick={() => seferInputRef.current?.click()} disabled={loading}>
-                                            Dosya Seç
-                                        </button>
-
-                                        <button className="ghost-btn" onClick={() => setPasteOpen((v) => !v)} disabled={loading}>
-                                            Ekrana Yapıştır
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {pasteOpen && (
-                                    <div className="paste-panel">
-                                        <textarea
-                                            value={pasteText}
-                                            onChange={(e) => setPasteText(e.target.value)}
-                                            placeholder={`musteri_adi	sefer_no	tms_despatch_id	plaka	toplam_km
-PEPSI	SF001	123456789012345678	34ABC123	450`}
-                                        />
-
-                                        <div className="paste-actions">
-                                            <span>{detectedPasteRows} satır algılandı</span>
-                                            <button className="primary" onClick={handlePasteSubmit} disabled={loading || !pasteText.trim()}>
-                                                Veriyi Kullan
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="mini-preview done-preview">
-                                <h3>Yakıt verileri hazır</h3>
-                                <p>{yakitRows.length} kayıt</p>
-
-                                <button
-                                    className="ghost-btn preview-btn"
-                                    onClick={() => {
-                                        setPreviewTitle("Yakıt Önizleme");
-                                        setPreviewRows(yakitRows.slice(0, 30));
-                                    }}
-                                >
-                                    Önizle
-                                </button>
-
-                                <div className="mini-table">
-                                    {yakitRows.slice(0, 6).map((row, index) => (
-                                        <div key={`${row.plaka}-${index}`}>
-                                            <b>{row.plaka}</b>
-                                            <span>{formatNumber(row.yakit_litresi)} L</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {activeStep === 3 && (
-                        <section className="upload-screen">
-                            <div className="upload-main calculate-main">
-                                <div className="screen-actions-top">
-                                    <button className="back-btn" onClick={goBackStep} disabled={loading}>
-                                        ← Geri Gel
-                                    </button>
-                                </div>
-
-                                <h2>Hesaplamayı başlat</h2>
-                                <p>Yakıt ve sefer verileri hazır. Plaka bazlı tahmini tüketim, gerçek yakıt, fark litre ve düzeltme maliyeti hesaplanacak.</p>
-
-                                <button className="big-action primary calculate-button" onClick={handleCalculate} disabled={!canCalculate}>
-                                    Hesapla
-                                </button>
-                            </div>
-
-                            <div className="mini-preview done-preview">
-                                <h3>Yüklenen veriler</h3>
-                                <p>Yakıt: {yakitRows.length} kayıt</p>
-                                <p>Sefer: {seferRows.length} kayıt</p>
-
-                                <button
-                                    className="ghost-btn preview-btn"
-                                    onClick={() => {
-                                        setPreviewTitle("Sefer Önizleme");
-                                        setPreviewRows(seferRows.slice(0, 30));
-                                    }}
-                                >
-                                    Önizle
-                                </button>
-
-                                <div className="mini-table">
-                                    {seferRows.slice(0, 6).map((row, index) => (
-                                        <div key={`${row.sefer_no}-${index}`}>
-                                            <b>{row.plaka}</b>
-                                            <span>{formatNumber(row.toplam_km)} KM</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
-                    )}
-                </div>
-            )}
-
-            {calculated && (
+        <Box
+            sx={{
+                mt: 1.5,
+                maxHeight: 280,
+                overflowY: "auto",
+                p: 1,
+                bgcolor: DARK.surface,
+                borderRadius: 1,
+                border: `1px solid ${DARK.border}`,
+            }}
+        >
+            {mode === "km" && (
                 <>
-                    <div className="result-topbar">
-                        <div className="result-left-actions">
-                            <button className="back-btn" onClick={goBackStep} disabled={loading}>
-                                ← Geri Gel
-                            </button>
-                            <button className="ghost-btn" onClick={resetAll} disabled={loading}>
-                                Yeni Hesaplama
-                            </button>
-                        </div>
+                    <Grid container spacing={1} sx={{ bgcolor: DARK.surface2, p: 1, borderRadius: 1 }}>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.mint}>Plaka</Typography></Grid>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.primary}>KM (%38)</Typography></Grid>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.primary}>KM (%37)</Typography></Grid>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.text}>Toplam KM</Typography></Grid>
+                    </Grid>
 
-                        <div className="report-actions">
-                            <button className="primary" onClick={exportSeferRaporu} disabled={!distributionRows.length}>
-                                Sefer Hakedişleri Raporu
-                            </button>
-                            <button className="primary" onClick={exportOzetRaporu} disabled={!summaryRows.length}>
-                                Özet Data
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="kpi-cards">
-                        <div className="kpi-card">
-                            <span>Plaka Sayısı</span>
-                            <strong>{totals.plaka}</strong>
-                            <small>Hesaplanan araç</small>
-                        </div>
-                        <div className="kpi-card">
-                            <span>Toplam KM</span>
-                            <strong>{formatNumber(totals.km)}</strong>
-                            <small>Sefer toplamı</small>
-                        </div>
-                        <div className="kpi-card">
-                            <span>Hakediş Litresi</span>
-                            <strong>{formatNumber(totals.litre)} L</strong>
-                            <small>Tahmini - gerçek yakıt</small>
-                        </div>
-                        <div className={`kpi-card ${totals.tutar >= 0 ? "positive" : "negative"}`}>
-                            <span>Hakediş Tutarı</span>
-                            <strong>{formatTL(totals.tutar)}</strong>
-                            <small>Düzeltme maliyeti</small>
-                        </div>
-                    </div>
-
-                    <div className="result-grid">
-                        <section className="result-panel">
-                            <div className="panel-head">
-                                <div>
-                                    <h2>Plaka Bazlı Fark</h2>
-                                    <p>Tahmini litre, gerçek litre ve litre farkı.</p>
-                                </div>
-                                <span>{summaryRows.length} plaka</span>
-                            </div>
-
-                            <div className="table-wrap">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Plaka</th>
-                                            <th>KM %38</th>
-                                            <th>KM %37</th>
-                                            <th>Toplam KM</th>
-                                            <th>TOPLAM_TUKETIM</th>
-                                            <th>Gerçek Litre</th>
-                                            <th>Litre Farkı</th>
-                                            <th>Düzeltme Maliyeti</th>
-                                            <th>Durum</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {summaryRows.map((row) => (
-                                            <tr key={row.plaka}>
-                                                <td><strong className="plate-chip">{row.plaka}</strong></td>
-                                                <td>{formatNumber(row.km_38)}</td>
-                                                <td>{formatNumber(row.km_37)}</td>
-                                                <td>{formatNumber(row.toplam_km)}</td>
-                                                <td>{formatNumber(row.toplam_tuketim)}</td>
-                                                <td>{formatNumber(row.gercek_yakit)}</td>
-                                                <td className={row.litre_farki >= 0 ? "good" : "bad"}>
-                                                    {formatNumber(row.litre_farki)}
-                                                </td>
-                                                <td className={row.duzeltme_maliyeti >= 0 ? "good" : "bad"}>
-                                                    {formatTL(row.duzeltme_maliyeti)}
-                                                </td>
-                                                <td>
-                                                    <span className={row.durum === "HAKEDİŞ" ? "badge good-bg" : "badge bad-bg"}>
-                                                        {row.durum}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-
-                        <section className="result-panel">
-                            <div className="panel-head">
-                                <div>
-                                    <h2>Hakediş / Ceza Listesi</h2>
-                                    <p>Sefer bazlı dağıtılmış hakediş veya ceza tutarı.</p>
-                                </div>
-                                <span>{distributionRows.length} sefer</span>
-                            </div>
-
-                            <div className="table-wrap">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Sefer No</th>
-                                            <th>TMS Despatch ID</th>
-                                            <th>Müşteri</th>
-                                            <th>Plaka</th>
-                                            <th>KM</th>
-                                            <th>Oran</th>
-                                            <th>Sefer Hakedişi</th>
-                                            <th>Cari ID</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {distributionRows.slice(0, 400).map((row, index) => (
-                                            <tr key={`${row.sefer_no}-${index}`}>
-                                                <td>{row.sefer_no || "—"}</td>
-                                                <td>{row.tms_despatch_id || "—"}</td>
-                                                <td>{row.musteri_adi || "—"}</td>
-                                                <td><strong className="plate-chip">{row.plaka}</strong></td>
-                                                <td>{formatNumber(row.km)}</td>
-                                                <td>%{Math.round(row.oran * 100)}</td>
-                                                <td className={row.sefer_hakedisi_tl >= 0 ? "good" : "bad"}>
-                                                    {formatTL(row.sefer_hakedisi_tl)}
-                                                </td>
-                                                <td>{row.cari_unvan_id || "—"}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </div>
+                    <Stack spacing={0.5} mt={0.5}>
+                        {list.map((d) => (
+                            <Grid container key={d.plaka} spacing={1} sx={{ borderBottom: `1px dotted ${DARK.border}` }}>
+                                <Grid item xs={3}><Typography variant="caption" color={DARK.text}>{d.plaka}</Typography></Grid>
+                                <Grid item xs={3}><Typography variant="caption" color={DARK.primary}>{formatNumber(d.KM_38)}</Typography></Grid>
+                                <Grid item xs={3}><Typography variant="caption" color={DARK.primary}>{formatNumber(d.KM_37)}</Typography></Grid>
+                                <Grid item xs={3}><Typography variant="caption" color={DARK.text} fontWeight={700}>{formatNumber(d.TOPLAM_KM)}</Typography></Grid>
+                            </Grid>
+                        ))}
+                    </Stack>
                 </>
             )}
 
-            {previewRows.length > 0 && (
-                <div className="preview-overlay" onClick={() => setPreviewRows([])}>
-                    <div className="preview-dialog" onClick={(e) => e.stopPropagation()}>
-                        <div className="preview-head">
-                            <h3>{previewTitle}</h3>
-                            <button className="ghost-btn" onClick={() => setPreviewRows([])}>
-                                Kapat
-                            </button>
+            {mode === "tuketim" && (
+                <>
+                    <Grid container spacing={1} sx={{ bgcolor: DARK.surface2, p: 1, borderRadius: 1 }}>
+                        <Grid item xs={4}><Typography variant="caption" fontWeight={700} color={DARK.mint}>Plaka</Typography></Grid>
+                        <Grid item xs={4}><Typography variant="caption" fontWeight={700} color={DARK.textMuted}>Toplam KM</Typography></Grid>
+                        <Grid item xs={4}><Typography variant="caption" fontWeight={700} color={DARK.primary}>Tahmini Tüketim</Typography></Grid>
+                    </Grid>
+
+                    <Stack spacing={0.5} mt={0.5}>
+                        {list.map((d) => (
+                            <Grid container key={d.plaka} spacing={1} sx={{ borderBottom: `1px dotted ${DARK.border}` }}>
+                                <Grid item xs={4}><Typography variant="caption" color={DARK.text}>{d.plaka}</Typography></Grid>
+                                <Grid item xs={4}><Typography variant="caption" color={DARK.textMuted}>{formatNumber(d.TOPLAM_KM)}</Typography></Grid>
+                                <Grid item xs={4}><Typography variant="caption" color={DARK.primary} fontWeight={700}>{formatNumber(d.TOPLAM_TUKETIM)}</Typography></Grid>
+                            </Grid>
+                        ))}
+                    </Stack>
+                </>
+            )}
+
+            {mode === "fark" && (
+                <>
+                    <Grid container spacing={1} sx={{ bgcolor: DARK.surface2, p: 1, borderRadius: 1 }}>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.mint}>Plaka</Typography></Grid>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.mint}>Tahmini</Typography></Grid>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.primary}>Gerçek</Typography></Grid>
+                        <Grid item xs={3}><Typography variant="caption" fontWeight={700} color={DARK.red}>Fark</Typography></Grid>
+                    </Grid>
+
+                    <Stack spacing={0.5} mt={0.5}>
+                        {list.map((d) => {
+                            const diff = Number(d.TOPLAM_KM_VE_LITRE_FARKI || 0);
+                            const diffColor = diff >= 0 ? DARK.mint : DARK.red;
+                            return (
+                                <Grid container key={d.plaka} spacing={1} sx={{ borderBottom: `1px dotted ${DARK.border}` }}>
+                                    <Grid item xs={3}><Typography variant="caption" color={DARK.text}>{d.plaka}</Typography></Grid>
+                                    <Grid item xs={3}><Typography variant="caption" color={DARK.mint} fontWeight={700}>{formatNumber(d.TOPLAM_TUKETIM)}</Typography></Grid>
+                                    <Grid item xs={3}><Typography variant="caption" color={DARK.primary}>{formatNumber(d.TOPLAM_YAKIT_LITRESI)}</Typography></Grid>
+                                    <Grid item xs={3}><Typography variant="caption" color={diffColor} fontWeight={700}>{formatNumber(d.TOPLAM_KM_VE_LITRE_FARKI)}</Typography></Grid>
+                                </Grid>
+                            );
+                        })}
+                    </Stack>
+                </>
+            )}
+        </Box>
+    );
+};
+
+const PlakaHakedisList = ({ kmMap }) => {
+    if (!kmMap || Object.keys(kmMap).length === 0) return null;
+
+    const list = Object.entries(kmMap)
+        .filter(([, data]) => Number(data.DUZELTME_MALIYETI || 0) !== 0)
+        .map(([plaka, data]) => ({
+            plaka,
+            DUZELTME_MALIYETI: Number(data.DUZELTME_MALIYETI || 0),
+            TOPLAM_KM_VE_LITRE_FARKI: Number(data.TOPLAM_KM_VE_LITRE_FARKI || 0),
+        }));
+
+    if (!list.length) {
+        return (
+            <Alert severity="info" sx={{ mt: 1, bgcolor: withAlpha(DARK.primary, 0.1), color: DARK.text }}>
+                Düzeltme maliyeti oluşan plaka bulunamadı.
+            </Alert>
+        );
+    }
+
+    return (
+        <Box
+            sx={{
+                mt: 1.5,
+                maxHeight: 260,
+                overflowY: "auto",
+                p: 1,
+                bgcolor: DARK.surface,
+                borderRadius: 1,
+                border: `1px solid ${DARK.border}`,
+            }}
+        >
+            <Grid container spacing={1} sx={{ bgcolor: DARK.surface2, p: 1, borderRadius: 1 }}>
+                <Grid item xs={6}><Typography variant="caption" fontWeight={700} color={DARK.mint}>Plaka</Typography></Grid>
+                <Grid item xs={6} sx={{ textAlign: "right" }}><Typography variant="caption" fontWeight={700} color={DARK.primary}>Tutar</Typography></Grid>
+            </Grid>
+
+            <Stack spacing={0.5} mt={0.5}>
+                {list.map((d) => {
+                    const positive = d.TOPLAM_KM_VE_LITRE_FARKI >= 0;
+                    const color = positive ? DARK.mint : DARK.red;
+                    const finalAmount = positive ? d.DUZELTME_MALIYETI : -d.DUZELTME_MALIYETI;
+
+                    return (
+                        <Grid container key={d.plaka} spacing={1} sx={{ borderBottom: `1px dotted ${DARK.border}` }}>
+                            <Grid item xs={6}>
+                                <Typography variant="caption" fontWeight={700} color={color}>
+                                    {d.plaka}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6} sx={{ textAlign: "right" }}>
+                                <Typography variant="caption" fontWeight={700} color={color}>
+                                    {formatCurrency(finalAmount)}
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                    );
+                })}
+            </Stack>
+        </Box>
+    );
+};
+
+/* ------------------------ Excel / DB Yardımcıları ------------------------ */
+const readXlsxFile = async (file) => {
+    const workbook = new ExcelJS.Workbook();
+    const buffer = await file.arrayBuffer();
+    await workbook.xlsx.load(buffer);
+
+    const worksheet = workbook.worksheets[0];
+    const rows = [];
+    const rawHeaders = [];
+
+    const headerRow = worksheet.getRow(1);
+    if (!headerRow) throw new Error("Dosya boş veya başlık satırı okunamadı.");
+
+    headerRow.eachCell((cell) => {
+        rawHeaders.push(String(cell.value ?? "").trim());
+    });
+
+    const processedHeaders = rawHeaders.map((h) =>
+        h.toLowerCase().replace(/[^a-z0-9_ğüşöçıİ]/g, "_")
+    );
+
+    for (let i = 2; i <= worksheet.rowCount; i++) {
+        const row = worksheet.getRow(i);
+        const rowData = {};
+        let isRowEmpty = true;
+
+        rawHeaders.forEach((rawHeader, index) => {
+            if (!rawHeader) return;
+
+            const cell = row.getCell(index + 1);
+            let value = cell.value;
+
+            if (typeof value === "object" && value !== null) {
+                if (value.text) value = value.text;
+                else if (value instanceof Date) value = value.toISOString();
+                else if (value.result !== undefined) value = value.result;
+            }
+
+            const processedKey = processedHeaders[index];
+            rowData[processedKey] = value;
+
+            if (value !== null && value !== undefined && String(value).trim() !== "") {
+                isRowEmpty = false;
+            }
+        });
+
+        if (!isRowEmpty) rows.push(rowData);
+    }
+
+    return { headers: processedHeaders, rows };
+};
+
+const insertBatched = async (table, rows, batchSize = 500) => {
+    const keys = Object.keys(rows?.[0] || {});
+
+    if (table === "frigo_yakit_tmp") {
+        const allowed = new Set([
+            "plaka",
+            "cari_id",
+            "cari_adi",
+            "iskontosuz_birim_fiyat",
+            "birim_fiyat",
+            "yakit_litresi",
+        ]);
+        const bad = keys.filter((k) => !allowed.has(k));
+        if (bad.length) throw new Error(`Yakıt tablosuna yanlış kolon gönderiliyor: ${bad.join(", ")}`);
+    }
+
+    if (table === "frigo_sefer_tmp") {
+        const allowed = new Set(["musteri_adi", "sefer_no", "tms_despatch_id", "plaka", "toplam_km"]);
+        const bad = keys.filter((k) => !allowed.has(k));
+        if (bad.length) throw new Error(`Sefer tablosuna yanlış kolon gönderiliyor: ${bad.join(", ")}`);
+    }
+
+    let errorCount = 0;
+
+    for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const { error } = await supabase.from(table).insert(batch);
+
+        if (error) {
+            console.error(`Batch insert error for ${table}:`, error);
+            errorCount++;
+        }
+    }
+
+    if (errorCount > 0) {
+        throw new Error(`${errorCount} batch'te kayıt hatası oluştu.`);
+    }
+};
+
+const downloadXlsxTemplate = async (fileName, sheetName, headers, sampleRows) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    worksheet.columns = headers.map((h) => ({
+        header: h,
+        key: String(h).toLowerCase().replace(/[^a-z0-9_ğüşöçıİ]/g, "_"),
+        width: 24,
+    }));
+
+    sampleRows.forEach((row) => worksheet.addRow(row));
+
+    applyHakedisWorkbookBranding(workbook, { title: "Pepsi Yakıt Hakediş Raporu" });
+        const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(
+        new Blob([buffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+        fileName
+    );
+};
+
+const downloadYakitTemplate = async () => {
+    await downloadXlsxTemplate(
+        "pepsi_yakit_sablon.xlsx",
+        "Yakıt Şablonu",
+        ["plaka", "cari_id", "cari_adi", "iskontosuz_birim_fiyat", "birim_fiyat", "yakit_litresi"],
+        [
+            ["34ABC34", 123456, "Örnek Cari", 45.0, 44.9123, 250.5555],
+            ["41XYZ41", 222222, "Başka Cari", 44.0, 43.5678, 180.0],
+        ]
+    );
+};
+
+const downloadSeferTemplate = async () => {
+    await downloadXlsxTemplate(
+        "pepsi_sefer_sablon.xlsx",
+        "Sefer Şablonu",
+        ["musteri_adi", "sefer_no", "tms_despatch_id", "plaka", "toplam_km"],
+        [
+            ["PEPSİ-COLA SERVİS VE DAĞITIM LİMİTED ŞİRKETİ", "S1001", 987654321, "34ABC34", 860.3333],
+            ["DİĞER MÜŞTERİ", "S1002", 987654322, "41XYZ41", 540.0],
+            ["BAŞKA MÜŞTERİ", "S1003", 987654323, "34ABC34", 50.0],
+        ]
+    );
+};
+
+const fetchCariIdMapByPlates = async (plates, batchSize = 500) => {
+    const map = {};
+    const uniquePlates = Array.from(
+        new Set((plates || []).map((p) => String(p || "").toUpperCase().trim()).filter(Boolean))
+    );
+
+    for (let i = 0; i < uniquePlates.length; i += batchSize) {
+        const batch = uniquePlates.slice(i, i + batchSize);
+
+        const { data, error } = await supabase
+            .from("arac_cari_ve_fiyat")
+            .select("plaka,cari_id")
+            .in("plaka", batch);
+
+        if (error) {
+            throw new Error("Cari UnvanId çekilirken hata oluştu: " + (error.message || "Bilinmeyen hata"));
+        }
+
+        (data || []).forEach((row) => {
+            const plaka = String(row.plaka || "").toUpperCase().trim();
+            if (!plaka) return;
+            map[plaka] = row.cari_id ?? null;
+        });
+    }
+
+    return map;
+};
+
+const downloadSeferHakedisleri = async (kmMap, seferRows, setSnackbar) => {
+    if (!kmMap || Object.keys(kmMap).length === 0 || !seferRows || seferRows.length === 0) {
+        setSnackbar({
+            open: true,
+            message: "Hesaplama verisi bulunamadı.",
+            severity: "warning",
+        });
+        return;
+    }
+
+    try {
+        setSnackbar({
+            open: true,
+            message: "Sefer Hakedişleri Excel'i hazırlanıyor...",
+            severity: "info",
+        });
+
+        const platesToLookup = seferRows
+            .map((r) => (r.plaka ? String(r.plaka).toUpperCase().trim() : ""))
+            .filter(Boolean);
+
+        const cariIdMap = await fetchCariIdMapByPlates(platesToLookup);
+
+        const plakaDataMap = Object.entries(kmMap)
+            .filter(([, data]) => Number(data.DUZELTME_MALIYETI || 0) !== 0)
+            .reduce((acc, [plaka, data]) => {
+                const diff = Number(data.TOPLAM_KM_VE_LITRE_FARKI || 0);
+                const toplamHakedis =
+                    diff < 0
+                        ? -Number(data.DUZELTME_MALIYETI || 0)
+                        : Number(data.DUZELTME_MALIYETI || 0);
+
+                const toplamKm = Number(data.TOPLAM_KM || 0);
+                const maliyetPerKm = toplamKm > 0 ? toplamHakedis / toplamKm : 0;
+
+                acc[plaka.toUpperCase()] = {
+                    toplamHakedis,
+                    maliyetPerKm,
+                    _distributedTotal: 0,
+                };
+                return acc;
+            }, {});
+
+        const sortedSeferRows = [...seferRows].sort((a, b) => {
+            const plakaA = a.plaka?.toUpperCase() || "ZZZ";
+            const plakaB = b.plaka?.toUpperCase() || "ZZZ";
+            if (plakaA < plakaB) return -1;
+            if (plakaA > plakaB) return 1;
+            return (a.sefer_no || "").localeCompare(b.sefer_no || "");
+        });
+
+        const dataForExcel = [];
+
+        for (let i = 0; i < sortedSeferRows.length; i++) {
+            const row = sortedSeferRows[i];
+            const plaka = row.plaka?.toUpperCase();
+
+            const nextRow = sortedSeferRows[i + 1];
+            const nextPlaka = nextRow ? nextRow.plaka?.toUpperCase() : null;
+            const isLastTripForPlaka = plaka !== nextPlaka;
+
+            const plakaData = plakaDataMap[plaka];
+            const km = Number(row.toplam_km || 0);
+
+            let seferMaliyeti = 0;
+
+            if (plakaData) {
+                if (isLastTripForPlaka) {
+                    seferMaliyeti = plakaData.toplamHakedis - plakaData._distributedTotal;
+                    seferMaliyeti = roundToDecimal(seferMaliyeti, 4);
+                } else {
+                    seferMaliyeti = roundToDecimal(km * plakaData.maliyetPerKm, 4);
+                    plakaData._distributedTotal += seferMaliyeti;
+                }
+            }
+
+            dataForExcel.push({
+                musteri_adi: row.musteri_adi ?? null,
+                sefer_no: row.sefer_no,
+                tms_despatch_id: row.tms_despatch_id,
+                plaka: row.plaka,
+                toplam_km: row.toplam_km,
+                sefer_hakedisi_tl: seferMaliyeti,
+                cari_unvan_id: cariIdMap[plaka] ?? null,
+            });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("PEPSİ Sefer Hakediş Detayları");
+
+        worksheet.columns = [
+            { header: "MÜŞTERİ ADI", key: "musteri_adi", width: 40 },
+            { header: "SEFER NO", key: "sefer_no", width: 15 },
+            { header: "TMS DESPATCH ID", key: "tms_despatch_id", width: 18 },
+            { header: "PLAKA", key: "plaka", width: 12 },
+            { header: "TOPLAM KM", key: "toplam_km", width: 15, style: { numFmt: "0" } },
+            {
+                header: "SEFER HAKEDİŞİ (TL)",
+                key: "sefer_hakedisi_tl",
+                width: 25,
+                style: { numFmt: '₺#,##0.0000;[Red]-₺#,##0.0000' },
+            },
+            { header: "Cari UnvanId", key: "cari_unvan_id", width: 16, style: { numFmt: "0" } },
+        ];
+
+        worksheet.addRows(dataForExcel);
+
+        applyHakedisWorkbookBranding(workbook, { title: "Pepsi Yakıt Hakediş Raporu" });
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(
+            new Blob([buffer], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }),
+            "pepsi_sefer_hakedis_detaylari.xlsx"
+        );
+
+        setSnackbar({
+            open: true,
+            message: "Sefer Hakedişleri Excel dosyası indirildi.",
+            severity: "success",
+        });
+    } catch (error) {
+        console.error(error);
+        setSnackbar({
+            open: true,
+            message: error.message || "Sefer Hakedişleri dosyası oluşturulurken hata oluştu.",
+            severity: "error",
+        });
+    }
+};
+
+const downloadOzetData = async (kmMap, yakitRows, setSnackbar) => {
+    if (!kmMap || Object.keys(kmMap).length === 0 || !yakitRows || yakitRows.length === 0) {
+        setSnackbar({
+            open: true,
+            message: "Hesaplama verisi bulunamadı.",
+            severity: "warning",
+        });
+        return;
+    }
+
+    try {
+        setSnackbar({
+            open: true,
+            message: "Özet Data Excel'i hazırlanıyor...",
+            severity: "info",
+        });
+
+        const yakitOzetMap = yakitRows.reduce((acc, row) => {
+            const plaka = row.plaka?.toUpperCase();
+            if (!plaka) return acc;
+
+            if (!acc[plaka]) {
+                acc[plaka] = {
+                    cari_id: row.cari_id ?? null,
+                    cari_adi: row.cari_adi ?? null,
+                    _sum_birim: 0,
+                    _sum_iskontosuz: 0,
+                    _cnt: 0,
+                };
+            }
+
+            const birim = Number(row.birim_fiyat) || 0;
+            const isk = Number(row.iskontosuz_birim_fiyat) || 0;
+
+            acc[plaka]._sum_birim += birim;
+            acc[plaka]._sum_iskontosuz += isk;
+            acc[plaka]._cnt += 1;
+            return acc;
+        }, {});
+
+        Object.keys(yakitOzetMap).forEach((plaka) => {
+            const o = yakitOzetMap[plaka];
+            const cnt = o._cnt || 0;
+            o.birim_fiyat = cnt > 0 ? o._sum_birim / cnt : 0;
+            o.iskontosuz_birim_fiyat = cnt > 0 ? o._sum_iskontosuz / cnt : 0;
+            delete o._sum_birim;
+            delete o._sum_iskontosuz;
+            delete o._cnt;
+        });
+
+        const dataForExcel = Object.entries(kmMap)
+            .map(([plaka, d]) => {
+                const yakitOzet = yakitOzetMap[plaka] || {};
+                return {
+                    plaka,
+                    cari_id: yakitOzet.cari_id ?? null,
+                    cari_adi: yakitOzet.cari_adi ?? "BİLİNMİYOR",
+                    km_38: Number(d.KM_38) || 0,
+                    km_37: Number(d.KM_37) || 0,
+                    toplam_km: Number(d.TOPLAM_KM) || 0,
+                    hakedis_litresi: Number(d.TOPLAM_TUKETIM) || 0,
+                    yakit_alim_litresi: Number(d.TOPLAM_YAKIT_LITRESI) || 0,
+                    yakit_fark_litre: Number(d.TOPLAM_KM_VE_LITRE_FARKI) || 0,
+                    birim_fiyat: Number(yakitOzet.birim_fiyat) || 0,
+                    iskontosuz_birim_fiyat: Number(yakitOzet.iskontosuz_birim_fiyat) || 0,
+                    hakedis_tutar: Number(d.DUZELTME_MALIYETI) || 0,
+                };
+            })
+            .filter(
+                (d) =>
+                    d.toplam_km !== 0 ||
+                    d.hakedis_litresi !== 0 ||
+                    d.yakit_alim_litresi !== 0 ||
+                    d.yakit_fark_litre !== 0 ||
+                    d.hakedis_tutar !== 0
+            );
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("PEPSİ Özet Plaka Analiz");
+
+        worksheet.columns = [
+            { header: "PLAKA", key: "plaka", width: 12 },
+            { header: "CARİ İD", key: "cari_id", width: 10 },
+            { header: "CARİ ADI", key: "cari_adi", width: 30 },
+            { header: "KM (%38)", key: "km_38", width: 16, style: { numFmt: "0.0000" } },
+            { header: "KM (%37)", key: "km_37", width: 16, style: { numFmt: "0.0000" } },
+            { header: "TOPLAM KM", key: "toplam_km", width: 16, style: { numFmt: "0.0000" } },
+            { header: "HAKEDİŞ LİTRESİ", key: "hakedis_litresi", width: 20, style: { numFmt: "0.0000" } },
+            { header: "YAKIT ALIM LİTRESİ", key: "yakit_alim_litresi", width: 20, style: { numFmt: "0.0000" } },
+            { header: "YAKIT FARK LİTRE", key: "yakit_fark_litre", width: 20, style: { numFmt: "0.0000;[Red]-0.0000" } },
+            { header: "BİRİM FİYAT", key: "birim_fiyat", width: 16, style: { numFmt: '₺#,##0.0000' } },
+            { header: "İSKONTOSUZ BİRİM FİYAT", key: "iskontosuz_birim_fiyat", width: 24, style: { numFmt: '₺#,##0.0000' } },
+            { header: "HAKEDİŞ TUTAR (TL)", key: "hakedis_tutar", width: 22, style: { numFmt: '₺#,##0.0000' } },
+        ];
+
+        worksheet.addRows(dataForExcel);
+
+        const farkColIndex = worksheet.getColumn("yakit_fark_litre").number;
+        const tutarColIndex = worksheet.getColumn("hakedis_tutar").number;
+
+        worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+            if (rowNumber === 1) return;
+
+            const raw = row.getCell(farkColIndex).value;
+            const farkValue =
+                raw && typeof raw === "object" && raw.result != null
+                    ? Number(raw.result)
+                    : Number(raw);
+
+            if (Number.isFinite(farkValue) && farkValue < 0) {
+                const tutarCell = row.getCell(tutarColIndex);
+                tutarCell.font = {
+                    ...(tutarCell.font || {}),
+                    color: { argb: "FFFF0000" },
+                };
+            }
+        });
+
+        applyHakedisWorkbookBranding(workbook, { title: "Pepsi Yakıt Hakediş Raporu" });
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(
+            new Blob([buffer], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }),
+            "pepsi_ozet_plaka_analiz.xlsx"
+        );
+
+        setSnackbar({
+            open: true,
+            message: "Özet Plaka Analiz Excel dosyası başarıyla indirildi.",
+            severity: "success",
+        });
+    } catch (error) {
+        console.error(error);
+        setSnackbar({
+            open: true,
+            message: error.message || "Özet Data Excel dosyası oluşturulurken hata oluştu.",
+            severity: "error",
+        });
+    }
+};
+
+/* ================================ ANA HESAPLAMA ================================ */
+export function PepsiHesaplama({
+    yakitInfo,
+    seferInfo,
+    setSnackbar,
+    startTrigger,
+    setStartTrigger,
+}) {
+    const seferRows = seferInfo?.allRows || [];
+    const yakitRows = yakitInfo?.allRows || [];
+
+    const MAX_STEP = 4;
+    const [currentStep, setCurrentStep] = useState(0);
+    const [sonucData, setSonucData] = useState(null);
+    const [kmData, setKmData] = useState(null);
+
+    const hakedisVeriHazir = yakitInfo && seferInfo;
+    const isCompleted = currentStep === MAX_STEP;
+
+    useEffect(() => {
+        if (startTrigger && hakedisVeriHazir) {
+            handleHakedisStart();
+            setStartTrigger(false);
+        } else if (!hakedisVeriHazir) {
+            setCurrentStep(0);
+            setSonucData(null);
+            setKmData(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [startTrigger, yakitInfo, seferInfo, hakedisVeriHazir, setStartTrigger]);
+
+    const handleHakedisStart = useCallback(async () => {
+        if (!hakedisVeriHazir) return;
+
+        setCurrentStep(1);
+        setSonucData(null);
+        setKmData(null);
+
+        let kmMap = {};
+        let totalUniquePlates = 0;
+        let totalKm = 0;
+
+        try {
+            await new Promise((r) => setTimeout(r, 250));
+
+            if (!seferRows.length || !yakitRows.length) {
+                throw new Error("Sefer ve/veya Yakıt verisi bulunamadı. Lütfen Excel dosyalarını yükleyiniz.");
+            }
+
+            setCurrentStep(2);
+
+            seferRows.forEach((row) => {
+                const plaka = row.plaka?.toUpperCase() || "BILINMEYEN";
+                const km = Number(row.toplam_km || 0);
+                totalKm += km;
+
+                if (plaka === "BILINMEYEN" || km === 0) return;
+
+                if (!kmMap[plaka]) {
+                    kmMap[plaka] = { KM_38: 0, KM_37: 0, TOPLAM_KM: 0, TOPLAM_TUKETIM: 0 };
+                }
+
+                const rate = getRateByMusteri(row.musteri_adi);
+                if (rate === 0.38) kmMap[plaka].KM_38 += km;
+                else kmMap[plaka].KM_37 += km;
+
+                kmMap[plaka].TOPLAM_KM += km;
+                kmMap[plaka].TOPLAM_TUKETIM += km * rate;
+            });
+
+            totalUniquePlates = Object.keys(kmMap).length;
+
+            let toplamTahminiTuketim = 0;
+            Object.keys(kmMap).forEach((p) => {
+                toplamTahminiTuketim += Number(kmMap[p].TOPLAM_TUKETIM || 0);
+            });
+
+            Object.keys(kmMap).forEach((p) => {
+                kmMap[p].KM_38 = roundToDecimal(kmMap[p].KM_38, 4);
+                kmMap[p].KM_37 = roundToDecimal(kmMap[p].KM_37, 4);
+                kmMap[p].TOPLAM_KM = roundToDecimal(kmMap[p].TOPLAM_KM, 4);
+                kmMap[p].TOPLAM_TUKETIM = roundToDecimal(kmMap[p].TOPLAM_TUKETIM, 4);
+            });
+
+            setKmData({
+                totalUniquePlates,
+                totalKm,
+                kmMap: { ...kmMap },
+                toplamTahminiTuketim,
+            });
+
+            await new Promise((r) => setTimeout(r, 450));
+            setCurrentStep(3);
+            await new Promise((r) => setTimeout(r, 450));
+            setCurrentStep(4);
+
+            let toplamHakedisLitre = 0;
+            let eslesenYakitKayitSayisi = 0;
+            let genelToplamTuketimVeLitreFarki = 0;
+            let genelToplamDuzeltmeMaliyeti = 0;
+
+            const yakitMap = yakitRows.reduce((acc, yakit) => {
+                const plaka = yakit.plaka?.toUpperCase() || "BILINMEYEN_YAKIT";
+                const litre = Number(yakit.yakit_litresi || 0);
+                const birimFiyat = Number(yakit.birim_fiyat || 0);
+                const iskontosuzFiyat = Number(yakit.iskontosuz_birim_fiyat || 0);
+
+                if (plaka === "BILINMEYEN_YAKIT" || litre === 0) return acc;
+
+                if (!acc[plaka]) {
+                    acc[plaka] = {
+                        totalLitre: 0,
+                        totalBirimFiyat: 0,
+                        totalIskontosuzFiyat: 0,
+                        count: 0,
+                    };
+                }
+
+                acc[plaka].totalLitre += litre;
+                acc[plaka].totalBirimFiyat += birimFiyat;
+                acc[plaka].totalIskontosuzFiyat += iskontosuzFiyat;
+                acc[plaka].count += 1;
+                return acc;
+            }, {});
+
+            const finalYakitMap = Object.keys(yakitMap).reduce((acc, plaka) => {
+                const data = yakitMap[plaka];
+                acc[plaka] = {
+                    toplamLitre: data.totalLitre,
+                    avgBirimFiyat: data.count > 0 ? data.totalBirimFiyat / data.count : 0,
+                    avgIskontosuzFiyat: data.count > 0 ? data.totalIskontosuzFiyat / data.count : 0,
+                };
+                return acc;
+            }, {});
+
+            const tuketimVeFarkMap = { ...kmMap };
+
+            Object.keys(tuketimVeFarkMap).forEach((plaka) => {
+                const data = tuketimVeFarkMap[plaka];
+                const yakitData = finalYakitMap[plaka] || {
+                    toplamLitre: 0,
+                    avgBirimFiyat: 0,
+                    avgIskontosuzFiyat: 0,
+                };
+
+                const toplamYakit = Number(yakitData.toplamLitre || 0);
+                const tahminiTuketim = Number(data.TOPLAM_TUKETIM || 0);
+
+                const tuketimLitreFarki = tahminiTuketim - toplamYakit;
+                genelToplamTuketimVeLitreFarki += tuketimLitreFarki;
+
+                let duzeltmeMaliyeti = 0;
+                if (tuketimLitreFarki > 0) {
+                    duzeltmeMaliyeti = tuketimLitreFarki * Number(yakitData.avgBirimFiyat || 0);
+                } else if (tuketimLitreFarki < 0) {
+                    duzeltmeMaliyeti = Math.abs(tuketimLitreFarki) * Number(yakitData.avgIskontosuzFiyat || 0);
+                }
+
+                genelToplamDuzeltmeMaliyeti += duzeltmeMaliyeti;
+
+                tuketimVeFarkMap[plaka].TOPLAM_YAKIT_LITRESI = roundToDecimal(toplamYakit, 4);
+                tuketimVeFarkMap[plaka].TOPLAM_KM_VE_LITRE_FARKI = roundToDecimal(tuketimLitreFarki, 4);
+                tuketimVeFarkMap[plaka].DUZELTME_MALIYETI = roundToDecimal(duzeltmeMaliyeti, 4);
+
+                if (toplamYakit > 0 && tahminiTuketim > 0) {
+                    toplamHakedisLitre += tahminiTuketim * 0.9;
+                    eslesenYakitKayitSayisi +=
+                        yakitRows.filter((y) => y.plaka?.toUpperCase() === plaka).length || 1;
+                }
+            });
+
+            setKmData((prev) => ({
+                ...prev,
+                kmMap: tuketimVeFarkMap,
+                genelToplamKmVeLitreFarki: roundToDecimal(genelToplamTuketimVeLitreFarki, 4),
+                genelToplamDuzeltmeMaliyeti: roundToDecimal(genelToplamDuzeltmeMaliyeti, 4),
+            }));
+
+            const nihaiHakedisTL = toplamHakedisLitre * 45.0;
+
+            setSonucData({
+                toplamYakit: yakitInfo.kayitSayisi,
+                toplamSefer: seferInfo.kayitSayisi,
+                eslesenKayit: eslesenYakitKayitSayisi,
+                totalUniquePlates,
+                toplamKm: totalKm,
+                hakedisLitre: toplamHakedisLitre,
+                hakedisTL: nihaiHakedisTL,
+                genelKmLitreFarki: genelToplamTuketimVeLitreFarki,
+                genelDuzeltmeMaliyeti: genelToplamDuzeltmeMaliyeti,
+            });
+
+            setCurrentStep(MAX_STEP);
+
+            setSnackbar({
+                open: true,
+                message: "Hakediş hesaplaması başarıyla tamamlandı.",
+                severity: "success",
+            });
+        } catch (error) {
+            console.error(error);
+            setCurrentStep(-1);
+            setSonucData(null);
+            setKmData(null);
+            setSnackbar({
+                open: true,
+                message: error.message || "Hesaplama sırasında kritik hata oluştu.",
+                severity: "error",
+            });
+        }
+    }, [hakedisVeriHazir, seferRows, yakitRows, yakitInfo, seferInfo, setSnackbar]);
+
+    const renderActionButton = () => {
+        const isLoading = currentStep > 0 && currentStep < MAX_STEP;
+        const done = currentStep === MAX_STEP;
+
+        return (
+            <Button
+                variant="outlined"
+                onClick={handleHakedisStart}
+                disabled={!hakedisVeriHazir || isLoading}
+                startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : null}
+                sx={{ borderColor: DARK.primary, color: DARK.primary, mt: 2 }}
+            >
+                {isLoading
+                    ? `Hesaplanıyor... (Aşama ${currentStep}/${MAX_STEP})`
+                    : done
+                        ? "Yeniden Hesapla"
+                        : "HESAPLAMAYI BAŞLAT"}
+            </Button>
+        );
+    };
+
+    return (
+        <Box sx={{ mt: 3 }}>
+            {currentStep === -1 && (
+                <Alert severity="error" sx={{ bgcolor: withAlpha(DARK.red, 0.1), color: DARK.text }}>
+                    Hesaplama işlemi durduruldu.
+                    {renderActionButton()}
+                </Alert>
+            )}
+
+            {hakedisVeriHazir && currentStep <= MAX_STEP && (
+                <Glass sx={{ p: 3, borderRadius: 3, borderColor: withAlpha(DARK.border, 0.9) }}>
+                    <Typography variant="h6" fontWeight={800} color={DARK.text} mb={2}>
+                        3) Hakediş Hesaplama Süreci
+                    </Typography>
+
+                    <Stack spacing={2}>
+                        <ProgressStep
+                            step={1}
+                            currentStep={currentStep}
+                            icon={LocalGasStationIcon}
+                            description={`Geçici veriler hazırlanıyor (${yakitInfo?.kayitSayisi} Yakıt, ${seferInfo?.kayitSayisi} Sefer)`}
+                        />
+
+                        <ProgressStep
+                            step={2}
+                            currentStep={currentStep}
+                            icon={LocalShippingIcon}
+                            description="Plaka bazlı KM toplamları hesaplanıyor (%38 / %37)"
+                        />
+
+                        {currentStep >= 2 && kmData && kmData.totalUniquePlates > 0 && (
+                            <Box sx={{ ml: 4, my: 1, p: 1, bgcolor: DARK.surface2, borderRadius: 1 }}>
+                                <Typography variant="caption" color={DARK.mint} fontWeight={700}>
+                                    {kmData.totalUniquePlates} benzersiz plaka için KM değerleri hesaplandı.
+                                </Typography>
+                                <PlakaKmList kmMap={kmData.kmMap} mode="km" />
+                            </Box>
+                        )}
+
+                        <ProgressStep
+                            step={3}
+                            currentStep={currentStep}
+                            icon={FilterDramaIcon}
+                            description="Plaka bazlı tahmini tüketim hesaplanıyor"
+                        />
+
+                        {currentStep >= 3 &&
+                            kmData &&
+                            kmData.kmMap &&
+                            Object.values(kmData.kmMap)[0]?.TOPLAM_TUKETIM != null && (
+                                <Box sx={{ ml: 4, my: 1, p: 1, bgcolor: DARK.surface2, borderRadius: 1 }}>
+                                    <Typography variant="caption" color={DARK.primary} fontWeight={700}>
+                                        Toplam Tahmini Tüketim: {formatNumber(kmData.toplamTahminiTuketim)} L
+                                    </Typography>
+                                    <PlakaKmList kmMap={kmData.kmMap} mode="tuketim" />
+                                </Box>
+                            )}
+
+                        <ProgressStep
+                            step={4}
+                            currentStep={currentStep}
+                            icon={AssessmentIcon}
+                            description="Gerçek yakıt ile fark ve maliyet hesaplanıyor"
+                        />
+                    </Stack>
+
+                    {renderActionButton()}
+                </Glass>
+            )}
+
+            {currentStep === MAX_STEP && kmData?.kmMap && (
+                <Glass sx={{ p: 2, borderRadius: 3, borderColor: withAlpha(DARK.primary, 0.5), mt: 3 }}>
+                    <Typography variant="h6" fontWeight={700} color={DARK.text} mb={2}>
+                        Plaka Bazlı Tahmini Tüketim / Gerçek Yakıt Fark Analizi
+                    </Typography>
+
+                    <PlakaKmList kmMap={kmData.kmMap} mode="fark" />
+
+                    {kmData.genelToplamDuzeltmeMaliyeti !== undefined && (
+                        <Alert
+                            severity={kmData.genelToplamKmVeLitreFarki >= 0 ? "info" : "warning"}
+                            sx={{ mt: 2, bgcolor: withAlpha(DARK.primary, 0.1), color: DARK.text }}
+                        >
+                            <Typography variant="body1" fontWeight={700}>
+                                Genel Tahmini Tüketim - Yakıt Farkı:{" "}
+                                <span
+                                    style={{
+                                        color:
+                                            kmData.genelToplamKmVeLitreFarki >= 0
+                                                ? DARK.mint
+                                                : DARK.red,
+                                    }}
+                                >
+                                    {formatNumber(kmData.genelToplamKmVeLitreFarki)} L
+                                </span>
+                            </Typography>
+                            <Typography variant="body1" fontWeight={700} sx={{ mt: 0.5 }}>
+                                Genel Düzeltme Maliyeti:{" "}
+                                <span style={{ color: DARK.primary }}>
+                                    {formatCurrency(kmData.genelToplamDuzeltmeMaliyeti)}
+                                </span>
+                            </Typography>
+                        </Alert>
+                    )}
+                </Glass>
+            )}
+
+            {currentStep === MAX_STEP && kmData?.kmMap && (
+                <Glass sx={{ p: 2, borderRadius: 3, borderColor: withAlpha(DARK.mint, 0.5), mt: 3 }}>
+                    <Typography variant="h6" fontWeight={700} color={DARK.text} mb={2}>
+                        Plaka Bazlı Hakediş / Ceza Detayı
+                    </Typography>
+                    <PlakaHakedisList kmMap={kmData.kmMap} />
+                </Glass>
+            )}
+
+            {currentStep === MAX_STEP && kmData?.kmMap && seferInfo && yakitInfo && (
+                <Glass sx={{ p: 2, borderRadius: 3, borderColor: withAlpha(DARK.mint, 0.55), mt: 3 }}>
+                    <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                        <FileDownloadIcon sx={{ color: DARK.mint, fontSize: 24 }} />
+                        <Typography variant="h6" fontWeight={800} color={DARK.text}>
+                            Çıktı Alanı
+                        </Typography>
+                    </Stack>
+
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mt={2}>
+                        <Button
+                            variant="contained"
+                            startIcon={<FileDownloadIcon />}
+                            onClick={() =>
+                                downloadSeferHakedisleri(kmData.kmMap, seferInfo.allRows, setSnackbar)
+                            }
+                            sx={{
+                                bgcolor: DARK.mint,
+                                color: DARK.surface2,
+                                fontWeight: 700,
+                                "&:hover": { bgcolor: withAlpha(DARK.mint, 0.85) },
+                            }}
+                        >
+                            Sefer Hakedişleri Raporunu İndir
+                        </Button>
+
+                        <Button
+                            variant="contained"
+                            startIcon={<FileDownloadIcon />}
+                            onClick={() => downloadOzetData(kmData.kmMap, yakitInfo.allRows, setSnackbar)}
+                            sx={{
+                                bgcolor: DARK.primary,
+                                color: DARK.text,
+                                fontWeight: 700,
+                                "&:hover": { bgcolor: withAlpha(DARK.primary, 0.85) },
+                            }}
+                        >
+                            Özet Data İndir
+                        </Button>
+                    </Stack>
+                </Glass>
+            )}
+
+            {!hakedisVeriHazir && (
+                <Alert
+                    severity="warning"
+                    sx={{
+                        mt: 2,
+                        bgcolor: withAlpha(DARK.red, 0.1),
+                        color: DARK.text,
+                        border: `1px solid ${DARK.red}`,
+                    }}
+                >
+                    3. adım beklemede. Lütfen Yakıtlar ve Seferler dosyalarını yükleyiniz.
+                </Alert>
+            )}
+
+            {isCompleted && sonucData && (
+                <Glass sx={{ p: 2, mt: 3 }}>
+                    <Typography variant="h6" fontWeight={800} color={DARK.text} mb={2}>
+                        Hesaplama Özeti
+                    </Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={3}>
+                            <KpiCard
+                                label="Toplam Plaka"
+                                value={String(sonucData.totalUniquePlates || 0)}
+                                icon={<DirectionsCarIcon sx={{ color: DARK.primary }} />}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <KpiCard
+                                label="Toplam KM"
+                                value={formatNumber(sonucData.toplamKm)}
+                                icon={<LocalShippingIcon sx={{ color: DARK.primary }} />}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <KpiCard
+                                label="Hakediş Litresi"
+                                value={formatNumber(sonucData.hakedisLitre)}
+                                icon={<LocalGasStationIcon sx={{ color: DARK.primary }} />}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <KpiCard
+                                label="Hakediş Tutarı"
+                                value={formatCurrency(sonucData.hakedisTL)}
+                                icon={<FactCheckIcon sx={{ color: DARK.primary }} />}
+                                tone="success"
+                            />
+                        </Grid>
+                    </Grid>
+                </Glass>
+            )}
+        </Box>
+    );
+}
+
+/* ================================ ANA SAYFA ================================ */
+export default function PepsiYakitHakedis() {
+    const [yakitInfo, setYakitInfo] = useState(null);
+    const [seferInfo, setSeferInfo] = useState(null);
+    const [yakitPreviewOpen, setYakitPreviewOpen] = useState(false);
+    const [startCalculation, setStartCalculation] = useState(false);
+
+    const [loadingYakit, setLoadingYakit] = useState(false);
+    const [loadingSefer, setLoadingSefer] = useState(false);
+    const [cleaning, setCleaning] = useState(false);
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: "",
+        severity: "info",
+    });
+
+    const accept = ".xlsx,.xls";
+    const hakedisVeriHazir = !!(yakitInfo && seferInfo);
+
+    const handleSnackbarClose = () =>
+        setSnackbar((prev) => ({ ...prev, open: false }));
+
+    const handleYakitUpload = useCallback(async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+
+        try {
+            setLoadingYakit(true);
+            setYakitInfo(null);
+            setStartCalculation(false);
+
+            const { headers, rows } = await readXlsxFile(file);
+
+            const expectedKeys = [
+                "plaka",
+                "cari_id",
+                "cari_adi",
+                "iskontosuz_birim_fiyat",
+                "birim_fiyat",
+                "yakit_litresi",
+            ];
+
+            const missing = expectedKeys.filter((key) => !headers.includes(key));
+            if (missing.length) {
+                const userFriendlyMissing = missing.map((m) => m.toUpperCase().replace(/_/g, " "));
+                throw new Error(
+                    "Şablon hatası: Eksik başlık(lar) var. Lütfen tam olarak: " +
+                    userFriendlyMissing.join(", ")
+                );
+            }
+
+            const payload = rows.map((r) => ({
+                plaka: toStrOrNull(r["plaka"]),
+                cari_adi: toStrOrNull(r["cari_adi"]),
+                cari_id: toIntOrNull(r["cari_id"]),
+                yakit_litresi: toNumOrNull(r["yakit_litresi"]),
+                birim_fiyat: toNumOrNull(r["birim_fiyat"]),
+                iskontosuz_birim_fiyat: toNumOrNull(r["iskontosuz_birim_fiyat"]),
+            }));
+
+            const clean = payload.filter(
+                (p) =>
+                    p.plaka ||
+                    p.cari_adi ||
+                    p.cari_id !== null ||
+                    p.yakit_litresi !== null ||
+                    p.birim_fiyat !== null ||
+                    p.iskontosuz_birim_fiyat !== null
+            );
+
+            if (!clean.length) throw new Error("Dosyada geçerli satır bulunamadı.");
+
+            const { error: deleteError } = await supabase
+                .from("frigo_yakit_tmp")
+                .delete()
+                .neq("plaka", "__never__");
+
+            if (deleteError) throw new Error("Önceki kayıtlar silinemedi.");
+
+            await insertBatched("frigo_yakit_tmp", clean);
+
+            setYakitInfo({
+                fileName: file.name,
+                kayitSayisi: clean.length,
+                preview: clean.slice(0, 5),
+                allRows: clean,
+            });
+
+            setSnackbar({
+                open: true,
+                message: `Yakıtlar dosyası başarıyla yüklendi. (${clean.length} kayıt)`,
+                severity: "success",
+            });
+        } catch (error) {
+            console.error(error);
+            setSnackbar({
+                open: true,
+                message: error.message || "Yakıt yükleme hatası oluştu.",
+                severity: "error",
+            });
+        } finally {
+            setLoadingYakit(false);
+        }
+    }, []);
+
+    const handleSeferUpload = useCallback(async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+
+        try {
+            setLoadingSefer(true);
+            setSeferInfo(null);
+            setStartCalculation(false);
+
+            const { headers, rows } = await readXlsxFile(file);
+
+            const expectedKeys = [
+                "musteri_adi",
+                "sefer_no",
+                "tms_despatch_id",
+                "plaka",
+                "toplam_km",
+            ];
+
+            const missing = expectedKeys.filter((key) => !headers.includes(key));
+            if (missing.length) {
+                const userFriendlyMissing = missing.map((m) => m.toUpperCase().replace(/_/g, " "));
+                throw new Error(
+                    "Şablon hatası: Eksik başlık(lar) var. Lütfen tam olarak: " +
+                    userFriendlyMissing.join(", ")
+                );
+            }
+
+            const payload = rows.map((r) => ({
+                musteri_adi: toStrOrNull(r["musteri_adi"]),
+                sefer_no: toStrOrNull(r["sefer_no"]),
+                tms_despatch_id: toBigIntStringOrNull(r["tms_despatch_id"]),
+                plaka: toStrOrNull(r["plaka"]),
+                toplam_km: toNumOrNull(r["toplam_km"]),
+            }));
+
+            const clean = payload.filter(
+                (p) =>
+                    p.musteri_adi ||
+                    p.sefer_no ||
+                    p.tms_despatch_id !== null ||
+                    p.plaka ||
+                    p.toplam_km !== null
+            );
+
+            if (!clean.length) throw new Error("Dosyada geçerli satır bulunamadı.");
+
+            const { error: deleteError } = await supabase
+                .from("frigo_sefer_tmp")
+                .delete()
+                .neq("plaka", "__never__");
+
+            if (deleteError) throw new Error("Önceki sefer kayıtları silinemedi.");
+
+            await insertBatched("frigo_sefer_tmp", clean);
+
+            setSeferInfo({
+                fileName: file.name,
+                kayitSayisi: clean.length,
+                preview: clean.slice(0, 5),
+                allRows: clean,
+            });
+
+            setSnackbar({
+                open: true,
+                message: `Seferler dosyası başarıyla yüklendi. (${clean.length} kayıt)`,
+                severity: "success",
+            });
+        } catch (error) {
+            console.error(error);
+            setSnackbar({
+                open: true,
+                message: error.message || "Sefer yükleme hatası oluştu.",
+                severity: "error",
+            });
+        } finally {
+            setLoadingSefer(false);
+        }
+    }, []);
+
+    const handleCleanTables = useCallback(async () => {
+        try {
+            setCleaning(true);
+
+            const [yakitResp, seferResp] = await Promise.all([
+                supabase.from("frigo_yakit_tmp").delete().neq("plaka", "__never__"),
+                supabase.from("frigo_sefer_tmp").delete().neq("plaka", "__never__"),
+            ]);
+
+            if (yakitResp.error) throw yakitResp.error;
+            if (seferResp.error) throw seferResp.error;
+
+            setYakitInfo(null);
+            setSeferInfo(null);
+            setStartCalculation(false);
+
+            setSnackbar({
+                open: true,
+                message: "Geçici tablolar temizlendi.",
+                severity: "success",
+            });
+        } catch (error) {
+            console.error(error);
+            setSnackbar({
+                open: true,
+                message: error.message || "Temizleme sırasında hata oluştu.",
+                severity: "error",
+            });
+        } finally {
+            setCleaning(false);
+        }
+    }, []);
+
+    const previewRows = useMemo(() => yakitInfo?.preview || [], [yakitInfo]);
+
+    return (
+        <Box className="pepsi-hakedis-page pepsi-control-center fuelcc-page">
+            <section className="fuelcc-hero">
+                <div className="fuelcc-hero-copy">
+                    <div className="fuelcc-eyebrow">
+                        <span className="fuelcc-live-dot" />
+                        HAKEDİŞLER · PEPSİ YAKIT HAKEDİŞ
+                    </div>
+                    <h1>Yakıt Hakediş Control Center</h1>
+                    <p>Yakıt ve sefer verilerini aynı çalışma alanında yükleyin; %38 / %37 müşteri oranlarıyla plaka bazlı tüketim ve hakediş sonuçlarını hesaplayın.</p>
+                    <div className="fuelcc-hero-tags">
+                        <span><LocalGasStationIcon fontSize="small" /> Yakıt verisi {yakitInfo ? "hazır" : "bekliyor"}</span>
+                        <span><LocalShippingIcon fontSize="small" /> Sefer verisi {seferInfo ? "hazır" : "bekliyor"}</span>
+                        <span><FactCheckIcon fontSize="small" /> {(yakitInfo?.kayitSayisi || 0) + (seferInfo?.kayitSayisi || 0)} kayıt</span>
+                    </div>
+                </div>
+
+                <div className="fuelcc-hero-status">
+                    <div className="fuelcc-status-icon"><AssessmentIcon /></div>
+                    <div>
+                        <span>Hesaplama durumu</span>
+                        <strong>{hakedisVeriHazir ? "Hesaplamaya hazır" : "Veri bekleniyor"}</strong>
+                    </div>
+                    <div className="fuelcc-step-bubble">{startCalculation ? "4/4" : hakedisVeriHazir ? "3/4" : seferInfo ? "2/4" : yakitInfo ? "1/4" : "0/4"}</div>
+                </div>
+            </section>
+
+            <section className="fuelcc-actionbar">
+                <div>
+                    <span className="fuelcc-section-kicker">HIZLI İŞLEMLER</span>
+                    <strong>Şablon ve veri yönetimi</strong>
+                </div>
+                <div className="fuelcc-actions">
+                    <Button className="fuelcc-btn" variant="outlined" startIcon={<FileDownloadIcon />} onClick={downloadYakitTemplate}>Yakıt Şablonu</Button>
+                    <Button className="fuelcc-btn" variant="outlined" startIcon={<FileDownloadIcon />} onClick={downloadSeferTemplate}>Sefer Şablonu</Button>
+                    <Button className="fuelcc-btn fuelcc-btn-danger" variant="outlined" color="error" startIcon={cleaning ? <CircularProgress size={16} color="inherit" /> : <DeleteSweepIcon />} onClick={handleCleanTables} disabled={cleaning}>
+                        {cleaning ? "Temizleniyor" : "Geçici Tabloları Temizle"}
+                    </Button>
+                </div>
+            </section>
+
+            <section className="fuelcc-stepper" aria-label="Hakediş hesaplama adımları">
+                {[
+                    { n: 1, label: "Yakıt Verisi", hint: yakitInfo ? `${yakitInfo.kayitSayisi} kayıt hazır` : "Yakıt Excelini yükle", ok: !!yakitInfo, icon: <LocalGasStationIcon /> },
+                    { n: 2, label: "Sefer Verisi", hint: seferInfo ? `${seferInfo.kayitSayisi} kayıt hazır` : "Sefer Excelini yükle", ok: !!seferInfo, icon: <LocalShippingIcon /> },
+                    { n: 3, label: "Hesaplama", hint: hakedisVeriHazir ? "Veriler doğrulandı" : "Verileri doğrula", ok: hakedisVeriHazir, icon: <FactCheckIcon /> },
+                    { n: 4, label: "Sonuçlar", hint: startCalculation ? "Raporları incele" : "Hesaplamayı başlat", ok: !!startCalculation, icon: <AssessmentIcon /> },
+                ].map((item, index) => (
+                    <div key={item.n} className={`fuelcc-step ${item.ok ? "is-complete" : ""} ${(!item.ok && ((item.n === 1 && !yakitInfo) || (item.n === 2 && yakitInfo && !seferInfo) || (item.n === 3 && yakitInfo && seferInfo && !hakedisVeriHazir) || (item.n === 4 && hakedisVeriHazir && !startCalculation))) ? "is-active" : ""}`}>
+                        <div className="fuelcc-step-icon">{item.ok ? <CheckCircleIcon /> : item.icon}</div>
+                        <div className="fuelcc-step-copy"><span>ADIM {item.n}</span><strong>{item.label}</strong><small>{item.hint}</small></div>
+                        {index < 3 && <span className="fuelcc-step-arrow">›</span>}
+                    </div>
+                ))}
+            </section>
+
+            <section className="fuelcc-workspace">
+                <div className="fuelcc-workspace-main">
+                    <div className="fuelcc-section-head">
+                        <div>
+                            <span className="fuelcc-section-kicker">VERİ KAYNAKLARI</span>
+                            <h2>Yakıt ve sefer verilerini yükle</h2>
+                            <p>Dosyaları seçin ve mevcut iş kurallarıyla hakediş hesaplamasına hazırlayın.</p>
+                        </div>
+                    </div>
+
+                    <div className="fuelcc-upload-grid">
+                        <div className={`fuelcc-upload-card ${yakitInfo ? "is-ready" : ""}`}>
+                            <div className="fuelcc-upload-icon"><LocalGasStationIcon /></div>
+                            <span className="fuelcc-upload-label">YAKIT KAYNAĞI</span>
+                            <h3>{yakitInfo ? yakitInfo.fileName : "Yakıt Excelini yükle"}</h3>
+                            <p>{yakitInfo ? `${yakitInfo.kayitSayisi} kayıt içe aktarıldı.` : "Plaka, cari, yakıt litresi ve fiyat alanlarını içeren Excel dosyasını seçin."}</p>
+                            <div className="fuelcc-upload-actions">
+                                <Button className="fuelcc-primary-action" variant="contained" component="label" startIcon={loadingYakit ? <CircularProgress size={18} color="inherit" /> : <UploadFileIcon />} disabled={loadingYakit}>
+                                    {yakitInfo ? "Dosyayı Değiştir" : "Dosya Seç"}
+                                    <input type="file" hidden onChange={handleYakitUpload} accept={accept} />
+                                </Button>
+                                {yakitInfo && <Button className="fuelcc-secondary-action" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => setYakitPreviewOpen(true)}>Önizle ({yakitInfo.preview.length})</Button>}
+                            </div>
                         </div>
 
-                        <div className="preview-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        {Object.keys(previewRows[0] || {}).map((key) => (
-                                            <th key={key}>{key}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {previewRows.map((row, index) => (
-                                        <tr key={index}>
-                                            {Object.keys(previewRows[0] || {}).map((key) => (
-                                                <td key={key}>{String(row[key] ?? "")}</td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className={`fuelcc-upload-card ${seferInfo ? "is-ready" : ""}`}>
+                            <div className="fuelcc-upload-icon"><LocalShippingIcon /></div>
+                            <span className="fuelcc-upload-label">SEFER KAYNAĞI</span>
+                            <h3>{seferInfo ? seferInfo.fileName : "Sefer Excelini yükle"}</h3>
+                            <p>{seferInfo ? `${seferInfo.kayitSayisi} kayıt içe aktarıldı.` : "Müşteri, sefer, TMS, plaka ve kilometre alanlarını içeren Excel dosyasını seçin."}</p>
+                            <div className="fuelcc-upload-actions">
+                                <Button className="fuelcc-secondary-action" variant="outlined" component="label" startIcon={loadingSefer ? <CircularProgress size={18} /> : <UploadFileIcon />} disabled={loadingSefer}>
+                                    {seferInfo ? "Dosyayı Değiştir" : "Dosya Seç"}
+                                    <input type="file" hidden onChange={handleSeferUpload} accept={accept} />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+
+                <aside className="fuelcc-side-panel">
+                    <div className="fuelcc-side-head">
+                        <div><span>HESAPLAMA MOTORU</span><h3>Veri Durumu</h3></div>
+                        <AssessmentIcon />
+                    </div>
+                    <div className={`fuelcc-source-card ${yakitInfo ? "is-ready" : ""}`}><div className="fuelcc-source-icon"><LocalGasStationIcon /></div><div><span>Yakıt verisi</span><strong>{yakitInfo ? `${yakitInfo.kayitSayisi} kayıt hazır` : "Bekleniyor"}</strong></div><CheckCircleIcon /></div>
+                    <div className={`fuelcc-source-card ${seferInfo ? "is-ready" : ""}`}><div className="fuelcc-source-icon"><LocalShippingIcon /></div><div><span>Sefer verisi</span><strong>{seferInfo ? `${seferInfo.kayitSayisi} kayıt hazır` : "Bekleniyor"}</strong></div><CheckCircleIcon /></div>
+                    <div className="fuelcc-rule-box"><span>HESAPLAMA KURALI</span><p>PEPSİ-COLA SERVİS VE DAĞITIM LİMİTED ŞİRKETİ için %38, diğer müşteriler için %37 oranı uygulanır.</p></div>
+                    <Button className="fuelcc-calc-button" variant="contained" onClick={() => setStartCalculation(true)} disabled={!hakedisVeriHazir} startIcon={<AssessmentIcon />}>Hesaplamayı Başlat</Button>
+                    <small className="fuelcc-safe-note">Mevcut hesaplama ve Excel iş mantığı değiştirilmeden çalışır.</small>
+                </aside>
+            </section>
+
+            <PepsiHesaplama
+                yakitInfo={yakitInfo}
+                seferInfo={seferInfo}
+                setSnackbar={setSnackbar}
+                startTrigger={startCalculation}
+                setStartTrigger={setStartCalculation}
+            />
+
+            <Dialog
+                open={yakitPreviewOpen}
+                onClose={() => setYakitPreviewOpen(false)}
+                maxWidth="lg"
+                fullWidth
+            >
+                <DialogTitle>Yakıt Önizleme</DialogTitle>
+                <DialogContent dividers>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Plaka</TableCell>
+                                <TableCell>Cari ID</TableCell>
+                                <TableCell>Cari Adı</TableCell>
+                                <TableCell>Birim Fiyat</TableCell>
+                                <TableCell>İskontosuz Birim Fiyat</TableCell>
+                                <TableCell>Yakıt Litresi</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {previewRows.map((row, index) => (
+                                <TableRow key={index}>
+                                    <TableCell>{row.plaka}</TableCell>
+                                    <TableCell>{row.cari_id}</TableCell>
+                                    <TableCell>{row.cari_adi}</TableCell>
+                                    <TableCell>{row.birim_fiyat}</TableCell>
+                                    <TableCell>{row.iskontosuz_birim_fiyat}</TableCell>
+                                    <TableCell>{row.yakit_litresi}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setYakitPreviewOpen(false)}>Kapat</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={handleSnackbarClose}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={handleSnackbarClose}
+                    severity={snackbar.severity}
+                    variant="filled"
+                    sx={{ width: "100%" }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </Box>
     );
 }

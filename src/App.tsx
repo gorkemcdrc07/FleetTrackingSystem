@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import { TrackedVehiclesProvider } from "./context/TrackedVehiclesContext";
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(
@@ -17,7 +18,15 @@ function App() {
         setIsLoggedIn(false);
     };
 
-    return isLoggedIn ? <Home onLogout={handleLogout} /> : <Login onLogin={handleLogin} />;
+    return (
+        <TrackedVehiclesProvider>
+            {isLoggedIn ? (
+                <Home onLogout={handleLogout} />
+            ) : (
+                <Login onLogin={handleLogin} />
+            )}
+        </TrackedVehiclesProvider>
+    );
 }
 
 export default App;

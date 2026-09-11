@@ -1,8 +1,28 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import {
+    Activity,
+    ArrowLeft,
+    BadgeTurkishLira,
+    Calculator,
+    CheckCircle2,
+    ChevronRight,
+    ClipboardPaste,
+    Database,
+    Download,
+    FileSpreadsheet,
+    Fuel,
+    Gauge,
+    RotateCcw,
+    Route,
+    Sparkles,
+    Truck,
+    UploadCloud,
+} from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { islemLogla } from "../../utils/islemLogla";
 import "./HayatKimyaYakitHakedis.css";
+import { applyHakedisSheetBranding } from "./shared/hakedisSheetBranding";
 
 const SPECIAL_CUSTOMERS = ["HAYAT KİMYA", "HAYAT KIMYA", "ODAK TEDARİK", "ODAK TEDARIK"];
 
@@ -98,6 +118,7 @@ function downloadExcel(rows, fileName, sheetName = "Rapor") {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    applyHakedisSheetBranding(XLSX, wb, ws, "Hayat Kimya Yakıt Hakediş Raporu");
     XLSX.writeFile(wb, fileName);
 }
 
@@ -500,354 +521,406 @@ export default function HayatKimyaYakitHakedis() {
 
     const detectedPasteRows = parseClipboardRows(pasteText).length;
 
-    return (
-        <div className="hky-page">
-            <div className="customer-brand">
-                <div className="customer-brand-badge">
-                    <span className="brand-dot"></span>
+    const stepItems = [
+        { id: 1, label: "Yakıt Verisi", hint: "Yakıt Excelini yükle", icon: Fuel },
+        { id: 2, label: "Sefer Verisi", hint: "Sefer Excelini yükle", icon: Truck },
+        { id: 3, label: "Hesaplama", hint: "Verileri doğrula", icon: Calculator },
+        { id: 4, label: "Sonuçlar", hint: "Raporları incele", icon: Activity },
+    ];
 
-                    <div>
-                        <strong>HAYAT KİMYA</strong>
-                        <small>Yakıt Hakediş Yönetimi</small>
-                    </div>
-                </div>
-            </div>
+    const currentTitle = activeStep === 1
+        ? "Yakıt verilerini sisteme aktar"
+        : activeStep === 2
+            ? "Sefer verilerini sisteme aktar"
+            : activeStep === 3
+                ? "Hesaplamayı başlat"
+                : "Hakediş sonuçları";
+
+    return (
+        <div className="hky-page premium-page-enter">
             <input ref={yakitInputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleYakitUpload} />
             <input ref={seferInputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleSeferUpload} />
 
-            {message && <div className="hky-message">{message}</div>}
+            <section className="hky-hero">
+                <div className="hky-hero-copy">
+                    <div className="hky-eyebrow">
+                        <span className="hky-live-dot" />
+                        HAKEDİŞLER · HAYAT KİMYA YHH
+                    </div>
+                    <h1>Yakıt Hakediş Control Center</h1>
+                    <p>
+                        Yakıt ve sefer verilerini aynı akışta yükleyin, plaka bazlı tüketimi hesaplayın
+                        ve hakediş dağılımlarını Excel olarak dışarı alın.
+                    </p>
+                    <div className="hky-hero-tags">
+                        <span><Fuel size={14} /> Yakıt verisi {yakitReady ? "hazır" : "bekliyor"}</span>
+                        <span><Route size={14} /> Sefer verisi {seferReady ? "hazır" : "bekliyor"}</span>
+                        <span><Database size={14} /> {yakitRows.length + seferRows.length} kayıt</span>
+                    </div>
+                </div>
+
+                <div className="hky-hero-status">
+                    <div className="hky-status-icon"><Sparkles size={21} /></div>
+                    <div>
+                        <span>Aktif aşama</span>
+                        <strong>{currentTitle}</strong>
+                    </div>
+                    <div className="hky-step-bubble">{activeStep}/4</div>
+                </div>
+            </section>
+
+            <section className="hky-stepper" aria-label="Hakediş hesaplama adımları">
+                {stepItems.map((step, index) => {
+                    const Icon = step.icon;
+                    const completed = activeStep > step.id || (step.id === 4 && calculated);
+                    const active = activeStep === step.id;
+                    return (
+                        <div key={step.id} className={`hky-step ${active ? "is-active" : ""} ${completed ? "is-complete" : ""}`}>
+                            <div className="hky-step-icon">
+                                {completed ? <CheckCircle2 size={18} /> : <Icon size={18} />}
+                            </div>
+                            <div className="hky-step-copy">
+                                <span>ADIM {step.id}</span>
+                                <strong>{step.label}</strong>
+                                <small>{step.hint}</small>
+                            </div>
+                            {index < stepItems.length - 1 && <ChevronRight className="hky-step-arrow" size={17} />}
+                        </div>
+                    );
+                })}
+            </section>
+
+            {message && (
+                <div className="hky-message">
+                    <CheckCircle2 size={18} />
+                    <span>{message}</span>
+                </div>
+            )}
 
             {activeStep < 4 && (
-                <div className="hky-wizard">
-                    {activeStep === 1 && (
-                        <section className="upload-screen single-screen">
-                            <div className="upload-main">
-                                <h2>Yakıt verilerini yükle</h2>
-                                <p>Yakıt Excelini sürükle bırak, dosya seç veya Excel’den kopyaladığın veriyi yapıştır.</p>
-
-                                <div
-                                    className={`drop-zone ${dragOver ? "drag-over" : ""}`}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        setDragOver(true);
-                                    }}
-                                    onDragLeave={() => setDragOver(false)}
-                                    onDrop={async (e) => {
-                                        e.preventDefault();
-                                        setDragOver(false);
-                                        await handleDroppedFile(e.dataTransfer.files?.[0]);
-                                    }}
-                                >
-                                    <div className="drop-icon">⛽</div>
-                                    <h3>Yakıt Excelini buraya bırak</h3>
-                                    <p>Dosya seçebilir veya veriyi ekrana yapıştırabilirsin.</p>
-
-                                    <div className="upload-actions">
-                                        <button
-                                            className="big-action primary"
-                                            onClick={() => yakitInputRef.current?.click()}
-                                            disabled={loading}
-                                        >
-                                            Dosya Seç
-                                        </button>
-
-                                        <button className="ghost-btn" onClick={() => setPasteOpen((v) => !v)} disabled={loading}>
-                                            Ekrana Yapıştır
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {pasteOpen && (
-                                    <div className="paste-panel">
-                                        <textarea
-                                            value={pasteText}
-                                            onChange={(e) => setPasteText(e.target.value)}
-                                            placeholder={`Excel'den başlıklarla beraber kopyalayıp buraya yapıştırın.
-
-Örnek:
-plaka	yakit_litresi	birim_fiyat	cari_id	cari_adi
-34ABC123	120,5	42,10	12345	Firma Adı`}
-                                        />
-
-                                        <div className="paste-actions">
-                                            <span>{detectedPasteRows} satır algılandı</span>
-                                            <button className="primary" onClick={handlePasteSubmit} disabled={loading || !pasteText.trim()}>
-                                                Veriyi Kullan
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-                    )}
-
-                    {activeStep === 2 && (
-                        <section className="upload-screen">
-                            <div className="upload-main">
-                                <div className="screen-actions-top">
-                                    <button className="back-btn" onClick={goBackStep} disabled={loading}>
-                                        ← Geri Gel
-                                    </button>
-                                </div>
-
-                                <h2>Sefer verilerini yükle</h2>
-                                <p>Sefer Excelini sürükle bırak, dosya seç veya Excel’den kopyaladığın veriyi yapıştır.</p>
-
-                                <div
-                                    className={`drop-zone ${dragOver ? "drag-over" : ""}`}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        setDragOver(true);
-                                    }}
-                                    onDragLeave={() => setDragOver(false)}
-                                    onDrop={async (e) => {
-                                        e.preventDefault();
-                                        setDragOver(false);
-                                        await handleDroppedFile(e.dataTransfer.files?.[0]);
-                                    }}
-                                >
-                                    <div className="drop-icon">🚚</div>
-                                    <h3>Sefer Excelini buraya bırak</h3>
-                                    <p>Dosya seçebilir veya veriyi ekrana yapıştırabilirsin.</p>
-
-                                    <div className="upload-actions">
-                                        <button
-                                            className="big-action primary"
-                                            onClick={() => seferInputRef.current?.click()}
-                                            disabled={loading}
-                                        >
-                                            Dosya Seç
-                                        </button>
-
-                                        <button className="ghost-btn" onClick={() => setPasteOpen((v) => !v)} disabled={loading}>
-                                            Ekrana Yapıştır
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {pasteOpen && (
-                                    <div className="paste-panel">
-                                        <textarea
-                                            value={pasteText}
-                                            onChange={(e) => setPasteText(e.target.value)}
-                                            placeholder={`Excel'den başlıklarla beraber kopyalayıp buraya yapıştırın.
-
-Örnek:
-musteri_adi	sefer_no	tms_despatch_id	plaka	toplam_km
-HAYAT KİMYA	SF001	123	34ABC123	450`}
-                                        />
-
-                                        <div className="paste-actions">
-                                            <span>{detectedPasteRows} satır algılandı</span>
-                                            <button className="primary" onClick={handlePasteSubmit} disabled={loading || !pasteText.trim()}>
-                                                Veriyi Kullan
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+                <section className="hky-workspace">
+                    <div className="hky-workspace-main">
+                        <div className="hky-section-head">
+                            <div>
+                                <span className="hky-section-kicker">{activeStep === 1 ? "YAKIT KAYNAĞI" : activeStep === 2 ? "SEFER KAYNAĞI" : "HESAPLAMA"}</span>
+                                <h2>{currentTitle}</h2>
+                                <p>
+                                    {activeStep === 1 && "Yakıt Excelini seçin, sürükleyip bırakın veya Excel’den kopyaladığınız satırları doğrudan yapıştırın."}
+                                    {activeStep === 2 && "Sefer Excelini yükleyin. Araç fiyat eşleşmeleri bu adımın ardından hazırlanacaktır."}
+                                    {activeStep === 3 && "İki veri kaynağı da hazır. Mevcut iş kurallarıyla hakediş hesaplamasını başlatabilirsiniz."}
+                                </p>
                             </div>
 
-                            <div className="mini-preview done-preview">
-                                <h3>Yakıt verileri eklendi</h3>
-                                <p>{yakitRows.length} kayıt</p>
-
-                                <div className="mini-table">
-                                    {yakitRows.slice(0, 6).map((row, index) => (
-                                        <div key={`${row.plaka}-${index}`}>
-                                            <b>{row.plaka}</b>
-                                            <span>{formatNumber(row.yakit_litresi)} L</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {activeStep === 3 && (
-                        <section className="upload-screen">
-                            <div className="upload-main calculate-main">
-                                <div className="screen-actions-top">
-                                    <button className="back-btn" onClick={goBackStep} disabled={loading}>
-                                        ← Geri Gel
-                                    </button>
-                                </div>
-
-                                <h2>Hesaplamayı başlat</h2>
-                                <p>Yakıt ve sefer verileri hazır. Raporları oluşturmak için hesaplamayı başlat.</p>
-
-                                <button className="big-action primary calculate-button" onClick={handleCalculate} disabled={!canCalculate}>
-                                    Hesapla
+                            {activeStep > 1 && (
+                                <button className="hky-btn hky-btn-secondary" onClick={goBackStep} disabled={loading}>
+                                    <ArrowLeft size={17} />
+                                    Geri Gel
                                 </button>
-                            </div>
+                            )}
+                        </div>
 
-                            <div className="mini-preview done-preview">
-                                <h3>Yüklenen veriler</h3>
-                                <p>Yakıt: {yakitRows.length} kayıt</p>
-                                <p>Sefer: {seferRows.length} kayıt</p>
+                        {(activeStep === 1 || activeStep === 2) && (
+                            <>
+                                <div
+                                    className={`hky-drop-zone ${dragOver ? "is-dragging" : ""}`}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setDragOver(true);
+                                    }}
+                                    onDragLeave={() => setDragOver(false)}
+                                    onDrop={async (e) => {
+                                        e.preventDefault();
+                                        setDragOver(false);
+                                        await handleDroppedFile(e.dataTransfer.files?.[0]);
+                                    }}
+                                >
+                                    <div className="hky-drop-glow" />
+                                    <div className="hky-drop-icon">
+                                        {activeStep === 1 ? <Fuel size={27} /> : <Truck size={27} />}
+                                    </div>
+                                    <span className="hky-drop-label">EXCEL VERİ AKTARIMI</span>
+                                    <h3>{activeStep === 1 ? "Yakıt Excelini buraya bırak" : "Sefer Excelini buraya bırak"}</h3>
+                                    <p>.xlsx veya .xls dosyanızı sürükleyebilir ya da aşağıdaki aksiyonlardan birini kullanabilirsiniz.</p>
 
-                                <div className="mini-table">
-                                    {seferRows.slice(0, 6).map((row, index) => (
-                                        <div key={`${row.sefer_no}-${index}`}>
-                                            <b>{row.plaka}</b>
-                                            <span>{formatNumber(row.toplam_km)} KM</span>
+                                    <div className="hky-upload-actions">
+                                        <button
+                                            className="hky-btn hky-btn-primary"
+                                            onClick={() => (activeStep === 1 ? yakitInputRef.current?.click() : seferInputRef.current?.click())}
+                                            disabled={loading}
+                                        >
+                                            <UploadCloud size={18} />
+                                            Dosya Seç
+                                        </button>
+
+                                        <button
+                                            className={`hky-btn hky-btn-secondary ${pasteOpen ? "is-active" : ""}`}
+                                            onClick={() => setPasteOpen((v) => !v)}
+                                            disabled={loading}
+                                        >
+                                            <ClipboardPaste size={18} />
+                                            Ekrana Yapıştır
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {pasteOpen && (
+                                    <div className="hky-paste-panel">
+                                        <div className="hky-paste-head">
+                                            <div>
+                                                <span>HIZLI VERİ GİRİŞİ</span>
+                                                <strong>Excel’den kopyala & yapıştır</strong>
+                                            </div>
+                                            <div className="hky-detected-count">{detectedPasteRows} satır algılandı</div>
                                         </div>
-                                    ))}
+                                        <textarea
+                                            value={pasteText}
+                                            onChange={(e) => setPasteText(e.target.value)}
+                                            placeholder={activeStep === 1
+                                                ? `Excel'den başlıklarla beraber kopyalayıp buraya yapıştırın.\n\nÖrnek:\nplaka\tyakit_litresi\tbirim_fiyat\tcari_id\tcari_adi\n34ABC123\t120,5\t42,10\t12345\tFirma Adı`
+                                                : `Excel'den başlıklarla beraber kopyalayıp buraya yapıştırın.\n\nÖrnek:\nmusteri_adi\tsefer_no\ttms_despatch_id\tplaka\ttoplam_km\nHAYAT KİMYA\tSF001\t123\t34ABC123\t450`
+                                            }
+                                        />
+                                        <div className="hky-paste-footer">
+                                            <small>İlk satır kolon başlıkları olmalıdır.</small>
+                                            <button className="hky-btn hky-btn-primary" onClick={handlePasteSubmit} disabled={loading || !pasteText.trim()}>
+                                                <CheckCircle2 size={17} />
+                                                Veriyi Kullan
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {activeStep === 3 && (
+                            <div className="hky-calculate-zone">
+                                <div className="hky-calc-visual">
+                                    <div className="hky-calc-ring"><Calculator size={34} /></div>
+                                    <span>HAZIR</span>
+                                </div>
+                                <div className="hky-calc-copy">
+                                    <h3>Veriler hesaplama için hazır</h3>
+                                    <p>Yakıt ve sefer kayıtları mevcut hesaplama kurallarınız kullanılarak eşleştirilecek.</p>
+                                    <div className="hky-ready-row">
+                                        <span className={yakitReady ? "is-ready" : ""}><CheckCircle2 size={15} /> {yakitRows.length} yakıt kaydı</span>
+                                        <span className={seferReady ? "is-ready" : ""}><CheckCircle2 size={15} /> {seferRows.length} sefer kaydı</span>
+                                        <span className={aracFiyatRows.length ? "is-ready" : ""}><CheckCircle2 size={15} /> {aracFiyatRows.length} araç fiyat kaydı</span>
+                                    </div>
+                                    <button className="hky-btn hky-btn-primary hky-calculate-btn" onClick={handleCalculate} disabled={!canCalculate}>
+                                        <Calculator size={19} />
+                                        Hakedişi Hesapla
+                                        <ChevronRight size={18} />
+                                    </button>
                                 </div>
                             </div>
-                        </section>
-                    )}
-                </div>
+                        )}
+                    </div>
+
+                    <aside className="hky-side-panel">
+                        <div className="hky-side-head">
+                            <div>
+                                <span>VERİ DURUMU</span>
+                                <h3>Aktarım özeti</h3>
+                            </div>
+                            <Database size={20} />
+                        </div>
+
+                        <div className={`hky-source-card ${yakitReady ? "is-ready" : ""}`}>
+                            <div className="hky-source-icon"><Fuel size={18} /></div>
+                            <div>
+                                <span>Yakıt verisi</span>
+                                <strong>{yakitReady ? `${yakitRows.length} kayıt` : "Henüz yüklenmedi"}</strong>
+                            </div>
+                            {yakitReady && <CheckCircle2 size={18} />}
+                        </div>
+
+                        <div className={`hky-source-card ${seferReady ? "is-ready" : ""}`}>
+                            <div className="hky-source-icon"><Truck size={18} /></div>
+                            <div>
+                                <span>Sefer verisi</span>
+                                <strong>{seferReady ? `${seferRows.length} kayıt` : "Henüz yüklenmedi"}</strong>
+                            </div>
+                            {seferReady && <CheckCircle2 size={18} />}
+                        </div>
+
+                        {(activeStep === 2 || activeStep === 3) && yakitRows.length > 0 && (
+                            <div className="hky-mini-list">
+                                <div className="hky-mini-list-head">
+                                    <span>Yakıt önizleme</span>
+                                    <small>İlk 6 kayıt</small>
+                                </div>
+                                {yakitRows.slice(0, 6).map((row, index) => (
+                                    <div className="hky-mini-row" key={`${row.plaka}-${index}`}>
+                                        <strong>{row.plaka}</strong>
+                                        <span>{formatNumber(row.yakit_litresi)} L</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeStep === 3 && seferRows.length > 0 && (
+                            <div className="hky-mini-list">
+                                <div className="hky-mini-list-head">
+                                    <span>Sefer önizleme</span>
+                                    <small>İlk 6 kayıt</small>
+                                </div>
+                                {seferRows.slice(0, 6).map((row, index) => (
+                                    <div className="hky-mini-row" key={`${row.sefer_no}-${index}`}>
+                                        <strong>{row.plaka}</strong>
+                                        <span>{formatNumber(row.toplam_km)} KM</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </aside>
+                </section>
             )}
 
             {calculated && (
                 <>
-                    <div className="result-topbar">
-                        <div className="result-left-actions">
-                            <button className="back-btn" onClick={goBackStep} disabled={loading}>
-                                ← Geri Gel
-                            </button>
-
-                            <button className="ghost-btn" onClick={resetAll} disabled={loading}>
-                                Yeni Hesaplama
-                            </button>
-                        </div>
-
-                        <div className="report-actions">
-                            <button className="primary" onClick={exportSeferRaporu} disabled={!distributionRows.length}>
-                                Sefer Raporu İndir
-                            </button>
-
-                            <button className="primary" onClick={exportOzetRaporu} disabled={!summaryRows.length}>
-                                Özet Data İndir
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="hky-cards">
-                        <div className="hky-card">
-                            <span>Toplam KM</span>
-                            <strong>{formatNumber(totals.km)}</strong>
-                            <small>Seferlerden gelen toplam kilometre</small>
-                        </div>
-
-                        <div className="hky-card">
-                            <span>Tahmini Tüketim</span>
-                            <strong>{formatNumber(totals.tahmini)} L</strong>
-                            <small>%36 / %37 müşteri oranına göre</small>
-                        </div>
-
-                        <div className="hky-card">
-                            <span>Gerçek Yakıt</span>
-                            <strong>{formatNumber(totals.gercek)} L</strong>
-                            <small>Yakıt Excelinden gelen litre</small>
-                        </div>
-
-                        <div className={`hky-card ${totals.tl >= 0 ? "positive" : "negative"}`}>
-                            <span>Prim / Ceza</span>
-                            <strong>{formatTL(totals.tl)}</strong>
-                            <small>Fark litre × birim fiyat</small>
-                        </div>
-                    </div>
-
-                    <div className="hky-grid">
-                        <section className="hky-panel">
-                            <div className="panel-head">
-                                <div>
-                                    <h2>Plaka Bazlı Özet</h2>
-                                    <p>KM dağılımı, tahmini/gerçek yakıt ve prim-ceza analizi.</p>
-                                </div>
-                                <span>{summaryRows.length} plaka</span>
+                    <section className="hky-results-toolbar">
+                        <div className="hky-results-title">
+                            <div className="hky-result-mark"><CheckCircle2 size={21} /></div>
+                            <div>
+                                <span>HESAPLAMA TAMAMLANDI</span>
+                                <h2>Yakıt hakediş sonuçları</h2>
                             </div>
+                        </div>
 
-                            <div className="table-wrap">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Plaka</th>
-                                            <th>KM 36</th>
-                                            <th>KM 37</th>
-                                            <th>Toplam KM</th>
-                                            <th>Tahmini L</th>
-                                            <th>Gerçek L</th>
-                                            <th>Fark L</th>
-                                            <th>TL/KM</th>
-                                            <th>Hakediş / Ceza</th>
-                                            <th>Durum</th>
+                        <div className="hky-result-actions">
+                            <button className="hky-btn hky-btn-secondary" onClick={goBackStep} disabled={loading}>
+                                <ArrowLeft size={17} /> Geri Gel
+                            </button>
+                            <button className="hky-btn hky-btn-secondary" onClick={resetAll} disabled={loading}>
+                                <RotateCcw size={17} /> Yeni Hesaplama
+                            </button>
+                            <button className="hky-btn hky-btn-secondary" onClick={exportSeferRaporu} disabled={!distributionRows.length}>
+                                <FileSpreadsheet size={17} /> Sefer Raporu
+                            </button>
+                            <button className="hky-btn hky-btn-primary" onClick={exportOzetRaporu} disabled={!summaryRows.length}>
+                                <Download size={17} /> Özet Data İndir
+                            </button>
+                        </div>
+                    </section>
+
+                    <section className="hky-kpi-grid">
+                        <article className="hky-kpi-card">
+                            <div className="hky-kpi-icon"><Route size={20} /></div>
+                            <div className="hky-kpi-copy">
+                                <span>Toplam KM</span>
+                                <strong>{formatNumber(totals.km)}</strong>
+                                <small>Seferlerden gelen toplam kilometre</small>
+                            </div>
+                        </article>
+                        <article className="hky-kpi-card">
+                            <div className="hky-kpi-icon"><Gauge size={20} /></div>
+                            <div className="hky-kpi-copy">
+                                <span>Tahmini Tüketim</span>
+                                <strong>{formatNumber(totals.tahmini)} L</strong>
+                                <small>%36 / %37 müşteri oranına göre</small>
+                            </div>
+                        </article>
+                        <article className="hky-kpi-card">
+                            <div className="hky-kpi-icon"><Fuel size={20} /></div>
+                            <div className="hky-kpi-copy">
+                                <span>Gerçek Yakıt</span>
+                                <strong>{formatNumber(totals.gercek)} L</strong>
+                                <small>Yakıt verisinden gelen toplam litre</small>
+                            </div>
+                        </article>
+                        <article className={`hky-kpi-card hky-kpi-money ${totals.tl >= 0 ? "is-positive" : "is-negative"}`}>
+                            <div className="hky-kpi-icon"><BadgeTurkishLira size={20} /></div>
+                            <div className="hky-kpi-copy">
+                                <span>Prim / Ceza</span>
+                                <strong>{formatTL(totals.tl)}</strong>
+                                <small>Fark litre × birim fiyat</small>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section className="hky-result-panel">
+                        <div className="hky-panel-head">
+                            <div>
+                                <span className="hky-section-kicker">PLAKA ANALİZİ</span>
+                                <h2>Plaka Bazlı Özet</h2>
+                                <p>KM dağılımı, tahmini/gerçek yakıt ve prim-ceza analizi.</p>
+                            </div>
+                            <div className="hky-count-pill">{summaryRows.length} plaka</div>
+                        </div>
+
+                        <div className="hky-table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Plaka</th>
+                                        <th>KM 36</th>
+                                        <th>KM 37</th>
+                                        <th>Toplam KM</th>
+                                        <th>Tahmini L</th>
+                                        <th>Gerçek L</th>
+                                        <th>Fark L</th>
+                                        <th>TL/KM</th>
+                                        <th>Hakediş / Ceza</th>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {summaryRows.map((row) => (
+                                        <tr key={row.plaka}>
+                                            <td><strong className="hky-plate-chip">{row.plaka}</strong></td>
+                                            <td>{formatNumber(row.km_36)}</td>
+                                            <td>{formatNumber(row.km_37)}</td>
+                                            <td><strong>{formatNumber(row.toplam_km)}</strong></td>
+                                            <td>{formatNumber(row.tahmini_tuketim)}</td>
+                                            <td>{formatNumber(row.gercek_yakit)}</td>
+                                            <td className={row.fark_litre >= 0 ? "hky-positive" : "hky-negative"}>{formatNumber(row.fark_litre)}</td>
+                                            <td>{formatTL(row.tl_km)}</td>
+                                            <td className={row.duzeltme_maliyeti >= 0 ? "hky-positive" : "hky-negative"}><strong>{formatTL(row.duzeltme_maliyeti)}</strong></td>
+                                            <td><span className={`hky-status-pill ${row.durum === "PRİM" ? "is-positive" : "is-negative"}`}>{row.durum}</span></td>
                                         </tr>
-                                    </thead>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
 
-                                    <tbody>
-                                        {summaryRows.map((row) => (
-                                            <tr key={row.plaka}>
-                                                <td>
-                                                    <strong className="plate-chip">{row.plaka}</strong>
-                                                </td>
-                                                <td>{formatNumber(row.km_36)}</td>
-                                                <td>{formatNumber(row.km_37)}</td>
-                                                <td>{formatNumber(row.toplam_km)}</td>
-                                                <td>{formatNumber(row.tahmini_tuketim)}</td>
-                                                <td>{formatNumber(row.gercek_yakit)}</td>
-                                                <td className={row.fark_litre >= 0 ? "good" : "bad"}>
-                                                    {formatNumber(row.fark_litre)}
-                                                </td>
-                                                <td>{formatTL(row.tl_km)}</td>
-                                                <td className={row.duzeltme_maliyeti >= 0 ? "good" : "bad"}>
-                                                    {formatTL(row.duzeltme_maliyeti)}
-                                                </td>
-                                                <td>
-                                                    <span className={row.durum === "PRİM" ? "badge good-bg" : "badge bad-bg"}>
-                                                        {row.durum}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                    <section className="hky-result-panel">
+                        <div className="hky-panel-head">
+                            <div>
+                                <span className="hky-section-kicker">SEFER DAĞILIMI</span>
+                                <h2>Sefer Bazlı Hakediş</h2>
+                                <p>Plaka bazındaki prim/ceza tutarının sefere KM oranında dağıtımı.</p>
                             </div>
-                        </section>
+                            <div className="hky-count-pill">{distributionRows.length} sefer</div>
+                        </div>
 
-                        <section className="hky-panel">
-                            <div className="panel-head">
-                                <div>
-                                    <h2>Sefer Bazlı Dağılım</h2>
-                                    <p>Plaka bazındaki prim/ceza tutarının sefere KM oranında dağıtımı.</p>
-                                </div>
-                                <span>{distributionRows.length} sefer</span>
-                            </div>
-
-                            <div className="table-wrap">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Sefer No</th>
-                                            <th>Plaka</th>
-                                            <th>Müşteri</th>
-                                            <th>KM</th>
-                                            <th>Sefer Hakedişi</th>
-                                            <th>Cari ID</th>
+                        <div className="hky-table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Sefer No</th>
+                                        <th>Plaka</th>
+                                        <th>Müşteri</th>
+                                        <th>KM</th>
+                                        <th>Sefer Hakedişi</th>
+                                        <th>Cari ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {distributionRows.slice(0, 300).map((row, index) => (
+                                        <tr key={`${row.sefer_no}-${index}`}>
+                                            <td><strong>{row.sefer_no || "—"}</strong></td>
+                                            <td><strong className="hky-plate-chip">{row.plaka}</strong></td>
+                                            <td>{row.musteri_adi || "—"}</td>
+                                            <td>{formatNumber(row.km)}</td>
+                                            <td className={row.sefer_hakedisi_tl >= 0 ? "hky-positive" : "hky-negative"}><strong>{formatTL(row.sefer_hakedisi_tl)}</strong></td>
+                                            <td>{row.cari_unvan_id || "—"}</td>
                                         </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {distributionRows.slice(0, 300).map((row, index) => (
-                                            <tr key={`${row.sefer_no}-${index}`}>
-                                                <td>{row.sefer_no || "—"}</td>
-                                                <td>
-                                                    <strong className="plate-chip">{row.plaka}</strong>
-                                                </td>
-                                                <td>{row.musteri_adi || "—"}</td>
-                                                <td>{formatNumber(row.km)}</td>
-                                                <td className={row.sefer_hakedisi_tl >= 0 ? "good" : "bad"}>
-                                                    {formatTL(row.sefer_hakedisi_tl)}
-                                                </td>
-                                                <td>{row.cari_unvan_id || "—"}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </div>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 </>
             )}
         </div>

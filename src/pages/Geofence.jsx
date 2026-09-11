@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     MapContainer,
     TileLayer,
@@ -10,6 +10,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { mobilizService } from "../services/mobiliz";
+import { MapPinned, RefreshCw, Trash2, Save, ShieldCheck } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
@@ -287,18 +288,18 @@ export default function Geofence() {
         <div className="geofence-page">
             <div className="geofence-head">
                 <div>
-                    <span>Alan Yönetimi</span>
+                    <span><ShieldCheck size={13} /> Alan Yönetimi</span>
                     <h1>Geofence</h1>
                     <p>Alan çiz, canlı araçların giriş/çıkış durumunu takip et.</p>
                 </div>
 
                 <div className="geofence-head-actions">
                     <button type="button" onClick={loadVehicles}>
-                        {loading ? "Yenileniyor..." : "Araçları Yenile"}
+                        <RefreshCw size={14} /> {loading ? "Yenileniyor..." : "Araçları Yenile"}
                     </button>
 
                     <button type="button" onClick={clearAll} className="danger">
-                        Tümünü Temizle
+                        <Trash2 size={14} /> Tümünü Temizle
                     </button>
                 </div>
             </div>
@@ -420,7 +421,7 @@ export default function Geofence() {
                     </section>
 
                     <section>
-                        <h2>Geofence Listesi</h2>
+                        <h2><MapPinned size={16} /> Geofence Listesi</h2>
 
                         {geofences.length === 0 ? (
                             <div className="geofence-empty">Henüz alan oluşturulmadı.</div>
@@ -459,7 +460,7 @@ export default function Geofence() {
 
                                 <div className="geofence-actions">
                                     <button type="button" onClick={renameSelected}>
-                                        Kaydet
+                                        <Save size={14} /> Kaydet
                                     </button>
 
                                     <button

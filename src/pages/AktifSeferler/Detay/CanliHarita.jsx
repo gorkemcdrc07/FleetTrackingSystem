@@ -37,7 +37,8 @@ export default function CanliHarita({ vehicle }) {
             <Harita
                 vehicles={[normalizedVehicle]}
                 selectedPlate={normalizedVehicle.plate}
-                height="450px"
+                height="360px"
+                showToolbar={false}
                 zoom={13}
             />
         </div>

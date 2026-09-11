@@ -3,6 +3,7 @@ const GEOFENCE_EVENT_KEY = "fts_geofence_events";
 const SETTINGS_KEY = "fts_notification_settings";
 const NOTIFICATION_EVENT = "fts_notifications_updated";
 const TOAST_EVENT = "fts_notification_toast";
+const DISMISSED_KEY = "fts_dismissed_notifications";
 
 const MAX_NOTIFICATIONS = 200;
 const DEFAULT_RETENTION_DAYS = 30;
@@ -87,6 +88,67 @@ function normalizePlate(value) {
     return String(value || "")
         .replace(/\s/g, "")
         .toUpperCase();
+}
+
+function getNotificationKey(notification) {
+    return [
+        notification?.type || "unknown",
+        normalizePlate(notification?.plate),
+        notification?.ref || "",
+    ].join("|");
+}
+
+function getDismissedNotifications() {
+    return readJson(DISMISSED_KEY, {});
+}
+
+function writeDismissedNotifications(value) {
+    localStorage.setItem(
+        DISMISSED_KEY,
+        JSON.stringify(value)
+    );
+}
+
+function dismissNotification(notification) {
+    if (!notification) return;
+
+    const dismissed =
+        getDismissedNotifications();
+
+    dismissed[getNotificationKey(notification)] = {
+        dismissedAt: new Date().toISOString(),
+    };
+
+    writeDismissedNotifications(dismissed);
+}
+
+function isDismissed(notification) {
+    if (!notification) return false;
+
+    const dismissed =
+        getDismissedNotifications();
+
+    return Boolean(
+        dismissed[
+            getNotificationKey(notification)
+        ]
+    );
+}
+
+function clearDismissed(notification) {
+    if (!notification) return;
+
+    const dismissed =
+        getDismissedNotifications();
+
+    const key =
+        getNotificationKey(notification);
+
+    if (!dismissed[key]) return;
+
+    delete dismissed[key];
+
+    writeDismissedNotifications(dismissed);
 }
 
 function getSpeed(vehicle) {
@@ -448,7 +510,17 @@ export const notificationEngine = {
     },
 
     remove(id) {
-        const list = this.getAll().filter(
+        const current = this.getAll();
+
+        const notification = current.find(
+            (item) => item.id === id
+        );
+
+        if (notification) {
+            dismissNotification(notification);
+        }
+
+        const list = current.filter(
             (item) => item.id !== id
         );
 
@@ -499,6 +571,10 @@ export const notificationEngine = {
             const notification = item?.id
                 ? item
                 : buildNotification(item);
+
+            if (isDismissed(notification)) {
+                return;
+            }
 
             const compareList = [
                 ...accepted,
@@ -586,6 +662,30 @@ export const notificationEngine = {
             const ignition = getIgnition(vehicle);
             const coordinates = getCoordinates(vehicle);
 
+            const speedRef = {
+                type: "speed",
+                plate,
+                ref: `speed-${normalizePlate(plate)}`,
+            };
+
+            const idleRef = {
+                type: "idle",
+                plate,
+                ref: `idle-${normalizePlate(plate)}`,
+            };
+
+            const oldDataRef = {
+                type: "oldData",
+                plate,
+                ref: `oldData-${normalizePlate(plate)}`,
+            };
+
+            const gpsRef = {
+                type: "gps",
+                plate,
+                ref: `gps-${normalizePlate(plate)}`,
+            };
+
             if (speed >= speedLimit) {
                 notifications.push({
                     type: "speed",
@@ -593,12 +693,14 @@ export const notificationEngine = {
                     plate,
                     title: "Hız Limiti Aşıldı",
                     message: `${speed} km/h hızla hareket ediyor.`,
-                    ref: `speed-${normalizePlate(plate)}`,
+                    ref: speedRef.ref,
                     metadata: {
                         speed,
                         speedLimit,
                     },
                 });
+            } else {
+                clearDismissed(speedRef);
             }
 
             if (
@@ -613,8 +715,10 @@ export const notificationEngine = {
                     title: "Rölanti Uyarısı",
                     message:
                         "Kontak açık fakat araç hareket etmiyor.",
-                    ref: `idle-${normalizePlate(plate)}`,
+                    ref: idleRef.ref,
                 });
+            } else {
+                clearDismissed(idleRef);
             }
 
             if (lastDate) {
@@ -632,16 +736,18 @@ export const notificationEngine = {
                         message: `Son veri ${Math.floor(
                             diffMinutes / 60
                         )} saat önce geldi.`,
-                        ref: `oldData-${normalizePlate(
-                            plate
-                        )}`,
+                        ref: oldDataRef.ref,
                         metadata: {
                             diffMinutes,
                             lastDataTime:
                                 lastDate.toISOString(),
                         },
                     });
+                } else {
+                    clearDismissed(oldDataRef);
                 }
+            } else {
+                clearDismissed(oldDataRef);
             }
 
             if (
@@ -655,8 +761,10 @@ export const notificationEngine = {
                     title: "GPS Konumu Yok",
                     message:
                         "Araçtan geçerli koordinat bilgisi alınamıyor.",
-                    ref: `gps-${normalizePlate(plate)}`,
+                    ref: gpsRef.ref,
                 });
+            } else {
+                clearDismissed(gpsRef);
             }
         });
 

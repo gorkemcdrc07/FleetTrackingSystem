@@ -1,6 +1,5 @@
-﻿const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "https://filo-backend-57wx.onrender.com";
+import { apiUrl } from "../../config/api";
+import { requestJson, responseList } from "../../services/requestJson";
 
 function normalizeDocumentNo(value) {
     return String(value || "")
@@ -12,7 +11,7 @@ function isSFRDocument(item) {
     return normalizeDocumentNo(item?.DocumentNo).startsWith("SFR");
 }
 
-export async function syncFromTMS({ start, end }) {
+export async function syncFromTMS({ start, end, signal, onRetry }) {
     if (!start || !end) {
         throw new Error("TMS sorgusu için başlangıç ve bitiş tarihi zorunludur.");
     }
@@ -30,96 +29,12 @@ export async function syncFromTMS({ start, end }) {
         WorkingTypesId: Array.from({ length: 80 }, (_, index) => index + 1),
     };
 
-    const requestUrl = `${API_BASE_URL}/api/proxy/tmsdespatches`;
-
-    console.log("TMS REQUEST URL:", requestUrl);
-    console.log("TMS REQUEST BODY:", body);
-
-    let response;
-
-    try {
-        response = await fetch(requestUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-            body: JSON.stringify(body),
-        });
-    } catch (networkError) {
-        console.error("TMS BAĞLANTI HATASI:", networkError);
-
-        throw new Error(
-            `TMS backend sunucusuna bağlanılamadı: ${networkError?.message || "Bilinmeyen bağlantı hatası"
-            }`
-        );
-    }
-
-    const responseText = await response.text();
-
-    console.log("TMS STATUS:", response.status);
-    console.log("TMS STATUS TEXT:", response.statusText);
-
-    /*
-     * Gelen cevap çok büyük olabileceği için tamamını Console'a basmıyoruz.
-     * Bu, tarayıcıyı gereksiz yere yavaşlatabilir.
-     */
-    console.log(
-        "TMS RESPONSE ÖN İZLEME:",
-        responseText ? responseText.slice(0, 1000) : "Boş cevap"
-    );
-
-    let responseJson = null;
-
-    if (responseText) {
-        try {
-            responseJson = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error("TMS JSON PARSE HATASI:", parseError);
-            console.error(
-                "TMS HAM CEVAP ÖN İZLEME:",
-                responseText.slice(0, 1000)
-            );
-
-            throw new Error(
-                `TMS sunucusu geçersiz cevap döndürdü. HTTP ${response.status
-                }: ${responseText.slice(0, 500)}`
-            );
-        }
-    }
-
-    if (!response.ok) {
-        const errorDetail =
-            responseJson?.detail ||
-            responseJson?.error ||
-            responseJson?.message ||
-            responseText ||
-            "Bilinmeyen sunucu hatası";
-
-        throw new Error(
-            `TMS API hatası — HTTP ${response.status}: ${String(
-                errorDetail
-            ).slice(0, 1000)}`
-        );
-    }
-
-    const allRows = Array.isArray(responseJson?.Data)
-        ? responseJson.Data
-        : Array.isArray(responseJson?.data)
-            ? responseJson.data
-            : Array.isArray(responseJson)
-                ? responseJson
-                : [];
-
-    /*
-     * Yalnızca DocumentNo değeri SFR ile başlayan kayıtları alıyoruz.
-     */
-    const sfrRows = allRows.filter(isSFRDocument);
-
-    console.log("TMS TOPLAM KAYIT SAYISI:", allRows.length);
-    console.log("SFR KAYIT SAYISI:", sfrRows.length);
-
-    return sfrRows;
+    if(new Date(start)>new Date(end))throw new Error("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
+    const json=await requestJson(apiUrl("/api/proxy/tmsdespatches"),{
+        method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),signal
+    },{timeoutMs:90000,retries:1,onRetry});
+    if(json?.Success===false || json?.success===false)throw new Error("TMS sorgusu başarısız oldu. Mevcut kayıtlar korunuyor.");
+    return responseList(json).filter(isSFRDocument);
 }
 
 export function mapTMSRows(list) {

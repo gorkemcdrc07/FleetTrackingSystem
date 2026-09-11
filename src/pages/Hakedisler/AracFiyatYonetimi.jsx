@@ -1,8 +1,14 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+    Activity, ArchiveRestore, ArrowLeft, BadgeTurkishLira, CalendarDays, CarFront, CheckCircle2,
+    ChevronRight, CircleDollarSign, Download, Edit3, FileDown, FileSpreadsheet, Home,
+    Plus, RefreshCw, RotateCcw, Search, Sparkles, Upload, UserRound, UsersRound, X
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "../../supabaseClient";
 import { islemLogla } from "../../utils/islemLogla";
 import "./AracFiyatYonetimi.css";
+import { applyHakedisSheetBranding } from "./shared/hakedisSheetBranding";
 
 const emptyForm = {
     plaka: "",
@@ -97,6 +103,7 @@ function downloadXlsx(rows, fileName, sheetName = "Veriler") {
     const workbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    applyHakedisSheetBranding(XLSX, workbook, worksheet, "Araç Cari & Fiyat Raporu");
     XLSX.writeFile(workbook, fileName);
 }
 
@@ -117,10 +124,11 @@ function mapExcelRow(row) {
     };
 }
 
-export default function AracFiyatYonetimi() {
+export default function AracFiyatYonetimi({ onNavigate }) {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [modalOpen, setModalOpen] = useState(false);
     const [editingRow, setEditingRow] = useState(null);
     const [form, setForm] = useState(emptyForm);
@@ -430,9 +438,12 @@ export default function AracFiyatYonetimi() {
     }
 
     const filteredRows = useMemo(() => {
-        const q = search.toLocaleLowerCase("tr-TR");
+        const q = search.toLocaleLowerCase("tr-TR").trim();
 
         return rows.filter((row) => {
+            if (statusFilter === "active" && row.pasif) return false;
+            if (statusFilter === "passive" && !row.pasif) return false;
+
             const text = [
                 row.plaka,
                 row.cari_id,
@@ -446,240 +457,227 @@ export default function AracFiyatYonetimi() {
 
             return text.includes(q);
         });
-    }, [rows, search]);
+    }, [rows, search, statusFilter]);
+
+    const summary = useMemo(() => {
+        const active = rows.filter((row) => !row.pasif);
+        const passive = rows.length - active.length;
+        const monthlyRent = active.reduce((sum, row) => sum + (Number(row.aylik_kira) || 0), 0);
+        const monthlyDriver = active.reduce((sum, row) => sum + (Number(row.aylik_surucu) || 0), 0);
+        const total = active.reduce((sum, row) => sum + (Number(row.toplam_tutar) || 0), 0);
+        const uniqueCaris = new Set(active.map((row) => row.cari_id || row.cari_adi).filter(Boolean)).size;
+
+        return { active: active.length, passive, monthlyRent, monthlyDriver, total, uniqueCaris };
+    }, [rows]);
 
     return (
-        <div className="afy-page">
-            <input
-                ref={topluGuncelleRef}
-                type="file"
-                accept=".xlsx,.xls"
-                hidden
-                onChange={handleBulkUpdateFile}
-            />
+        <div className="afy-page premium-page-enter">
+            <input ref={topluGuncelleRef} type="file" accept=".xlsx,.xls" hidden onChange={handleBulkUpdateFile} />
+            <input ref={topluAktarimRef} type="file" accept=".xlsx,.xls" hidden onChange={handleBulkImportFile} />
+            <input ref={gunGuncelleRef} type="file" accept=".xlsx,.xls" hidden onChange={handleDayUpdateFile} />
 
-            <input
-                ref={topluAktarimRef}
-                type="file"
-                accept=".xlsx,.xls"
-                hidden
-                onChange={handleBulkImportFile}
-            />
-
-            <input
-                ref={gunGuncelleRef}
-                type="file"
-                accept=".xlsx,.xls"
-                hidden
-                onChange={handleDayUpdateFile}
-            />
-
-            <div className="afy-top">
-                <div>
-                    <span className="afy-eyebrow">Hakediş Yönetimi</span>
-                    <h1>Araç Cari ve Fiyat Yönetimi</h1>
-                    <p>Araç bazlı cari, kira ve sürücü fiyat yönetimi.</p>
+            <section className="afy-hero">
+                <div className="afy-hero-copy">
+                    <div className="afy-hero-kicker"><Sparkles size={14} /> HAKEDİŞLER / MASTER DATA</div>
+                    <h1>Araç Cari & Fiyat</h1>
+                    <p>Araçların cari bağlantılarını, aylık maliyetlerini ve çalışma parametrelerini tek merkezden yönetin.</p>
+                    <div className="afy-hero-badges">
+                        <span><Activity size={13} /> {summary.active} aktif araç</span>
+                        <span><UsersRound size={13} /> {summary.uniqueCaris} cari</span>
+                        <span><CircleDollarSign size={13} /> Finans verisi güncel</span>
+                    </div>
                 </div>
-            </div>
 
-            <div className="afy-action-grid">
-                <ActionButton
-                    title="Excele Aktar"
-                    desc="Tablodaki mevcut verileri .xlsx olarak dışarı aktarır."
-                    meta="Çıktı: tüm kolonlar"
-                    icon="⬇"
-                    tone="blue"
-                    onClick={exportExcel}
-                />
+                <div className="afy-hero-actions">
+                    <button className="afy-btn afy-btn-ghost" onClick={loadData} disabled={loading}>
+                        <RefreshCw size={16} className={loading ? "spin" : ""} />
+                        Yenile
+                    </button>
+                    <button className="afy-btn afy-btn-primary" onClick={openNew}>
+                        <Plus size={17} /> Yeni Kayıt
+                    </button>
+                </div>
+            </section>
 
-                <ActionButton
-                    title="Toplu Şablon İndir"
-                    desc="Excel yüklemek için örnek şablon dosyası indirir."
-                    meta="Gerekli: plaka"
-                    icon="📄"
-                    tone="slate"
-                    onClick={downloadTemplate}
-                />
+            <section className="afy-metrics">
+                <Metric icon={CarFront} label="Aktif Araç" value={summary.active} note={`${summary.passive} pasif kayıt`} tone="indigo" />
+                <Metric icon={BadgeTurkishLira} label="Aylık Kira" value={formatTL(summary.monthlyRent)} note="Aktif araç toplamı" tone="violet" />
+                <Metric icon={UserRound} label="Aylık Sürücü" value={formatTL(summary.monthlyDriver)} note="Aktif araç toplamı" tone="cyan" />
+                <Metric icon={CircleDollarSign} label="Toplam Tutar" value={formatTL(summary.total)} note="Sistemde hesaplanan" tone="green" />
+            </section>
 
-                <ActionButton
-                    title="Toplu Güncelle"
-                    desc="Excel dosyasındaki verilere göre mevcut kayıtları günceller."
-                    meta="Gerekli: id veya plaka"
-                    icon="↻"
-                    tone="orange"
-                    onClick={() => topluGuncelleRef.current?.click()}
-                />
+            <section className="afy-command-card">
+                <div className="afy-command-head">
+                    <div>
+                        <span>İşlem Merkezi</span>
+                        <strong>Tüm mevcut aksiyonlar</strong>
+                    </div>
+                    <small>Eski ekrandaki işlemlerin tamamı korunur; yalnızca görünüm modernleştirilmiştir.</small>
+                </div>
 
-                <ActionButton
-                    title="Toplu Aktarım"
-                    desc="Excel dosyasındaki yeni kayıtları sisteme toplu şekilde ekler."
-                    meta="Gerekli: plaka"
-                    icon="⇪"
-                    tone="green"
-                    onClick={() => topluAktarimRef.current?.click()}
-                />
+                <div className="afy-action-groups">
+                    <ActionGroup title="LİSTE İŞLEMLERİ" subtitle="Listeyi yenile veya Excel çıktısı al">
+                        <ModernAction icon={RefreshCw} label="Yenile" onClick={loadData} disabled={loading} />
+                        <ModernAction icon={Download} label="Excel’e Aktar" onClick={exportExcel} tone="primary" />
+                    </ActionGroup>
 
-                <ActionButton
-                    title="Gün Güncelle"
-                    desc="Excel’den sadece çalışma günü bilgilerini topluca günceller."
-                    meta="Gerekli: plaka, calisma_gunu"
-                    icon="📅"
-                    tone="purple"
-                    onClick={() => gunGuncelleRef.current?.click()}
-                    extraAction={downloadDayTemplate}
-                    extraLabel="Şablon"
-                />
+                    <ActionGroup title="EXCEL & TOPLU İŞLEMLER" subtitle="Şablon, güncelleme ve toplu aktarım">
+                        <ModernAction icon={FileDown} label="Toplu Şablon İndir" onClick={downloadTemplate} />
+                        <ModernAction icon={RefreshCw} label="Toplu Güncelle" onClick={() => topluGuncelleRef.current?.click()} tone="info" />
+                        <ModernAction icon={Upload} label="Toplu Aktarım" onClick={() => topluAktarimRef.current?.click()} tone="success" />
+                        <ModernAction icon={CalendarDays} label="Gün Şablonu" onClick={downloadDayTemplate} />
+                        <ModernAction icon={CalendarDays} label="Gün Güncelle" onClick={() => gunGuncelleRef.current?.click()} tone="warning" />
+                    </ActionGroup>
 
-                <ActionButton
-                    title="Yeni Kayıt"
-                    desc="Tek bir yeni araç/cari kaydı oluşturur."
-                    meta="Form ile kayıt"
-                    icon="+"
-                    tone="primary"
-                    onClick={openNew}
-                />
-            </div>
+                    <ActionGroup title="KAYIT & GEZİNME" subtitle="Kayıt ekle veya sayfalar arasında geçiş yap">
+                        <ModernAction icon={Plus} label="Yeni Kayıt" onClick={openNew} tone="success" />
+                        <ModernAction icon={ArrowLeft} label="Geri" onClick={() => onNavigate?.("Dashboard")} />
+                        <ModernAction icon={Home} label="Anasayfa" onClick={() => onNavigate?.("Dashboard")} />
+                    </ActionGroup>
+                </div>
 
-            <div className="afy-toolbar">
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Plaka, cari, araç sahibi ara..."
-                />
+                <div className="afy-command-note">
+                    <Activity size={15} />
+                    <span>Toplu güncelleme mevcut kayıtları plaka/ID üzerinden günceller. Toplu aktarım yeni kayıt ekler. Gün Güncelle yalnızca çalışma günü alanını değiştirir.</span>
+                </div>
+            </section>
 
-                <button onClick={loadData}>Yenile</button>
-            </div>
+            <section className="afy-data-card">
+                <div className="afy-data-head">
+                    <div>
+                        <span className="afy-section-kicker">FİYAT LİSTESİ</span>
+                        <h2>Araç maliyet kayıtları</h2>
+                        <p>{filteredRows.length} kayıt gösteriliyor · toplam {rows.length} kayıt</p>
+                    </div>
+                    <div className="afy-status-tabs" role="group" aria-label="Durum filtresi">
+                        <button className={statusFilter === "all" ? "active" : ""} onClick={() => setStatusFilter("all")}>Tümü <b>{rows.length}</b></button>
+                        <button className={statusFilter === "active" ? "active" : ""} onClick={() => setStatusFilter("active")}>Aktif <b>{summary.active}</b></button>
+                        <button className={statusFilter === "passive" ? "active" : ""} onClick={() => setStatusFilter("passive")}>Pasif <b>{summary.passive}</b></button>
+                    </div>
+                </div>
 
-            <div className="afy-table-wrap">
-                <table className="afy-table">
-                    <thead>
-                        <tr>
-                            <th>İşlem</th>
-                            <th>Plaka</th>
-                            <th>Cari ID</th>
-                            <th>Cari Adı</th>
-                            <th>Araç Sahibi</th>
-                            <th>Çalışma Tipi</th>
-                            <th>Aylık Kira</th>
-                            <th>Aylık Sürücü</th>
-                            <th>Anlaşılan Yakma Oranı</th>
-                            <th>Toplam Tutar</th>
-                            <th>Çalışma Günü</th>
-                            <th>Durum</th>
-                            <th>Açıklama</th>
-                        </tr>
-                    </thead>
+                <div className="afy-toolbar">
+                    <label className="afy-search">
+                        <Search size={17} />
+                        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Plaka, cari adı, araç sahibi veya çalışma tipi ara..." />
+                        {search && <button type="button" onClick={() => setSearch("")} aria-label="Aramayı temizle"><X size={15} /></button>}
+                    </label>
+                    <div className="afy-toolbar-actions">
+                        <div className="afy-filter-summary">
+                            <FileSpreadsheet size={16} />
+                            <span>{statusFilter === "all" ? "Tüm durumlar" : statusFilter === "active" ? "Aktif kayıtlar" : "Pasif kayıtlar"}</span>
+                        </div>
+                        <button type="button" className="afy-reset-filter" onClick={() => { setSearch(""); setStatusFilter("all"); }}>
+                            <RotateCcw size={14} /> Filtreleri Sıfırla
+                        </button>
+                    </div>
+                </div>
 
-                    <tbody>
-                        {loading && (
+                <div className="afy-table-wrap">
+                    <table className="afy-table">
+                        <thead>
                             <tr>
-                                <td colSpan="13">Yükleniyor...</td>
+                                <th>Araç / Durum</th>
+                                <th>Cari</th>
+                                <th>Araç Sahibi</th>
+                                <th>Çalışma Tipi</th>
+                                <th className="num">Aylık Kira</th>
+                                <th className="num">Aylık Sürücü</th>
+                                <th className="num">Yakma</th>
+                                <th className="num">Toplam</th>
+                                <th className="num">Gün</th>
+                                <th>Açıklama</th>
+                                <th className="actions-col">İşlem</th>
                             </tr>
-                        )}
-
-                        {!loading && filteredRows.length === 0 && (
-                            <tr>
-                                <td colSpan="13">Kayıt bulunamadı.</td>
-                            </tr>
-                        )}
-
-                        {!loading && filteredRows.map((row) => (
-                            <tr key={row.id} className={row.pasif ? "passive" : ""}>
-                                <td>
-                                    <div className="afy-actions">
-                                        <button onClick={() => openEdit(row)}>Düzenle</button>
-                                        <button onClick={() => togglePassive(row)}>
-                                            {row.pasif ? "Aktif Yap" : "Pasif Yap"}
-                                        </button>
-                                    </div>
-                                </td>
-
-                                <td>
-                                    <strong className="plate">{row.plaka || "—"}</strong>
-                                </td>
-
-                                <td>{row.cari_id || "—"}</td>
-                                <td>{row.cari_adi || "—"}</td>
-                                <td>{row.arac_sahip || "—"}</td>
-                                <td>{row.calisma_tipi || "—"}</td>
-                                <td>{formatTL(row.aylik_kira)}</td>
-                                <td>{formatTL(row.aylik_surucu)}</td>
-                                <td>{row.yakma_orani ? `%${row.yakma_orani}` : "—"}</td>
-                                <td><strong>{formatTL(row.toplam_tutar)}</strong></td>
-                                <td>{row.calisma_gunu || "—"}</td>
-
-                                <td>
-                                    <span className={`status ${row.pasif ? "pasif" : "aktif"}`}>
-                                        {row.pasif ? "Pasif" : "Aktif"}
-                                    </span>
-                                </td>
-
-                                <td>{row.aciklama || "—"}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {loading && Array.from({ length: 5 }).map((_, i) => (
+                                <tr key={`skeleton-${i}`} className="afy-skeleton-row"><td colSpan="11"><span /></td></tr>
+                            ))}
+                            {!loading && filteredRows.length === 0 && (
+                                <tr><td colSpan="11"><div className="afy-empty"><Search size={26} /><strong>Kayıt bulunamadı</strong><span>Arama veya durum filtresini değiştirin.</span></div></td></tr>
+                            )}
+                            {!loading && filteredRows.map((row) => (
+                                <tr key={row.id} className={row.pasif ? "passive" : ""}>
+                                    <td>
+                                        <div className="afy-vehicle-cell">
+                                            <div className="afy-vehicle-icon"><CarFront size={16} /></div>
+                                            <div><strong>{row.plaka || "—"}</strong><span className={`afy-inline-status ${row.pasif ? "passive" : "active"}`}>{row.pasif ? "Pasif" : "Aktif"}</span></div>
+                                        </div>
+                                    </td>
+                                    <td><div className="afy-cari-cell"><strong>{row.cari_adi || "—"}</strong><span>{row.cari_id || "Cari ID yok"}</span></div></td>
+                                    <td>{row.arac_sahip || "—"}</td>
+                                    <td><span className="afy-type-chip">{row.calisma_tipi || "Tanımsız"}</span></td>
+                                    <td className="num">{formatTL(row.aylik_kira)}</td>
+                                    <td className="num">{formatTL(row.aylik_surucu)}</td>
+                                    <td className="num">{row.yakma_orani ? `%${row.yakma_orani}` : "—"}</td>
+                                    <td className="num afy-total-cell">{formatTL(row.toplam_tutar)}</td>
+                                    <td className="num">{row.calisma_gunu || "—"}</td>
+                                    <td className="afy-note" title={row.aciklama || ""}>{row.aciklama || "—"}</td>
+                                    <td>
+                                        <div className="afy-row-actions">
+                                            <button className="edit" onClick={() => openEdit(row)} title="Kaydı düzenle"><Edit3 size={15} /></button>
+                                            <button className={row.pasif ? "restore" : "archive"} onClick={() => togglePassive(row)} title={row.pasif ? "Aktife al" : "Pasife al"}>
+                                                {row.pasif ? <ArchiveRestore size={15} /> : <CheckCircle2 size={15} />}
+                                            </button>
+                                            <button className="more" onClick={() => openEdit(row)} title="Detayı aç"><ChevronRight size={16} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             {modalOpen && (
-                <div className="afy-modal-backdrop">
+                <div className="afy-modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setModalOpen(false)}>
                     <form className="afy-modal" onSubmit={saveRecord}>
                         <div className="afy-modal-head">
-                            <div>
-                                <span>{editingRow ? "Kayıt Güncelle" : "Yeni Kayıt"}</span>
-                                <h2>Araç Cari ve Fiyat Yönetimi</h2>
+                            <div className="afy-modal-title-wrap">
+                                <div className="afy-modal-icon"><CarFront size={20} /></div>
+                                <div>
+                                    <span>{editingRow ? "KAYIT DÜZENLE" : "YENİ ARAÇ KAYDI"}</span>
+                                    <h2>{editingRow ? editingRow.plaka : "Araç Cari & Fiyat"}</h2>
+                                    <p>Cari ve maliyet parametrelerini güncelleyin.</p>
+                                </div>
                             </div>
-
-                            <button type="button" onClick={() => setModalOpen(false)}>×</button>
+                            <button className="afy-close" type="button" onClick={() => setModalOpen(false)} aria-label="Kapat"><X size={18} /></button>
                         </div>
 
-                        <div className="afy-form-grid">
-                            <Input label="Plaka" value={form.plaka} onChange={(v) => setForm((p) => ({ ...p, plaka: v }))} />
-                            <Input label="Cari ID" value={form.cari_id} onChange={(v) => setForm((p) => ({ ...p, cari_id: v }))} />
-                            <Input label="Cari Adı" value={form.cari_adi} onChange={(v) => setForm((p) => ({ ...p, cari_adi: v }))} />
-                            <Input label="Araç Sahibi" value={form.arac_sahip} onChange={(v) => setForm((p) => ({ ...p, arac_sahip: v }))} />
-                            <Input label="Çalışma Tipi" value={form.calisma_tipi} onChange={(v) => setForm((p) => ({ ...p, calisma_tipi: v }))} />
-                            <Input label="Aylık Kira" value={form.aylik_kira} onChange={(v) => setForm((p) => ({ ...p, aylik_kira: v }))} />
-                            <Input label="Aylık Sürücü" value={form.aylik_surucu} onChange={(v) => setForm((p) => ({ ...p, aylik_surucu: v }))} />
-                            <Input label="Anlaşılan Yakma Oranı" value={form.yakma_orani} onChange={(v) => setForm((p) => ({ ...p, yakma_orani: v }))} />
-                            <Input label="Çalışma Günü" value={form.calisma_gunu} onChange={(v) => setForm((p) => ({ ...p, calisma_gunu: v }))} />
+                        <div className="afy-form-section">
+                            <div className="afy-form-section-title"><CarFront size={16} /><span>Araç & Cari Bilgileri</span></div>
+                            <div className="afy-form-grid">
+                                <Input label="Plaka" value={form.plaka} onChange={(v) => setForm((p) => ({ ...p, plaka: v }))} />
+                                <Input label="Cari ID" value={form.cari_id} onChange={(v) => setForm((p) => ({ ...p, cari_id: v }))} />
+                                <Input label="Cari Adı" value={form.cari_adi} onChange={(v) => setForm((p) => ({ ...p, cari_adi: v }))} />
+                                <Input label="Araç Sahibi" value={form.arac_sahip} onChange={(v) => setForm((p) => ({ ...p, arac_sahip: v }))} />
+                                <Input label="Çalışma Tipi" value={form.calisma_tipi} onChange={(v) => setForm((p) => ({ ...p, calisma_tipi: v }))} />
+                            </div>
+                        </div>
 
-                            <label>
-                                Açıklama
-                                <textarea
-                                    value={form.aciklama}
-                                    onChange={(e) =>
-                                        setForm((p) => ({
-                                            ...p,
-                                            aciklama: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </label>
+                        <div className="afy-form-section">
+                            <div className="afy-form-section-title"><BadgeTurkishLira size={16} /><span>Maliyet Parametreleri</span></div>
+                            <div className="afy-form-grid afy-money-grid">
+                                <Input label="Aylık Kira" value={form.aylik_kira} onChange={(v) => setForm((p) => ({ ...p, aylik_kira: v }))} />
+                                <Input label="Aylık Sürücü" value={form.aylik_surucu} onChange={(v) => setForm((p) => ({ ...p, aylik_surucu: v }))} />
+                                <Input label="Anlaşılan Yakma Oranı" value={form.yakma_orani} onChange={(v) => setForm((p) => ({ ...p, yakma_orani: v }))} />
+                                <Input label="Çalışma Günü" value={form.calisma_gunu} onChange={(v) => setForm((p) => ({ ...p, calisma_gunu: v }))} />
+                            </div>
+                        </div>
 
-                            <label className="afy-check">
-                                <input
-                                    type="checkbox"
-                                    checked={form.pasif}
-                                    onChange={(e) =>
-                                        setForm((p) => ({
-                                            ...p,
-                                            pasif: e.target.checked,
-                                        }))
-                                    }
-                                />
-                                Pasif kayıt
+                        <div className="afy-form-section afy-form-bottom">
+                            <label className="afy-textarea-label"><span>Açıklama</span><textarea value={form.aciklama} placeholder="Kayıt hakkında not..." onChange={(e) => setForm((p) => ({ ...p, aciklama: e.target.value }))} /></label>
+                            <label className="afy-switch-card">
+                                <div><strong>Pasif kayıt</strong><span>Bu kaydı aktif listelerden ayır.</span></div>
+                                <input type="checkbox" checked={form.pasif} onChange={(e) => setForm((p) => ({ ...p, pasif: e.target.checked }))} />
+                                <i />
                             </label>
                         </div>
 
                         <div className="afy-modal-actions">
-                            <button type="button" onClick={() => setModalOpen(false)}>
-                                Vazgeç
-                            </button>
-
-                            <button className="primary" type="submit">
-                                Kaydet
-                            </button>
+                            <button className="afy-btn afy-btn-ghost" type="button" onClick={() => setModalOpen(false)}>Vazgeç</button>
+                            <button className="afy-btn afy-btn-primary" type="submit"><CheckCircle2 size={16} /> {editingRow ? "Değişiklikleri Kaydet" : "Kaydı Oluştur"}</button>
                         </div>
                     </form>
                 </div>
@@ -688,38 +686,35 @@ export default function AracFiyatYonetimi() {
     );
 }
 
-function ActionButton({
-    title,
-    desc,
-    meta,
-    icon,
-    onClick,
-    tone = "slate",
-    extraAction,
-    extraLabel,
-}) {
+function Metric({ icon: Icon, label, value, note, tone }) {
     return (
-        <div className={`afy-action-card tone-${tone}`}>
-            <button type="button" className="afy-action-main" onClick={onClick}>
-                <span className="afy-action-icon">{icon}</span>
+        <article className={`afy-metric tone-${tone}`}>
+            <div className="afy-metric-icon"><Icon size={20} /></div>
+            <div className="afy-metric-copy"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>
+            <div className="afy-metric-glow" />
+        </article>
+    );
+}
 
-                <span className="afy-action-content">
-                    <strong>{title}</strong>
-                    <small>{desc}</small>
-                    <em>{meta}</em>
-                </span>
-            </button>
-
-            {extraAction && (
-                <button
-                    type="button"
-                    className="afy-action-mini"
-                    onClick={extraAction}
-                >
-                    {extraLabel}
-                </button>
-            )}
+function ActionGroup({ title, subtitle, children }) {
+    return (
+        <div className="afy-action-group">
+            <div className="afy-action-group-head">
+                <strong>{title}</strong>
+                <span>{subtitle}</span>
+            </div>
+            <div className="afy-action-group-buttons">{children}</div>
         </div>
+    );
+}
+
+function ModernAction({ icon: Icon, label, onClick, tone = "default", disabled = false }) {
+    return (
+        <button type="button" className={`afy-modern-action tone-${tone}`} onClick={onClick} disabled={disabled}>
+            <span className="afy-modern-action-icon"><Icon size={16} /></span>
+            <span className="afy-modern-action-label">{label}</span>
+            <ChevronRight size={14} className="afy-modern-action-arrow" />
+        </button>
     );
 }
 
