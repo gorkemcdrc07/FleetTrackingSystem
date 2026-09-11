@@ -172,7 +172,7 @@ export default function Home({ onLogout }: HomeProps) {
     if (activePage === "Frigo Yakıt Hakediş") return <HakedisExperience page={activePage} onNavigate={navigate}><FrigoYakitHakedis /></HakedisExperience>;
     if (activePage === "Frigo Hesaplama") return <HakedisExperience page={activePage} onNavigate={navigate}><FrigoHesaplamaPage /></HakedisExperience>;
     if (activePage === "Filo İskontolu Hakediş") return <HakedisExperience page={activePage} onNavigate={navigate}><FiloIskontoluHakedis /></HakedisExperience>;
-    if (activePage === "Hakediş Seferleri") return <HakedisExperience page={activePage} onNavigate={navigate}><HakedisSeferleri onNavigate={navigate} /></HakedisExperience>;
+    if (activePage === "Hakediş Seferleri") return <HakedisExperience page={activePage} onNavigate={navigate}><HakedisSeferleri onNavigate={navigate} onFileReady={() => {}} /></HakedisExperience>;
     if (activePage === "Tedarikçi Masraf") return <HakedisExperience page={activePage} onNavigate={navigate}><TedarikciMasraf onNavigate={navigate} /></HakedisExperience>;
     if (activePage === "Yönetim Paneli") return <YonetimPaneli />;
     return <div className="fts-placeholder"><ListChecks size={28}/><h2>{activePage}</h2><p>Bu modül sonraki tasarım turunda yenilenecek.</p></div>;
