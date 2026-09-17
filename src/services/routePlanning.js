@@ -4,7 +4,7 @@ export function validPoint(p){return p&&p.lat!==''&&p.lng!==''&&p.lat!=null&&p.l
 export async function geocodeStop(stop,{signal,endpoint=import.meta.env?.VITE_GEOCODING_URL||'https://photon.komoot.io/api/'}={}){
  const direct={lat:stop.latitude??stop.lat,lng:stop.longitude??stop.lng??stop.lon};
  if(validPoint(direct))return {lat:Number(direct.lat),lng:Number(direct.lng),approximate:false};
- const queries=[...new Set([[stop.nokta,stop.ilce,stop.il],[stop.ilce,stop.il]].map(parts=>parts.filter(Boolean).join(', ')).filter(Boolean))];
+ const queries=[...new Set([[stop.ilce,stop.il,'Türkiye'],[stop.nokta,stop.ilce,stop.il,'Türkiye']].map(parts=>parts.filter(Boolean).join(', ')).filter(Boolean))];
  for(const query of queries){
   if(signal?.aborted)throw new DOMException('İptal edildi','AbortError');
   const key=`${endpoint}|${query}`;if(cache.has(key)){if(cache.get(key))return cache.get(key);continue;}

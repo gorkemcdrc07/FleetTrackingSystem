@@ -1,4 +1,4 @@
-﻿import {
+import {
     createContext,
     useCallback,
     useContext,
@@ -7,7 +7,22 @@
     useState,
 } from "react";
 
-const STORAGE_KEY = "fts_tracked_vehicles";
+const LEGACY_STORAGE_KEY = "fts_tracked_vehicles";
+
+function getCurrentUserKey() {
+    try {
+        const raw = localStorage.getItem("fts_user");
+        const user = raw ? JSON.parse(raw) : null;
+        const identity = user?.id || user?.kullanici || "anonymous";
+        return `fts_tracked_vehicles:${identity}`;
+    } catch {
+        return "fts_tracked_vehicles:anonymous";
+    }
+}
+
+function getStorageKey() {
+    return getCurrentUserKey();
+}
 
 const TrackedVehiclesContext = createContext(null);
 
@@ -28,7 +43,18 @@ function getVehiclePlate(vehicle) {
 
 function readTrackedPlates() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const key = getStorageKey();
+        let raw = localStorage.getItem(key);
+
+        // Eski tek-kullanıcılı kaydı, ilk kullanımda mevcut kullanıcıya taşı.
+        if (!raw) {
+            const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (legacy) {
+                raw = legacy;
+                localStorage.setItem(key, legacy);
+            }
+        }
+
         const parsed = raw ? JSON.parse(raw) : [];
 
         if (!Array.isArray(parsed)) {
@@ -57,7 +83,7 @@ function saveTrackedPlates(plates) {
     ];
 
     localStorage.setItem(
-        STORAGE_KEY,
+        getStorageKey(),
         JSON.stringify(normalized)
     );
 
@@ -204,7 +230,7 @@ export function TrackedVehiclesProvider({
         function handleStorage(event) {
             if (
                 event.key &&
-                event.key !== STORAGE_KEY
+                event.key !== getStorageKey()
             ) {
                 return;
             }

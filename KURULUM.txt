@@ -1,0 +1,9 @@
+FTS KURULUM
+===========
+1) Proje klasorunde terminal acin.
+2) pnpm install --force
+3) pnpm dev
+
+Leaflet hatasi devam ederse:
+pnpm add leaflet@1.9.4 leaflet-draw@1.0.4 react-leaflet@5.0.0
+pnpm dev

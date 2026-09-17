@@ -10,6 +10,9 @@ import {
     Gauge,
     ListFilter,
     MapPin,
+    Navigation,
+    BellRing,
+    Route,
     PanelRightOpen,
     RefreshCw,
     RotateCcw,
@@ -23,6 +26,7 @@ import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 import "../../components/Harita/Harita.css";
 import "./AracTakibiModern.css";
 import { apiUrl } from "../../config/api";
+import { useTrackedVehicles } from "../../context/TrackedVehiclesContext";
 
 const API_URL = apiUrl("/api/mobiliz/activity-last");
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -102,6 +106,7 @@ function getGroup(vehicle) {
 }
 
 export default function AracTakibi({ onNavigate }) {
+    const { trackedPlates, hasTrackedVehicles, isTracked } = useTrackedVehicles();
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -172,6 +177,7 @@ export default function AracTakibi({ onNavigate }) {
 
     const filteredVehicles = useMemo(() => {
         const result = vehicles.filter((vehicle) => {
+            if (!hasTrackedVehicles || !isTracked(getPlate(vehicle))) return false;
             const searchValue = filters.search.trim().toLocaleLowerCase("tr-TR");
             const searchMatch = !searchValue || [
                 getPlate(vehicle), getAddress(vehicle), getFleet(vehicle), getGroup(vehicle),
@@ -191,15 +197,15 @@ export default function AracTakibi({ onNavigate }) {
             }
             return getPlate(a).localeCompare(getPlate(b), "tr", { numeric: true });
         });
-    }, [vehicles, filters, sort]);
+    }, [vehicles, filters, sort, hasTrackedVehicles, isTracked, trackedPlates]);
 
     const summary = useMemo(() => ({
-        total: vehicles.length,
-        moving: vehicles.filter((vehicle) => getStatus(vehicle) === "moving").length,
-        idle: vehicles.filter((vehicle) => getStatus(vehicle) === "idle").length,
-        park: vehicles.filter((vehicle) => getStatus(vehicle) === "park").length,
-        noGps: vehicles.filter((vehicle) => !hasValidCoordinate(vehicle)).length,
-    }), [vehicles]);
+        total: filteredVehicles.length,
+        moving: filteredVehicles.filter((vehicle) => getStatus(vehicle) === "moving").length,
+        idle: filteredVehicles.filter((vehicle) => getStatus(vehicle) === "idle").length,
+        park: filteredVehicles.filter((vehicle) => getStatus(vehicle) === "park").length,
+        noGps: filteredVehicles.filter((vehicle) => !hasValidCoordinate(vehicle)).length,
+    }), [filteredVehicles]);
 
     const totalPages = Math.max(1, Math.ceil(filteredVehicles.length / pageSize));
     const safePage = Math.min(page, totalPages);
@@ -244,12 +250,12 @@ export default function AracTakibi({ onNavigate }) {
     const pageEnd = Math.min(safePage * pageSize, filteredVehicles.length);
 
     return (
-        <div className={`arac-takibi-page arac-takibi-modern density-${density}`}>
+        <div className={`arac-takibi-page arac-takibi-modern at-cockpit density-${density}`}>
             <header className="at-page-header">
                 <div className="at-title-block">
                     <div className="at-eyebrow"><Activity size={15} /> Mobiliz Entegrasyonu</div>
-                    <h1>Araç Takibi</h1>
-                    <p>Filodaki araçların son konumunu, hareket durumunu ve operasyonel bilgisini tek ekrandan izleyin.</p>
+                    <h1>Canlı Araç Takibi</h1>
+                    <p>Takip listendeki araçları tek bakışta izle, aracı seç ve operasyona hızlıca geç.</p>
                     <div className="at-refresh-meta">
                         <span className={error ? "is-error" : "is-live"}><i /> {error ? "Bağlantı sorunu" : "30 sn otomatik yenileme"}</span>
                         <span><Clock3 size={14} /> Son yenileme: {lastRefresh ? lastRefresh.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "-"}</span>
@@ -261,7 +267,14 @@ export default function AracTakibi({ onNavigate }) {
                 </button>
             </header>
 
-            <section className="at-kpi-grid" aria-label="Filo özeti">
+            {!hasTrackedVehicles && (
+                <section className="at-cockpit-empty">
+                    <div><CarFront size={22} /><span><strong>Takip listen henüz boş</strong><small>Dashboard’dan takip etmek istediğin plakaları seçtiğinde bu ekran yalnızca onları gösterecek.</small></span></div>
+                    <button type="button" onClick={() => onNavigate?.("Dashboard")}>Dashboard’a Git</button>
+                </section>
+            )}
+
+            <section className="at-kpi-grid at-status-strip" aria-label="Takip özeti">
                 <button className="at-kpi-card" type="button" onClick={() => applyStatusFilter("all")}>
                     <span className="at-kpi-icon"><CarFront size={20} /></span><span>Toplam Araç</span><strong>{summary.total}</strong><small>Mobiliz’den gelen araçlar</small>
                 </button>
@@ -329,27 +342,36 @@ export default function AracTakibi({ onNavigate }) {
 
                 <div className="at-map-column">
                     <div className="at-map-head">
-                        <div><strong>Canlı Filo Haritası</strong><span>Filtrelenmiş {filteredVehicles.length} araç haritada gösteriliyor</span></div>
-                        <div className="at-density-switch"><span>Liste yoğunluğu</span><button type="button" className={density === "comfortable" ? "active" : ""} onClick={() => setDensity("comfortable")}>Rahat</button><button type="button" className={density === "compact" ? "active" : ""} onClick={() => setDensity("compact")}>Kompakt</button></div>
+                        <div><strong>Canlı Harita</strong><span>{filteredVehicles.length} takip edilen araç · bir aracı seçerek hızlı işlemleri aç</span></div>
+                        <div className="at-map-head-actions">
+                            <div className="at-density-switch"><button type="button" className={density === "comfortable" ? "active" : ""} onClick={() => setDensity("comfortable")}>Rahat</button><button type="button" className={density === "compact" ? "active" : ""} onClick={() => setDensity("compact")}>Kompakt</button></div>
+                            <button className="at-mini-refresh" type="button" onClick={() => loadVehicles()} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} /></button>
+                        </div>
                     </div>
-                    <div className="at-map-shell">
-                        <Harita vehicles={filteredVehicles} selectedPlate={selectedVehicle ? getPlate(selectedVehicle) : undefined} onVehicleClick={handleSelectVehicle} height="680px" zoom={6} />
+                    <div className="at-map-shell at-live-map">
+                        <Harita vehicles={filteredVehicles} selectedPlate={selectedVehicle ? getPlate(selectedVehicle) : undefined} onVehicleClick={handleSelectVehicle} height="100%" zoom={6} />
+                        {selectedVehicle && (
+                            <div className="at-map-vehicle-hud">
+                                <div className="at-hud-main">
+                                    <span className={`at-hud-icon ${getStatus(selectedVehicle)}`}><Navigation size={19} /></span>
+                                    <div><small>SEÇİLİ ARAÇ</small><strong>{getPlate(selectedVehicle)}</strong><span>{getAddress(selectedVehicle)}</span></div>
+                                </div>
+                                <div className="at-hud-metrics">
+                                    <div><span>Hız</span><strong>{getSpeed(selectedVehicle)} <small>km/h</small></strong></div>
+                                    <div><span>Durum</span><strong>{getStatusText(selectedVehicle)}</strong></div>
+                                    <div><span>Son GPS</span><strong>{formatDate(getLastDate(selectedVehicle))}</strong></div>
+                                </div>
+                                <div className="at-hud-actions">
+                                    <button type="button" onClick={() => setDrawerOpen(true)}><PanelRightOpen size={15}/> Detay</button>
+                                    <button type="button" onClick={() => handleGoPlayback(selectedVehicle)}><Route size={15}/> Playback</button>
+                                    <button type="button" onClick={() => handleOpenOperations(selectedVehicle)}><Activity size={15}/> Operasyon</button>
+                                    <button type="button" onClick={() => { localStorage.setItem("fts_focus_plate", getPlate(selectedVehicle)); onNavigate?.("Alarm Merkezi"); }}><BellRing size={15}/> Alarmlar</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
-
-            {selectedVehicle && (
-                <section className="at-selected-card">
-                    <div className="at-selected-summary">
-                        <div className="at-selected-plate"><span className={`at-selected-icon ${getStatus(selectedVehicle)}`}><CarFront size={23} /></span><div><small>Seçili Araç</small><strong>{getPlate(selectedVehicle)}</strong><span className={`at-status-pill ${getStatus(selectedVehicle)}`}><i />{getStatusText(selectedVehicle)}</span></div></div>
-                        <div className="at-selected-data"><div><span>Hız</span><strong>{getSpeed(selectedVehicle)} km/h</strong></div><div><span>Kontak</span><strong>{selectedVehicle?.ignition || selectedVehicle?.engine ? "Açık" : "Kapalı"}</strong></div><div><span>Son Veri</span><strong>{formatDate(getLastDate(selectedVehicle))}</strong></div><div className="wide"><span>Adres</span><strong>{getAddress(selectedVehicle)}</strong></div></div>
-                    </div>
-                    <div className="at-selected-actions">
-                        {selectedMapsUrl && <a href={selectedMapsUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} /> Google Maps</a>}
-                        <button type="button" onClick={() => setDrawerOpen(true)}><PanelRightOpen size={16} /> Araç Detayı</button>
-                    </div>
-                </section>
-            )}
 
             <VehicleDrawer open={drawerOpen} vehicle={selectedVehicle} onClose={() => setDrawerOpen(false)} onGoPlayback={handleGoPlayback} onOpenOperations={handleOpenOperations} />
         </div>

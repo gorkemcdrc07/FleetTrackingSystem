@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCheck, MapPin, RefreshCw } from "lucide-react";
 import "./Alarmlar.css";
+import { useTrackedVehicles } from "../../context/TrackedVehiclesContext";
 import { notificationEngine } from "../../services/notificationEngine";
 import { mobilizService } from "../../services/mobiliz";
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
@@ -158,6 +159,7 @@ function createAlarms(vehicles = [], settings) {
 }
 
 export default function Alarmlar() {
+    const { trackedPlates, hasTrackedVehicles, isTracked } = useTrackedVehicles();
     const [vehicles, setVehicles] = useState([]);
     const [geofenceEvents, setGeofenceEvents] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -206,9 +208,11 @@ export default function Alarmlar() {
         try {
             const data = await mobilizService.araclar();
 
-            setVehicles(data);
-            setGeofenceEvents(loadGeofenceEvents());
-            notificationEngine.processVehicles(data);
+            const trackedData = (Array.isArray(data) ? data : []).filter((vehicle) => hasTrackedVehicles && isTracked(vehicle?.plate || vehicle?.licensePlate || vehicle?.plateNo));
+            const trackedEvents = loadGeofenceEvents().filter((event) => hasTrackedVehicles && isTracked(event?.plate));
+            setVehicles(trackedData);
+            setGeofenceEvents(trackedEvents);
+            notificationEngine.processVehicles(trackedData);
             notificationEngine.processGeofenceEvents();
             setLastRefresh(new Date());
         } catch (err) {
@@ -225,7 +229,7 @@ export default function Alarmlar() {
         if (!autoRefresh) return undefined;
         const timer = setInterval(loadData, 30000);
         return () => clearInterval(timer);
-    }, [autoRefresh]);
+    }, [autoRefresh, trackedPlates]);
 
     const vehicleAlarms = useMemo(
         () => createAlarms(vehicles, alarmSettings),

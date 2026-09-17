@@ -15,6 +15,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 import "./Geofence.css";
+import { useTrackedVehicles } from "../context/TrackedVehiclesContext";
 
 const STORAGE_KEY = "fts_geofences";
 const EVENT_STORAGE_KEY = "fts_geofence_events";
@@ -149,6 +150,7 @@ function DrawTools({ onCreated }) {
 }
 
 export default function Geofence() {
+    const { trackedPlates, hasTrackedVehicles, isTracked } = useTrackedVehicles();
     const [geofences, setGeofences] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [selectedId, setSelectedId] = useState("");
@@ -198,7 +200,7 @@ export default function Geofence() {
         try {
             setLoading(true);
             const list = await mobilizService.sonKonum();
-            setVehicles(Array.isArray(list) ? list : []);
+            setVehicles((Array.isArray(list) ? list : []).filter((vehicle) => hasTrackedVehicles && isTracked(vehicle?.plate || vehicle?.licensePlate || vehicle?.plateNo)));
         } catch (err) {
             console.error(err);
         } finally {
@@ -212,7 +214,7 @@ export default function Geofence() {
 
         const timer = setInterval(loadVehicles, 30000);
         return () => clearInterval(timer);
-    }, []);
+    }, [trackedPlates]);
 
     useEffect(() => {
         saveGeofences(geofences);

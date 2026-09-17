@@ -11,6 +11,7 @@ import {
     Sparkles,
     Sun,
     UserRound,
+    UserPlus,
     Wifi,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
@@ -51,6 +52,9 @@ function Login({ onLogin }: LoginProps) {
     const [success, setSuccess] = useState(false);
     const [theme, setTheme] = useState<Theme>(getInitialTheme);
     const [fieldError, setFieldError] = useState<"kullanici" | "sifre" | "all" | null>(null);
+    const [mode, setMode] = useState<"login" | "register">("login");
+    const [adSoyad, setAdSoyad] = useState("");
+    const [sifreTekrar, setSifreTekrar] = useState("");
 
     useEffect(() => {
         document.body.classList.add("login-body");
@@ -73,6 +77,82 @@ function Login({ onLogin }: LoginProps) {
     const clearError = () => {
         setErrorMessage("");
         setFieldError(null);
+    };
+
+    const switchMode = (nextMode: "login" | "register") => {
+        setMode(nextMode);
+        clearError();
+        setSifre("");
+        setSifreTekrar("");
+        setSuccess(false);
+    };
+
+    const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        clearError();
+
+        const cleanName = adSoyad.trim().toLocaleUpperCase("tr-TR");
+        const cleanUser = kullanici.trim();
+        if (!cleanName || !cleanUser || !sifre || !sifreTekrar) {
+            setErrorMessage("Ad soyad, kullanıcı adı ve şifre alanlarının tamamını doldurun.");
+            setFieldError("all");
+            return;
+        }
+        if (cleanUser.length < 3) {
+            setErrorMessage("Kullanıcı adı en az 3 karakter olmalıdır.");
+            setFieldError("kullanici");
+            return;
+        }
+        if (sifre.length < 4) {
+            setErrorMessage("Şifre en az 4 karakter olmalıdır.");
+            setFieldError("sifre");
+            return;
+        }
+        if (sifre !== sifreTekrar) {
+            setErrorMessage("Şifreler birbiriyle eşleşmiyor.");
+            setFieldError("sifre");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { data: existing, error: lookupError } = await supabase
+                .from("kullanicilar")
+                .select("id")
+                .ilike("kullanici", cleanUser)
+                .maybeSingle();
+            if (lookupError) throw lookupError;
+            if (existing) {
+                setErrorMessage("Bu kullanıcı adı zaten kullanılıyor.");
+                setFieldError("kullanici");
+                return;
+            }
+
+            const { error } = await supabase.from("kullanicilar").insert({
+                ad: cleanName,
+                kullanici: cleanUser,
+                sifre,
+                rol: "KULLANICI",
+                aktif: true,
+                yetki: [{ page: "Aktif Seferler", actions: ["view"] }],
+            });
+            if (error) throw error;
+
+            setSuccess(true);
+            setErrorMessage("");
+            window.setTimeout(() => {
+                setSuccess(false);
+                switchMode("login");
+                setKullanici(cleanUser);
+                setAdSoyad("");
+            }, 700);
+        } catch (err) {
+            console.error("Kayıt hatası:", err);
+            setErrorMessage("Kayıt oluşturulamadı. Veritabanı izinlerini kontrol edip tekrar deneyin.");
+            setFieldError("all");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -99,7 +179,7 @@ function Login({ onLogin }: LoginProps) {
             const { data, error } = await supabase
                 .from("kullanicilar")
                 .select("id, kullanici, sifre, ad, rol, yetki, aktif")
-                .eq("kullanici", cleanUser)
+                .ilike("kullanici", cleanUser)
                 .maybeSingle();
 
             if (error) throw error;
@@ -227,101 +307,67 @@ function Login({ onLogin }: LoginProps) {
                 <main className="login-panel" aria-label="Giriş formu">
                     <div className="login-panel-inner">
                         <div className="login-card-header">
-                            <span className="login-eyebrow"><LockKeyhole size={14} /> Güvenli giriş</span>
-                            <h2>{greeting}</h2>
-                            <p>FTS hesabınızla operasyon paneline giriş yapın.</p>
+                            <span className="login-eyebrow">{mode === "login" ? <LockKeyhole size={14} /> : <UserPlus size={14} />} {mode === "login" ? "Güvenli giriş" : "Yeni hesap"}</span>
+                            <h2>{mode === "login" ? greeting : "Hesap oluştur"}</h2>
+                            <p>{mode === "login" ? "FTS hesabınızla operasyon paneline giriş yapın." : "Bilgilerinizi girin, hesabınızı birkaç saniyede oluşturun."}</p>
+                        </div>
+
+                        <div className="auth-tabs" role="tablist" aria-label="Hesap işlemleri">
+                            <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>Giriş yap</button>
+                            <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>Kayıt ol</button>
                         </div>
 
                         {errorMessage && (
                             <div className="login-alert" role="alert">
-                                <span>!</span>
-                                <p>{errorMessage}</p>
+                                <span>!</span><p>{errorMessage}</p>
                             </div>
                         )}
 
+                        {mode === "login" ? (
                         <form onSubmit={handleSubmit} className="login-form" noValidate>
                             <div className="form-group">
                                 <label htmlFor="kullanici">Kullanıcı adı</label>
                                 <div className={`input-shell ${fieldError === "kullanici" || fieldError === "all" ? "input-error" : ""}`}>
                                     <UserRound size={18} />
-                                    <input
-                                        id="kullanici"
-                                        type="text"
-                                        autoComplete="username"
-                                        placeholder="Kullanıcı adınızı yazın"
-                                        value={kullanici}
-                                        onChange={(e) => {
-                                            setKullanici(e.target.value);
-                                            clearError();
-                                        }}
-                                    />
+                                    <input id="kullanici" type="text" autoComplete="username" placeholder="Kullanıcı adınızı yazın" value={kullanici} onChange={(e) => { setKullanici(e.target.value); clearError(); }} />
                                 </div>
                             </div>
-
                             <div className="form-group">
                                 <label htmlFor="sifre">Şifre</label>
                                 <div className={`input-shell ${fieldError === "sifre" || fieldError === "all" ? "input-error" : ""}`}>
                                     <LockKeyhole size={18} />
-                                    <input
-                                        id="sifre"
-                                        type={showPassword ? "text" : "password"}
-                                        autoComplete="current-password"
-                                        placeholder="Şifrenizi yazın"
-                                        value={sifre}
-                                        onChange={(e) => {
-                                            setSifre(e.target.value);
-                                            clearError();
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="password-toggle"
-                                        onClick={() => setShowPassword((prev) => !prev)}
-                                        aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                                        title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                                    >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
+                                    <input id="sifre" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Şifrenizi yazın" value={sifre} onChange={(e) => { setSifre(e.target.value); clearError(); }} />
+                                    <button type="button" className="password-toggle" onClick={() => setShowPassword((prev) => !prev)} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                                 </div>
                             </div>
-
                             <div className="form-options">
-                                <label className="remember">
-                                    <input
-                                        type="checkbox"
-                                        checked={remember}
-                                        onChange={(e) => setRemember(e.target.checked)}
-                                    />
-                                    <span className="remember-box"><Check size={13} /></span>
-                                    <span>Beni hatırla</span>
-                                </label>
-
+                                <label className="remember"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span className="remember-box"><Check size={13} /></span><span>Beni hatırla</span></label>
                                 <span className="secure-note"><ShieldCheck size={14} /> Güvenli oturum</span>
                             </div>
-
-                            <button
-                                type="submit"
-                                className={`login-btn ${success ? "success" : ""}`}
-                                disabled={loading || success}
-                            >
-                                {loading ? (
-                                    <>
-                                        <span className="btn-spinner" aria-hidden="true" />
-                                        Doğrulanıyor
-                                    </>
-                                ) : success ? (
-                                    <>
-                                        <Check size={18} />
-                                        Giriş başarılı
-                                    </>
-                                ) : (
-                                    <>
-                                        Giriş yap
-                                        <ArrowRight size={18} />
-                                    </>
-                                )}
+                            <button type="submit" className={`login-btn ${success ? "success" : ""}`} disabled={loading || success}>
+                                {loading ? <><span className="btn-spinner" />Doğrulanıyor</> : success ? <><Check size={18} />Giriş başarılı</> : <>Giriş yap<ArrowRight size={18} /></>}
                             </button>
                         </form>
+                        ) : (
+                        <form onSubmit={handleRegister} className="login-form register-form" noValidate>
+                            <div className="form-group">
+                                <label htmlFor="adSoyad">Ad soyad</label>
+                                <div className={`input-shell ${fieldError === "all" ? "input-error" : ""}`}><UserRound size={18} /><input id="adSoyad" type="text" autoComplete="name" placeholder="Adınızı ve soyadınızı yazın" value={adSoyad} onChange={(e) => { setAdSoyad(e.target.value.toLocaleUpperCase("tr-TR")); clearError(); }} /></div>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="registerKullanici">Kullanıcı adı</label>
+                                <div className={`input-shell ${fieldError === "kullanici" || fieldError === "all" ? "input-error" : ""}`}><UserRound size={18} /><input id="registerKullanici" type="text" autoComplete="username" placeholder="Örn. gorkem.cadirci" value={kullanici} onChange={(e) => { setKullanici(e.target.value); clearError(); }} /></div>
+                            </div>
+                            <div className="register-password-grid">
+                                <div className="form-group"><label htmlFor="registerSifre">Şifre</label><div className={`input-shell ${fieldError === "sifre" || fieldError === "all" ? "input-error" : ""}`}><LockKeyhole size={18} /><input id="registerSifre" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="En az 4 karakter" value={sifre} onChange={(e) => { setSifre(e.target.value); clearError(); }} /></div></div>
+                                <div className="form-group"><label htmlFor="sifreTekrar">Şifre tekrar</label><div className={`input-shell ${fieldError === "sifre" || fieldError === "all" ? "input-error" : ""}`}><LockKeyhole size={18} /><input id="sifreTekrar" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Şifreyi tekrar yazın" value={sifreTekrar} onChange={(e) => { setSifreTekrar(e.target.value); clearError(); }} /></div></div>
+                            </div>
+                            <div className="register-note"><ShieldCheck size={15} /><span>Hesap standart kullanıcı rolüyle oluşturulur ve Aktif Seferler erişimi otomatik tanımlanır.</span></div>
+                            <button type="submit" className={`login-btn ${success ? "success" : ""}`} disabled={loading || success}>
+                                {loading ? <><span className="btn-spinner" />Hesap oluşturuluyor</> : success ? <><Check size={18} />Hesap oluşturuldu</> : <><UserPlus size={18} />Kayıt ol</>}
+                            </button>
+                        </form>
+                        )}
 
                         <div className="login-trust-note">
                             <ShieldCheck size={17} />

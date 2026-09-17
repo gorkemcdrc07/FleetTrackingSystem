@@ -359,7 +359,25 @@ html[data-theme="dark"] .login-page {
 
 .login-panel-footer { padding: 15px 22px; display: flex; justify-content: space-between; gap: 12px; color: var(--login-muted-2); border-top: 1px solid var(--login-border); font-size: 9px; font-weight: 600; }
 
+
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: -8px 0 20px; padding: 4px; border: 1px solid var(--login-border); border-radius: 14px; background: var(--login-surface-soft); }
+.auth-tabs button { height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--login-muted); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; transition: .16s ease; }
+.auth-tabs button.active { background: var(--login-surface-solid); color: var(--login-primary); box-shadow: 0 5px 16px rgba(35,42,68,.08); }
+.register-password-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.register-note { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 18px; padding: 10px 11px; border-radius: 12px; border: 1px solid var(--login-border); background: var(--login-primary-soft); color: var(--login-muted); font-size: 9px; line-height: 1.45; font-weight: 600; }
+.register-note svg { flex: 0 0 auto; color: var(--login-primary); margin-top: 1px; }
+.register-form .form-group { margin-bottom: 12px; }
+
 @keyframes loginSpin { to { transform: rotate(360deg); } }
+
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: -8px 0 20px; padding: 4px; border: 1px solid var(--login-border); border-radius: 14px; background: var(--login-surface-soft); }
+.auth-tabs button { height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--login-muted); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; transition: .16s ease; }
+.auth-tabs button.active { background: var(--login-surface-solid); color: var(--login-primary); box-shadow: 0 5px 16px rgba(35,42,68,.08); }
+.register-password-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.register-note { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 18px; padding: 10px 11px; border-radius: 12px; border: 1px solid var(--login-border); background: var(--login-primary-soft); color: var(--login-muted); font-size: 9px; line-height: 1.45; font-weight: 600; }
+.register-note svg { flex: 0 0 auto; color: var(--login-primary); margin-top: 1px; }
+.register-form .form-group { margin-bottom: 12px; }
+
 @keyframes loginSpinReverse { to { transform: rotate(-360deg); } }
 
 @media (max-width: 1120px) {
@@ -391,6 +409,7 @@ html[data-theme="dark"] .login-page {
     .login-panel-inner { width: calc(100% - 32px); padding-top: 38px; }
     .login-card-header h2 { font-size: 30px; }
     .form-options { align-items: flex-start; flex-direction: column; }
+    .register-password-grid { grid-template-columns: 1fr; gap: 0; }
     .login-panel-footer { flex-direction: column; align-items: center; text-align: center; }
 }
 

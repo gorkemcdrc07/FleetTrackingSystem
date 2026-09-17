@@ -12,6 +12,7 @@ import SutunDuzeni from "./Gorunum/SutunDuzeni";
 import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
 import { islemLogla } from "../../utils/islemLogla";
+import { getRouteKey, getRouteLabel, hasCompleteRouteLocations, loadRouteDistances, saveRouteDistance } from "../../services/routeDistanceService";
 import "./AktifSeferlerModern.css";
 import "./DetailsModern.css";
 
@@ -130,6 +131,7 @@ const DEFAULT_COLUMNS = [
     { key: "teslim_noktasi", label: "Teslim Noktası", width: 155, type: "multi" },
     { key: "teslim_ili", label: "Teslim İl", width: 110, type: "multi" },
     { key: "teslim_ilcesi", label: "Teslim İlçe", width: 110, type: "multi" },
+    { key: "distance_km", label: "KM", width: 105, type: "km" },
     { key: "irsaliye_no", label: "İrsaliye No", width: 135 },
     { key: "aciklama", label: "Açıklama", width: 220, type: "textLong" },
     { key: "atama_yapan_kullanici", label: "Atayan Kullanıcı", width: 148 },
@@ -656,7 +658,8 @@ function CellValue({
     onETA,
     onTonaj,
     onSeferSil,
-    etaDelayed
+    etaDelayed,
+    onKilometre
 }) {
     if (col.key === "_ops") {
         return (
@@ -681,6 +684,8 @@ function CellValue({
     }
 
     const val = row[col.key];
+
+    if (col.type === "km") return row.distance_km ? <button type="button" className="km-cell has-km" title="Kilometreyi düzenle" onClick={(e)=>{e.stopPropagation();onKilometre?.(row);}}><strong>{Number(row.distance_km).toLocaleString("tr-TR")}</strong><small> km</small></button> : <button type="button" className="km-cell empty-km" onClick={(e)=>{e.stopPropagation();onKilometre?.(row);}}>+ KM Ekle</button>;
 
     if (col.type === "sefer") return <div className="trip-identity"><span className="sefer-badge">{val || "—"}</span>{hasWarning(row) && <span className="trip-warning-badge"><TriangleAlert size={12}/> İkazlı</span>}</div>;
     if (col.type === "plaka") return val ? <span className="plate-cell">{val}</span> : <span className="muted">—</span>;
@@ -925,10 +930,56 @@ function AktifSeferler() {
     const warningPending = useRef(new Set());
     const searchInputRef = useRef(null);
     const [deletingTrip, setDeletingTrip] = useState(false);
+    const [kilometreRow, setKilometreRow] = useState(null);
+    const [kilometreValue, setKilometreValue] = useState("");
+    const [savingKilometre, setSavingKilometre] = useState(false);
 
     useEffect(() => {
         saveActiveTripsPreferences({ density, pageSize });
     }, [density, pageSize]);
+
+    const kilometreRouteSignature = useMemo(
+        () => rows.map(row => getRouteKey(row)).join("||"),
+        [rows]
+    );
+
+    useEffect(() => {
+        let cancelled = false;
+        async function applyKnownDistances() {
+            if (!rows.length) return;
+            const distances = await loadRouteDistances();
+            if (cancelled) return;
+            setRows(prev => prev.map(row => {
+                const routeKey = getRouteKey(row);
+                const km = routeKey ? distances[routeKey] : null;
+                // Sadece dört konum alanı eksiksiz eşleşirse otomatik KM getir.
+                // Eşleşme yoksa daha önce satırda kalmış otomatik KM'yi temizle.
+                return km ? { ...row, distance_km: km } : { ...row, distance_km: undefined };
+            }));
+        }
+        applyKnownDistances();
+        return () => { cancelled = true; };
+    }, [kilometreRouteSignature, setRows]);
+
+    const openKilometreModal = useCallback((row) => {
+        setKilometreRow(row);
+        setKilometreValue(row.distance_km ? String(row.distance_km) : "");
+    }, []);
+
+    const handleKilometreSave = useCallback(async () => {
+        if (!kilometreRow) return;
+        setSavingKilometre(true);
+        try {
+            const result = await saveRouteDistance(kilometreRow, kilometreValue);
+            setRows(prev => prev.map(item => getRouteKey(item) === result.routeKey ? { ...item, distance_km: result.km } : item));
+            setKilometreRow(null);
+            setToast({ type: "success", message: result.shared ? `Rota ${result.km} km olarak kaydedildi. Aynı rota geldiğinde otomatik doldurulacak.` : `Rota ${result.km} km olarak bu cihazda kaydedildi. Ortak kullanım için supabase/rota_kilometreleri.sql dosyasını çalıştırın.` });
+            setTimeout(() => setToast(null), 4200);
+        } catch (error) {
+            setToast({ type: "error", message: error?.message || "Kilometre kaydedilemedi." });
+            setTimeout(() => setToast(null), 3000);
+        } finally { setSavingKilometre(false); }
+    }, [kilometreRow, kilometreValue, setRows]);
 
     useEffect(() => {
         async function kullaniciYetkisiniGetir() {
@@ -1115,7 +1166,7 @@ function AktifSeferler() {
     const toggleRowSelection=(key)=>setSelectedRowKeys(prev=>prev.includes(key)?prev.filter(x=>x!==key):[...prev,key]);
     const exportRowsToExcel=(items,filePrefix="aktif_seferler")=>{
         if(!items.length){setToast({type:"error",message:"Dışa aktarılacak sefer bulunamadı."});setTimeout(()=>setToast(null),2200);return;}
-        const data=items.map(r=>({"Sefer No":r.sefer_no||"","Sefer Tarihi":formatDate(r.sefer_tarihi)||"","Plaka":r.plaka||"","Treyler":r.treyler||"","Sürücü":r.surucu_ad_soyad||"","Müşteri":r.musteri_adi||"","Proje":r.proje_adi||"","Yükleme":r.yukleme_noktasi||"","Teslim":r.teslim_noktasi||"","Araç Statü":r.arac_statu||"","İkaz":hasWarning(r)?"Var":"Yok","Tonaj":r.tonaj_durumu||""}));
+        const data=items.map(r=>({"Sefer No":r.sefer_no||"","Sefer Tarihi":formatDate(r.sefer_tarihi)||"","Plaka":r.plaka||"","Treyler":r.treyler||"","Sürücü":r.surucu_ad_soyad||"","Müşteri":r.musteri_adi||"","Proje":r.proje_adi||"","Yükleme":r.yukleme_noktasi||"","Teslim":r.teslim_noktasi||"","Araç Statü":r.arac_statu||"","İkaz":hasWarning(r)?"Var":"Yok","Tonaj":r.tonaj_durumu||"","Kilometre":r.distance_km||""}));
         const ws=XLSX.utils.json_to_sheet(data), wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Aktif Seferler");XLSX.writeFile(wb,`${filePrefix}_${new Date().toISOString().slice(0,10)}.xlsx`);
         setToast({type:"success",message:`${items.length} sefer Excel dosyasına aktarıldı.`});setTimeout(()=>setToast(null),2200);
     };
@@ -1759,7 +1810,7 @@ function AktifSeferler() {
                                             {columnsWithLayout.map((col) => (
                                                 <td key={col.key} className={col.sticky ? "sticky-col" : ""} style={col.sticky ? { left: col.left } : undefined}>
                                                     {col.key === "_ops" ? (
-                                                        <div className="ops-select-wrap"><button type="button" className={`row-select-btn ${selectedRowKeys.includes(rowKey)?"selected":""}`} aria-label={selectedRowKeys.includes(rowKey)?"Seçimi kaldır":"Seferi seç"} onClick={(e)=>{e.stopPropagation();toggleRowSelection(rowKey);}}>{selectedRowKeys.includes(rowKey)?<CheckSquare2 size={15}/>:<Square size={15}/>}</button><CellValue col={col} row={row} isOpen={isOpen} onDetail={(r)=>setDetailRow(r)} onIkaz={handleIkaz} onETA={(r)=>setEtaRow({...r,yukleme_ili:r.yukleme_ili||r.ham_veri?.yukleme_ili,yukleme_ilcesi:r.yukleme_ilcesi||r.yukleme_ilce||r.ham_veri?.yukleme_ilcesi||r.ham_veri?.yukleme_ilce,teslim_ili:r.teslim_ili||r.ham_veri?.teslim_ili})} onTonaj={handleTonaj} onSeferSil={handleSeferSil} etaDelayed={Boolean(delayedEtaMap[rowKey])}/></div>
+                                                        <div className="ops-select-wrap"><button type="button" className={`row-select-btn ${selectedRowKeys.includes(rowKey)?"selected":""}`} aria-label={selectedRowKeys.includes(rowKey)?"Seçimi kaldır":"Seferi seç"} onClick={(e)=>{e.stopPropagation();toggleRowSelection(rowKey);}}>{selectedRowKeys.includes(rowKey)?<CheckSquare2 size={15}/>:<Square size={15}/>}</button><CellValue col={col} row={row} isOpen={isOpen} onDetail={(r)=>setDetailRow(r)} onIkaz={handleIkaz} onETA={(r)=>setEtaRow({...r,yukleme_ili:r.yukleme_ili||r.ham_veri?.yukleme_ili,yukleme_ilcesi:r.yukleme_ilcesi||r.yukleme_ilce||r.ham_veri?.yukleme_ilcesi||r.ham_veri?.yukleme_ilce,teslim_ili:r.teslim_ili||r.ham_veri?.teslim_ili})} onTonaj={handleTonaj} onSeferSil={handleSeferSil} etaDelayed={Boolean(delayedEtaMap[rowKey])} onKilometre={openKilometreModal}/></div>
                                                     ) : col.key === "_expand" ? (
                                                         expandable ? (
                                                             <CellValue
@@ -1801,6 +1852,7 @@ function AktifSeferler() {
                                                                 onTonaj={handleTonaj}
                                                                 onSeferSil={handleSeferSil}
                                                                 etaDelayed={Boolean(delayedEtaMap[rowKey])}
+                                                                onKilometre={openKilometreModal}
                                                         />
                                                     )}
                                                 </td>
@@ -1926,6 +1978,23 @@ function AktifSeferler() {
                 </div>
             )}
 
+
+            {kilometreRow && (
+                <div className="km-modal-overlay" onMouseDown={() => !savingKilometre && setKilometreRow(null)}>
+                    <div className="km-modal" role="dialog" aria-modal="true" aria-label="Rota kilometresi" onMouseDown={(e)=>e.stopPropagation()}>
+                        <div className="km-modal-icon"><Route size={24}/></div>
+                        <span className="km-modal-kicker">ROTA HAFIZASI</span>
+                        <h3>Kilometre Bilgisi</h3>
+                        <div className="km-route-label">{getRouteLabel(kilometreRow)}</div>
+                        <p>Çok duraklı rotalarda <b>tüm Yükleme İl + İlçe ve Teslim İl + İlçe noktaları</b> birlikte eşleştirilir. Noktalar aynıysa geliş sırası değişse bile kayıt bulunur.</p>
+                        {!hasCompleteRouteLocations(kilometreRow) && <div className="km-route-warning">Bu seferde il/ilçe bilgisi eksik veya eşleşmeyen çoklu konum verisi var. KM kaydedilemez.</div>}
+                        <label className="km-input-label">Kilometre
+                            <div className="km-input-wrap"><input autoFocus type="number" min="1" step="1" value={kilometreValue} onChange={(e)=>setKilometreValue(e.target.value)} onKeyDown={(e)=>{if(e.key==="Enter")handleKilometreSave();}} placeholder="Örn. 415"/><span>km</span></div>
+                        </label>
+                        <div className="km-modal-actions"><button type="button" className="km-cancel" disabled={savingKilometre} onClick={()=>setKilometreRow(null)}>Vazgeç</button><button type="button" className="km-save" disabled={savingKilometre || !kilometreValue || !hasCompleteRouteLocations(kilometreRow)} onClick={handleKilometreSave}>{savingKilometre?"Kaydediliyor...":"Kaydet ve Hatırla"}</button></div>
+                    </div>
+                </div>
+            )}
             <Detaylar
                 row={detailRow}
                 onClose={() => {

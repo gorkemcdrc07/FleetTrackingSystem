@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, CalendarDays, Plus, Truck, PauseCircle, ParkingCircle, WifiOff, BellRing, MapPinned, ExternalLink, ShieldCheck, Activity, Clock3, Wrench, BarChart3, RefreshCw, Command, Navigation, Gauge, ChevronRight, Sparkles } from "lucide-react";
+import { Search, CalendarDays, Plus, Truck, PauseCircle, ParkingCircle, WifiOff, BellRing, MapPinned, ExternalLink, ShieldCheck, Activity, Clock3, Wrench, BarChart3, RefreshCw, Command, Navigation, Gauge, ChevronRight, Sparkles, Star, Settings2, X, Check, Eye } from "lucide-react";
 import Harita from "../../components/Harita/Harita";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 
@@ -8,6 +8,7 @@ import "./Dashboard.css";
 
 import { notificationEngine } from "../../services/notificationEngine";
 import { apiUrl } from "../../config/api";
+import { useTrackedVehicles } from "../../context/TrackedVehiclesContext";
 
 const API_URL = apiUrl("/api/mobiliz/activity-last");
 
@@ -430,6 +431,9 @@ function getFilterTitle(filterKey) {
 }
 
 export default function Dashboard({ onNavigate }) {
+    const { trackedPlates, trackedCount, hasTrackedVehicles, toggleVehicle, isTracked, clearTrackedVehicles } = useTrackedVehicles();
+    const [watchEditorOpen, setWatchEditorOpen] = useState(false);
+    const [watchSearch, setWatchSearch] = useState("");
     const [vehicles, setVehicles] = useState([]);
     const [geofenceEvents, setGeofenceEvents] = useState([]);
     const [selectedVehicle, setSelectedVehicle] =
@@ -536,40 +540,42 @@ export default function Dashboard({ onNavigate }) {
         };
     }, []);
 
+    const dashboardVehicles = useMemo(() => {
+        if (!hasTrackedVehicles) return [];
+        return vehicles.filter((vehicle) => isTracked(getVehiclePlate(vehicle)));
+    }, [vehicles, hasTrackedVehicles, isTracked, trackedPlates]);
+
     const summary = useMemo(() => {
+        const list = dashboardVehicles;
         return {
-            all: vehicles.length,
-
-            moving: vehicles.filter(
-                (vehicle) =>
-                    getStatus(vehicle) === "moving"
-            ).length,
-
-            idle: vehicles.filter(
-                (vehicle) => getStatus(vehicle) === "idle"
-            ).length,
-
-            park: vehicles.filter(
-                (vehicle) => getStatus(vehicle) === "park"
-            ).length,
-
-            gpsMissing: vehicles.filter(
-                (vehicle) => !hasGps(vehicle)
-            ).length,
-
-            alarm: vehicles.filter(
-                hasVehicleNotification
-            ).length,
+            all: list.length,
+            moving: list.filter((vehicle) => getStatus(vehicle) === "moving").length,
+            idle: list.filter((vehicle) => getStatus(vehicle) === "idle").length,
+            park: list.filter((vehicle) => getStatus(vehicle) === "park").length,
+            gpsMissing: list.filter((vehicle) => !hasGps(vehicle)).length,
+            alarm: list.filter(hasVehicleNotification).length,
         };
-    }, [vehicles]);
+    }, [dashboardVehicles]);
 
-    const filteredVehicles = useMemo(() => vehicles.filter((vehicle) => {
+    const filteredVehicles = useMemo(() => dashboardVehicles.filter((vehicle) => {
         const matchesStatus = activeFilter === "all" ||
             (["moving", "idle", "park"].includes(activeFilter) && getStatus(vehicle) === activeFilter) ||
             (activeFilter === "gpsMissing" && !hasGps(vehicle)) ||
             (activeFilter === "alarm" && hasVehicleNotification(vehicle));
         return matchesStatus && normalizePlate(getVehiclePlate(vehicle)).includes(normalizePlate(search));
-    }), [vehicles, activeFilter, search]);
+    }), [dashboardVehicles, activeFilter, search]);
+
+    const watchCandidates = useMemo(() => {
+        const q = normalizePlate(watchSearch);
+        return [...vehicles]
+            .filter((vehicle) => !q || normalizePlate(getVehiclePlate(vehicle)).includes(q))
+            .sort((a, b) => {
+                const aTracked = isTracked(getVehiclePlate(a)) ? 1 : 0;
+                const bTracked = isTracked(getVehiclePlate(b)) ? 1 : 0;
+                if (aTracked !== bTracked) return bTracked - aTracked;
+                return getVehiclePlate(a).localeCompare(getVehiclePlate(b), "tr");
+            });
+    }, [vehicles, watchSearch, trackedPlates, isTracked]);
 
     const operationFeed = useMemo(() => {
         return [
@@ -723,10 +729,47 @@ export default function Dashboard({ onNavigate }) {
 
                 {error && <div className="command-alert" role="alert"><WifiOff size={18}/><div><strong>Canlı veri bağlantısı kesildi</strong><span>{lastRefresh ? "Son başarılı veriler ekranda tutuluyor." : error}</span></div><button onClick={loadData}>Tekrar bağlan</button></div>}
 
+                <section className="watch-strip">
+                    <div className="watch-strip-title"><span className="watch-star"><Star size={17} fill="currentColor"/></span><div><strong>Takip Listem</strong><small>{trackedCount ? `${trackedCount} plaka sana özel kaydedildi` : "Takip etmek istediğin plakaları seç"}</small></div></div>
+                    <div className="watch-chips">
+                        {trackedPlates.slice(0, 6).map((plate) => {
+                            const vehicle = findVehicleByPlate(plate);
+                            return <button key={plate} className="watch-chip" onClick={() => vehicle && openVehicle(vehicle)}><i className={vehicle && hasGps(vehicle) ? "online" : ""}/><b>{plate}</b>{vehicle && <span>{getSpeed(vehicle)} km/h</span>}</button>;
+                        })}
+                        {trackedCount > 6 && <span className="watch-more">+{trackedCount - 6}</span>}
+                        {!trackedCount && <span className="watch-empty">Henüz plaka seçilmedi.</span>}
+                    </div>
+                    <div className="watch-actions">
+                        <button className="watch-manage" onClick={() => setWatchEditorOpen(true)}><Settings2 size={16}/>{trackedCount ? "Düzenle" : "Plaka Seç"}</button>
+                    </div>
+                </section>
+
                 <div className="command-stat-strip">
-                    <button className={activeFilter === "all" ? "active" : ""} onClick={() => handleFilterChange("all")}><span>Filo</span><strong>{lastRefresh ? summary.all : "—"}</strong><small>Toplam araç</small></button>
-                    {kpiCards.map(({key,label,value,icon:Icon,tone}) => <button key={key} className={`${tone} ${activeFilter === key ? "active" : ""}`} onClick={() => handleFilterChange(key)}><span><Icon size={16}/>{label}</span><strong>{lastRefresh ? value : "—"}</strong><small>{summary.all ? `%${Math.round(value / summary.all * 100)}` : "—"} filo oranı</small></button>)}
+                    <button className={activeFilter === "all" ? "active" : ""} onClick={() => handleFilterChange("all")}><span>Takip Listem</span><strong>{lastRefresh ? summary.all : "—"}</strong><small>Seçtiğin araçlar</small></button>
+                    {kpiCards.map(({key,label,value,icon:Icon,tone}) => <button key={key} className={`${tone} ${activeFilter === key ? "active" : ""}`} onClick={() => handleFilterChange(key)}><span><Icon size={16}/>{label}</span><strong>{lastRefresh ? value : "—"}</strong><small>{summary.all ? `%${Math.round(value / summary.all * 100)}` : "—"} takip oranı</small></button>)}
                 </div>
+
+                {!hasTrackedVehicles ? (
+                    <section className="dashboard-onboarding">
+                        <div className="onboarding-icon"><Star size={30} fill="currentColor"/></div>
+                        <span>KİŞİSEL OPERASYON ALANI</span>
+                        <h2>Dashboard'unu kendi araçlarınla oluştur</h2>
+                        <p>Tüm filoyu burada göstermek yerine yalnızca takip etmek istediğin plakaları seç. Seçimin kullanıcı hesabına özel saklanır ve her girişinde aynı çalışma alanı açılır.</p>
+                        <button onClick={() => setWatchEditorOpen(true)}><Plus size={18}/> Takip edeceğim plakaları seç</button>
+                    </section>
+                ) : (
+                <>
+                <section className="tracked-overview">
+                    <div className="tracked-overview-head"><div><span>BENİM ARAÇLARIM</span><h2>Canlı takip kartları</h2></div><button onClick={() => setWatchEditorOpen(true)}><Settings2 size={15}/> Listeyi düzenle</button></div>
+                    <div className="tracked-card-grid">
+                        {dashboardVehicles.slice(0, 8).map((vehicle) => <button className="tracked-live-card" key={getVehiclePlate(vehicle)} onClick={() => openVehicle(vehicle)}>
+                            <div className="tracked-card-top"><span className={`tracked-state ${getStatus(vehicle)}`}><i/>{getStatusText(vehicle)}</span><ChevronRight size={16}/></div>
+                            <strong>{getVehiclePlate(vehicle)}</strong>
+                            <p><MapPinned size={13}/>{getAddress(vehicle)}</p>
+                            <div className="tracked-card-bottom"><span><Gauge size={14}/><b>{getSpeed(vehicle)}</b> km/h</span><small>{getRelativeTime(getLastDate(vehicle))}</small></div>
+                        </button>)}
+                    </div>
+                </section>
 
                 <div className="command-workspace">
                     <main className="command-map-panel">
@@ -774,7 +817,22 @@ export default function Dashboard({ onNavigate }) {
                         <div className="command-update"><RefreshCw size={15}/><span>{lastRefresh ? `Son senkronizasyon ${lastRefresh.toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"})}` : "İlk senkronizasyon bekleniyor"}</span></div>
                     </section>
                 </div>
+                </>
+                )}
             </section>
+            {watchEditorOpen && <div className="watch-modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setWatchEditorOpen(false)}>
+                <section className="watch-modal" role="dialog" aria-modal="true" aria-label="Takip plakalarını düzenle">
+                    <header><div><span><Star size={18} fill="currentColor"/></span><div><strong>Takip plakalarım</strong><small>Seçimin bu kullanıcı için kaydedilir ve her girişte hazır gelir.</small></div></div><button onClick={() => setWatchEditorOpen(false)} aria-label="Kapat"><X size={19}/></button></header>
+                    <label className="watch-modal-search"><Search size={18}/><input autoFocus placeholder="Plaka ara..." value={watchSearch} onChange={(e) => setWatchSearch(e.target.value)}/></label>
+                    <div className="watch-modal-summary"><span><b>{trackedCount}</b> plaka takipte</span>{trackedCount > 0 && <button onClick={clearTrackedVehicles}>Tümünü temizle</button>}</div>
+                    <div className="watch-vehicle-list">
+                        {watchCandidates.map((vehicle) => { const plate=getVehiclePlate(vehicle); const selected=isTracked(plate); return <button key={plate} className={selected ? "selected" : ""} onClick={() => toggleVehicle(plate)}><span className="watch-check">{selected ? <Check size={15}/> : null}</span><span className="watch-vehicle-main"><b>{plate}</b><small>{getAddress(vehicle)}</small></span><span className={`watch-status ${getStatus(vehicle)}`}><i/>{getStatusText(vehicle)}</span><em>{getSpeed(vehicle)} km/h</em></button> })}
+                        {!watchCandidates.length && <div className="watch-no-result">Bu aramayla eşleşen araç bulunamadı.</div>}
+                    </div>
+                    <footer><span>Değişiklikler otomatik kaydedilir.</span><button onClick={() => {setWatchEditorOpen(false); setWatchMode(true);}}>Tamam</button></footer>
+                </section>
+            </div>}
+
             <VehicleDrawer open={drawerOpen} vehicle={selectedVehicle} onClose={() => setDrawerOpen(false)} onGoPlayback={handleGoPlayback} onOpenOperations={handleOpenOperations}/>
         </div>
     );

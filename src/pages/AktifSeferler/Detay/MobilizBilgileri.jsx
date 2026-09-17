@@ -3,6 +3,7 @@ import { requestJson, responseList } from "../../../services/requestJson";
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Detay.css";
 import CanliHarita from "./CanliHarita";
+import CanliSeferAnalizi from "./CanliSeferAnalizi";
 import { apiUrl } from "../../../config/api";
 
 const API_URL = apiUrl("/api/mobiliz/activity-last");
@@ -25,7 +26,7 @@ function formatDate(value) {
     return date.toLocaleString("tr-TR");
 }
 
-export default function MobilizBilgileri({ plaka }) {
+export default function MobilizBilgileri({ plaka, row, mapRoute, route }) {
     const [loading, setLoading] = useState(true);
     const [vehicle, setVehicle] = useState(null);
     const [error, setError] = useState("");
@@ -260,6 +261,7 @@ export default function MobilizBilgileri({ plaka }) {
                 </div>
             </div>
 
+            <CanliSeferAnalizi plaka={plaka} row={row} mapRoute={mapRoute} route={route} currentVehicle={vehicle} />
             <CanliHarita vehicle={vehicle} />
         </div>
     );
