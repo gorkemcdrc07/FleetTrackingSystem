@@ -18,7 +18,7 @@ import { supabase } from "../supabaseClient";
 import ftsLogo from "../assets/fts-logo.png";
 import "./Login.css";
 
-type KullaniciYetki = Record<string, unknown>;
+type KullaniciYetki = Array<{ page: string; actions: string[] }>;
 
 type KullaniciSession = {
     id: string;
@@ -33,6 +33,20 @@ type LoginProps = {
 };
 
 type Theme = "light" | "dark";
+
+// Yeni kayıt olan standart kullanıcıların başlangıç yetkileri:
+// ANA MENÜ + OPERASYON açık; RAPORLAMA + HAKEDİŞLER + SİSTEM kapalıdır.
+const DEFAULT_REGISTER_PERMISSIONS: KullaniciYetki = [
+    { page: "Dashboard", actions: ["view"] },
+    { page: "Aktif Seferler", actions: ["view"] },
+    { page: "Tamamlanan Seferler", actions: ["view"] },
+    { page: "Araç Durumları", actions: ["view"] },
+    { page: "Araç Takibi", actions: ["view"] },
+    { page: "Playback", actions: ["view"] },
+    { page: "Geofence", actions: ["view"] },
+    { page: "Operasyon Merkezi", actions: ["view"] },
+    { page: "Alarm Merkezi", actions: ["view"] },
+];
 
 function getInitialTheme(): Theme {
     const saved = localStorage.getItem("fts_theme");
@@ -134,7 +148,7 @@ function Login({ onLogin }: LoginProps) {
                 sifre,
                 rol: "KULLANICI",
                 aktif: true,
-                yetki: [{ page: "Aktif Seferler", actions: ["view"] }],
+                yetki: DEFAULT_REGISTER_PERMISSIONS,
             });
             if (error) throw error;
 
@@ -210,7 +224,7 @@ function Login({ onLogin }: LoginProps) {
                 kullanici: data.kullanici,
                 ad: data.ad,
                 rol: data.rol,
-                yetki: data.yetki || {},
+                yetki: Array.isArray(data.yetki) ? data.yetki : [],
             };
 
             if (remember) {
@@ -362,7 +376,7 @@ function Login({ onLogin }: LoginProps) {
                                 <div className="form-group"><label htmlFor="registerSifre">Şifre</label><div className={`input-shell ${fieldError === "sifre" || fieldError === "all" ? "input-error" : ""}`}><LockKeyhole size={18} /><input id="registerSifre" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="En az 4 karakter" value={sifre} onChange={(e) => { setSifre(e.target.value); clearError(); }} /></div></div>
                                 <div className="form-group"><label htmlFor="sifreTekrar">Şifre tekrar</label><div className={`input-shell ${fieldError === "sifre" || fieldError === "all" ? "input-error" : ""}`}><LockKeyhole size={18} /><input id="sifreTekrar" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Şifreyi tekrar yazın" value={sifreTekrar} onChange={(e) => { setSifreTekrar(e.target.value); clearError(); }} /></div></div>
                             </div>
-                            <div className="register-note"><ShieldCheck size={15} /><span>Hesap standart kullanıcı rolüyle oluşturulur ve Aktif Seferler erişimi otomatik tanımlanır.</span></div>
+                            <div className="register-note"><ShieldCheck size={15} /><span>Hesap standart kullanıcı rolüyle oluşturulur. Ana Menü ve Operasyon ekranları otomatik açılır; Raporlama, Hakedişler ve Sistem ekranları kapalıdır.</span></div>
                             <button type="submit" className={`login-btn ${success ? "success" : ""}`} disabled={loading || success}>
                                 {loading ? <><span className="btn-spinner" />Hesap oluşturuluyor</> : success ? <><Check size={18} />Hesap oluşturuldu</> : <><UserPlus size={18} />Kayıt ol</>}
                             </button>
