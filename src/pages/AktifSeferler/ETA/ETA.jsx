@@ -1,0 +1,390 @@
+﻿import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../../supabaseClient";
+import "./ETA.css";
+
+const ISTANBUL_ANADOLU_ILCELERI = [
+    "ADALAR",
+    "ATAŞEHİR",
+    "BEYKOZ",
+    "ÇEKMEKÖY",
+    "KADIKÖY",
+    "KARTAL",
+    "MALTEPE",
+    "PENDİK",
+    "SANCAKTEPE",
+    "SULTANBEYLİ",
+    "ŞİLE",
+    "TUZLA",
+    "ÜMRANİYE",
+    "ÜSKÜDAR",
+];
+
+function split(val) {
+    return String(val || "")
+        .split(";")
+        .map((x) => x.trim())
+        .filter(Boolean);
+}
+
+function normalizeTR(value) {
+    return String(value || "")
+        .toLocaleUpperCase("tr-TR")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function normalizeCompare(value) {
+    return normalizeTR(value)
+        .replaceAll("İ", "I")
+        .replaceAll("İ", "I")
+        .replaceAll("Ğ", "G")
+        .replaceAll("Ü", "U")
+        .replaceAll("Ş", "S")
+        .replaceAll("Ö", "O")
+        .replaceAll("Ç", "C");
+}
+
+function getLastValue(value) {
+    const parts = split(value);
+    return parts.length ? parts[parts.length - 1] : "";
+}
+
+function getFirstLoadStop(row) {
+    const rota = Array.isArray(row?.rota_detaylari) ? row.rota_detaylari : [];
+
+    return (
+        rota.find((x) => x.tip === "yukleme" || x.type === "Yükleme" || x.type === "yukle") ||
+        null
+    );
+}
+
+function getLastDeliveryStop(row) {
+    const rota = Array.isArray(row?.rota_detaylari) ? row.rota_detaylari : [];
+
+    const deliveries = rota.filter(
+        (x) => x.tip === "teslim" || x.type === "Teslim" || x.type === "teslim"
+    );
+
+    return deliveries.length ? deliveries[deliveries.length - 1] : null;
+}
+
+function isIstanbul(value) {
+    return normalizeCompare(value) === "ISTANBUL";
+}
+
+function getEtaCikisValue(yuklemeIl, yuklemeIlce) {
+    const il = normalizeTR(yuklemeIl);
+    const ilce = normalizeTR(yuklemeIlce);
+    const ilceCompare = normalizeCompare(yuklemeIlce);
+
+    if (!isIstanbul(yuklemeIl)) return il;
+    if (!ilce) return "";
+
+    const anadoluCompareList = ISTANBUL_ANADOLU_ILCELERI.map(normalizeCompare);
+
+    return anadoluCompareList.includes(ilceCompare)
+        ? "İSTANBUL ANADOLU"
+        : "İSTANBUL AVRUPA";
+}
+
+function parseDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return isNaN(date) ? null : date;
+}
+
+function formatDateTime(value) {
+    const date = parseDate(value);
+    if (!date) return "—";
+
+    return date.toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function parseGunValue(value) {
+    if (!value) return null;
+
+    const text = String(value)
+        .replace(",", ".")
+        .replace(/[^\d.]/g, "");
+
+    const num = Number(text);
+    return text && Number.isFinite(num) && num > 0 ? num : null;
+}
+
+function getActualEtaInfo(row) {
+    const rota = Array.isArray(row?.rota_detaylari) ? row.rota_detaylari : [];
+    if (!rota.length) return null;
+
+    const loads = rota.filter((x) => x.tip === "yukleme" || x.type === "Yükleme" || x.type === "yukle");
+    const deliveries = rota.filter((x) => x.tip === "teslim" || x.type === "Teslim" || x.type === "teslim");
+
+    const firstLoad = loads[0];
+    const lastDelivery = deliveries[deliveries.length - 1];
+
+    const startValue = firstLoad?.cikis || firstLoad?.gerceklesen_cikis;
+    const endValue = lastDelivery?.varis || lastDelivery?.gerceklesen_varis;
+
+    const start = parseDate(startValue);
+    const end = parseDate(endValue);
+
+    if (!start || !end) {
+        return {
+            startValue,
+            endValue,
+            actualDays: null,
+            actualHours: null,
+            actualText: "Tarih bilgisi eksik",
+            isComplete: false,
+        };
+    }
+
+    const diffMs = end.getTime() - start.getTime();
+
+    if (diffMs < 0) {
+        return {
+            startValue,
+            endValue,
+            actualDays: null,
+            actualHours: null,
+            actualText: "Tarih aralığı hatalı",
+            isComplete: false,
+        };
+    }
+
+    const totalHours = diffMs / (1000 * 60 * 60);
+    const roundedHours = Math.round(totalHours);
+    const days = Math.floor(roundedHours / 24);
+    const hours = roundedHours % 24;
+
+    return {
+        startValue,
+        endValue,
+        actualDays: totalHours / 24,
+        actualHours: totalHours,
+        actualText: `${days} gün ${hours} saat`,
+        isComplete: true,
+    };
+}
+
+function ETA({ row, onClose }) {
+    const [etaData, setEtaData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [errorText, setErrorText] = useState("");
+
+    const etaKeys = useMemo(() => {
+        if (!row) return null;
+
+        const firstLoadStop = getFirstLoadStop(row);
+        const lastDeliveryStop = getLastDeliveryStop(row);
+
+        const yuklemeIl =
+            firstLoadStop?.il ||
+            split(row.yukleme_ili)[0] ||
+            firstLoadStop?.city ||
+            row.ham_veri?.yukleme_ili;
+
+        const yuklemeIlce =
+            getLastValue(row.yukleme_ilcesi) ||
+            getLastValue(row.yukleme_ilce) ||
+            getLastValue(row.yuklemeIlcesi) ||
+            getLastValue(row.yuklemeIlce) ||
+            getLastValue(row.yukleme_ilçesi) ||
+            getLastValue(row.yukleme_ilçe) ||
+            firstLoadStop?.ilce ||
+            firstLoadStop?.district ||
+            row.ham_veri?.yukleme_ilcesi ||
+            row.ham_veri?.yukleme_ilce;
+
+        const teslimIl =
+            lastDeliveryStop?.il ||
+            getLastValue(row.teslim_ili) ||
+            lastDeliveryStop?.city ||
+            row.ham_veri?.teslim_ili;
+
+        return {
+            cikis: getEtaCikisValue(yuklemeIl, yuklemeIlce),
+            varis: normalizeTR(teslimIl),
+            yuklemeIl: normalizeTR(yuklemeIl),
+            yuklemeIlce: normalizeTR(yuklemeIlce),
+        };
+    }, [row]);
+
+    const actualEtaInfo = useMemo(() => {
+        return getActualEtaInfo(row);
+    }, [row]);
+
+    const etaLimitDays = useMemo(() => {
+        return parseGunValue(etaData?.["gün"]);
+    }, [etaData]);
+
+    const isDelayed = useMemo(() => {
+        if (!actualEtaInfo?.isComplete || !etaLimitDays) return false;
+
+        const toleranceMinutes = 15;
+        const limitHours = etaLimitDays * 24;
+        const actualHours = actualEtaInfo.actualHours;
+
+        return actualHours > limitHours + toleranceMinutes / 60;
+    }, [actualEtaInfo, etaLimitDays]);
+
+    useEffect(() => {
+        if (!row || !etaKeys) return;
+
+        let disposed=false;
+        async function fetchEta() {
+            setLoading(true);
+            setErrorText("");
+            setEtaData(null);
+
+            try {
+                if (!etaKeys.yuklemeIl) {
+                    setErrorText("Yükleme ili bulunamadı.");
+                    return;
+                }
+
+                if (isIstanbul(etaKeys.yuklemeIl) && !etaKeys.yuklemeIlce) {
+                    setErrorText("İstanbul için yükleme ilçesi bulunamadı.");
+                    return;
+                }
+
+                if (!etaKeys.cikis) {
+                    setErrorText("Çıkış bilgisi oluşturulamadı.");
+                    return;
+                }
+
+                if (!etaKeys.varis) {
+                    setErrorText("Son teslim ili bulunamadı.");
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from("eta_referanslari")
+                    .select("*")
+                    .ilike("cikis", `${etaKeys.cikis}%`)
+                    .ilike("varis", `${etaKeys.varis}%`)
+                    .limit(1).abortSignal(AbortSignal.timeout(20000));
+                if(disposed)return;
+
+                if (error) throw error;
+
+                const matchedEta = data?.[0];
+
+                if (!matchedEta) {
+                    setErrorText(`${etaKeys.cikis} - ${etaKeys.varis} için ETA kaydı bulunamadı.`);
+                    return;
+                }
+
+                setEtaData(matchedEta);
+            } catch (err) {
+                if(disposed)return;
+                console.error("ETA sorgu hatası:", err);
+                setErrorText(err?.message || "ETA bilgisi alınırken hata oluştu.");
+            } finally {
+                if(!disposed)setLoading(false);
+            }
+        }
+
+        fetchEta();
+        return()=>{disposed=true;};
+    }, [row, etaKeys]);
+
+    if (!row) return null;
+
+    return (
+        <div className="eta-overlay" onClick={onClose}>
+            <div className="eta-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="eta-header">
+                    <div>
+                        <div className="eta-eyebrow">ETA Yönetimi</div>
+                        <h2>{row.sefer_no}</h2>
+                    </div>
+
+                    <button className="eta-close" onClick={onClose}>
+                        ×
+                    </button>
+                </div>
+
+                <div className="eta-body">
+                    <div className={`eta-status-banner ${isDelayed ? "danger" : "success"}`}>
+                        <div>
+                            <span>Durum</span>
+                            <strong>
+                                {!actualEtaInfo?.isComplete
+                                    ? "Kontrol için tarih eksik"
+                                    : isDelayed
+                                        ? "ETA Gecikmiş"
+                                        : "ETA Uyumlu"}
+                            </strong>
+                        </div>
+
+                        <div className="eta-status-pill">
+                            {isDelayed ? "Gecikme Var" : "Normal"}
+                        </div>
+                    </div>
+
+                    <div className="eta-grid">
+                        <div className="eta-card">
+                            <span>Sefer No</span>
+                            <strong>{row.sefer_no}</strong>
+                        </div>
+
+                        <div className="eta-card">
+                            <span>Yükleme İli / Çıkış</span>
+                            <strong>{etaKeys?.cikis || "—"}</strong>
+                        </div>
+
+                        <div className="eta-card">
+                            <span>Yükleme İlçesi</span>
+                            <strong>{etaKeys?.yuklemeIlce || "—"}</strong>
+                        </div>
+
+                        <div className="eta-card">
+                            <span>Son Teslim İli / Varış</span>
+                            <strong>{etaKeys?.varis || "—"}</strong>
+                        </div>
+
+                        <div className="eta-card eta-result-card">
+                            <span>Referans Gün</span>
+
+                            {loading ? (
+                                <strong>Yükleniyor...</strong>
+                            ) : errorText ? (
+                                <strong className="eta-error-text">{errorText}</strong>
+                            ) : (
+                                <strong>{etaData?.["gün"] || "—"}</strong>
+                            )}
+                        </div>
+
+                        <div className="eta-card">
+                            <span>KM</span>
+                            <strong>{etaData?.km ? `${etaData.km} km` : "—"}</strong>
+                        </div>
+
+                        <div className={`eta-card eta-actual-card ${isDelayed ? "danger" : ""}`}>
+                            <span>Gerçekleşen Süre</span>
+                            <strong>{actualEtaInfo?.actualText || "—"}</strong>
+                        </div>
+
+                        <div className="eta-card">
+                            <span>İlk Yükleme Çıkış</span>
+                            <strong>{formatDateTime(actualEtaInfo?.startValue)}</strong>
+                        </div>
+
+                        <div className="eta-card">
+                            <span>Son Teslim Varış</span>
+                            <strong>{formatDateTime(actualEtaInfo?.endValue)}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default ETA;

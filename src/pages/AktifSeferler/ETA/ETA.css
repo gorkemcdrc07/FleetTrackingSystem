@@ -1,0 +1,227 @@
+﻿.eta-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(3px);
+    z-index: 9999;
+    display: flex;
+    justify-content: flex-end;
+    animation: etaFade .18s ease;
+}
+
+.eta-panel {
+    width: min(760px, 100%);
+    height: 100vh;
+    background: #f8fafc;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.16), -2px 0 10px rgba(0,0,0,0.08);
+    animation: etaSlide .22s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.eta-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 28px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.eta-eyebrow {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #2563eb;
+    margin-bottom: 6px;
+}
+
+.eta-header h2 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.eta-close {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    background: #e2e8f0;
+    color: #0f172a;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: 700;
+    transition: .15s ease;
+}
+
+    .eta-close:hover {
+        background: #cbd5e1;
+        transform: scale(1.03);
+    }
+
+.eta-body {
+    padding: 24px;
+}
+
+.eta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.eta-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.04);
+}
+
+    .eta-card span {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .eta-card strong {
+        font-size: 24px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.25;
+    }
+
+.eta-result-card {
+    background: linear-gradient( 135deg, #eff6ff 0%, #dbeafe 100% );
+    border-color: #60a5fa;
+}
+
+    .eta-result-card strong {
+        font-size: 38px;
+        color: #1d4ed8;
+    }
+
+.eta-error-text {
+    color: #dc2626 !important;
+    font-size: 15px !important;
+    line-height: 1.45;
+}
+
+.eta-status-banner {
+    margin-bottom: 18px;
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #bbf7d0;
+    background: linear-gradient(135deg, #ecfdf5 0%, #dcfce7 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+    .eta-status-banner.danger {
+        border-color: #fecaca;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+
+    .eta-status-banner span {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+
+    .eta-status-banner strong {
+        font-size: 28px;
+        font-weight: 900;
+        color: #166534;
+    }
+
+    .eta-status-banner.danger strong {
+        color: #b91c1c;
+    }
+
+.eta-status-pill {
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.eta-actual-card {
+    background: #f8fafc;
+}
+
+    .eta-actual-card.danger {
+        border-color: #ef4444;
+        background: #fef2f2;
+    }
+
+        .eta-actual-card.danger strong {
+            color: #dc2626;
+        }
+
+@keyframes etaSlide {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes etaFade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 900px) {
+    .eta-panel {
+        width: 100%;
+    }
+
+    .eta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .eta-header {
+        padding: 20px;
+    }
+
+    .eta-body {
+        padding: 20px;
+    }
+
+    .eta-header h2 {
+        font-size: 24px;
+    }
+
+    .eta-result-card strong {
+        font-size: 32px;
+    }
+}

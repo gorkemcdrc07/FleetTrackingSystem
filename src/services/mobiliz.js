@@ -1,5 +1,4 @@
 import { apiUrl } from "../config/api";
-import { extractMobilizList } from "../domain/mobilizResponse";
 
 const MOBILIZ_API_URL = apiUrl("/api/mobiliz");
 

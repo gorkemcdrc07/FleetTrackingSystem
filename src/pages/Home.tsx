@@ -4,37 +4,37 @@ import {
   Fence, RadioTower, BellRing, BarChart3, UserRoundCog, Clock3,
   PackageCheck, WalletCards, FileSpreadsheet, ClipboardList, ListChecks,
   ShieldCheck, LogOut, PanelLeftClose, PanelLeftOpen, Search, Command,
-  Sparkles, X, ArrowRight, CircleDot, Sun, Moon, ChevronRight, Zap, Wifi,
+  Sparkles, X, ArrowRight, CircleDot, Sun, Moon, ChevronRight, Zap, Wifi, Plus,
   BadgeDollarSign, HandCoins, ReceiptText, BadgePercent, Calculator, Fuel, Snowflake, Baby, Layers3
 } from "lucide-react";
 import "./Home.css";
 import logo from "../assets/fts-logo.png";
 
-import AktifSeferler from "./ActiveTrips";
-import TamamlananSeferler from "./CompletedTrips";
-import AracDurumlari from "./VehicleStatuses";
-import AracTakibi from "./VehicleTracking";
-import YuklemedeBekleme from "./Reports/LoadingWaitReport";
-import TeslimdeBekleme from "./Reports/DeliveryWaitReport";
-import KullaniciKPI from "./Reports/UserKpiReport";
-import AracFiyatYonetimi from "./Settlements/VehiclePricing";
-import HayatKimyaYakitHakedis from "./Settlements/HayatKimyaFuelSettlement";
-import PepsiYakitHakedis from "./Settlements/PepsiFuelSettlement";
-import Hamaliye from "./Settlements/HandlingFee";
-import EbebekYakitHakedis from "./Settlements/EbebekYakitHakedis";
-import FrigoYakitHakedis from "./Settlements/FrigoYakitHakedis";
-import FrigoHesaplamaPage from "./Settlements/FrigoHesaplamaPage";
-import FiloIskontoluHakedis from "./Settlements/FiloIskontoluHakedis";
-import HakedisSeferleri from "./Settlements/HakedisSeferleri";
-import TedarikciMasraf from "./Settlements/TedarikciMasraf";
-import HakedisMerkezi from "./Settlements/HakedisMerkezi";
-import HakedisExperience from "./Settlements/shared/HakedisExperience";
-import YonetimPaneli from "./Admin/AdminPanel";
-import Alarmlar from "./Alarms";
+import AktifSeferler from "./AktifSeferler";
+import TamamlananSeferler from "./TamamlananSeferler";
+import AracDurumlari from "./AracDurumlari";
+import AracTakibi from "./AracTakibi";
+import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
+import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
+import KullaniciKPI from "./Raporlar/kullanicikpi";
+import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
+import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
+import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
+import Hamaliye from "./Hakedisler/Hamaliye";
+import EbebekYakitHakedis from "./Hakedisler/EbebekYakitHakedis";
+import FrigoYakitHakedis from "./Hakedisler/FrigoYakitHakedis";
+import FrigoHesaplamaPage from "./Hakedisler/FrigoHesaplamaPage";
+import FiloIskontoluHakedis from "./Hakedisler/FiloIskontoluHakedis";
+import HakedisSeferleri from "./Hakedisler/HakedisSeferleri";
+import TedarikciMasraf from "./Hakedisler/TedarikciMasraf";
+import HakedisMerkezi from "./Hakedisler/HakedisMerkezi";
+import HakedisExperience from "./Hakedisler/shared/HakedisExperience";
+import YonetimPaneli from "./Yonetici/YonetimPaneli";
+import Alarmlar from "./Alarmlar";
 import Dashboard from "./Dashboard";
 import Playback from "./Playback";
 import Geofence from "./Geofence";
-import OperasyonMerkezi from "./OperationsCenter";
+import OperasyonMerkezi from "./OperasyonMerkezi";
 import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
 import InteractionFeedback from "../components/Premium/InteractionFeedback";
 
@@ -89,7 +89,13 @@ function getAktifKullanici() {
 }
 
 export default function Home({ onLogout }: HomeProps) {
-  const [activePage, setActivePage] = useState("Dashboard");
+  const [activePage, setActivePage] = useState(() => localStorage.getItem("fts_active_page") || "Dashboard");
+  const [openTabs, setOpenTabs] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("fts_open_tabs") || "[]");
+      return Array.isArray(saved) && saved.length ? saved : ["Dashboard"];
+    } catch { return ["Dashboard"]; }
+  });
   const [menuOpen, setMenuOpen] = useState(() => localStorage.getItem("fts_sidebar_pinned") === "1");
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
@@ -102,20 +108,25 @@ export default function Home({ onLogout }: HomeProps) {
   const user = getAktifKullanici();
   const userName = user?.ad || user?.kullanici || user?.kullanici_adi || user?.email || "Kullanıcı";
   const role = user?.rol || "Kullanıcı";
-  const normalizedRole = String(role).trim().toLocaleUpperCase("tr-TR");
-  const isAdmin = normalizedRole === "ADMIN" || normalizedRole === "YÖNETİCİ" || normalizedRole === "YONETICI";
-  const rawPermissions = Array.isArray(user?.yetki) ? user.yetki : Array.isArray(user?.permissions) ? user.permissions : [];
-  const allowedPages = useMemo(() => new Set(
-    rawPermissions
-      .filter((permission: any) => Array.isArray(permission?.actions) && permission.actions.includes("view"))
-      .map((permission: any) => String(permission.page || "").trim())
-      .filter(Boolean)
-  ), [user?.yetki, user?.permissions]);
-  const canViewPage = (page: string) => isAdmin || allowedPages.has(page);
-  const visibleNavSections = useMemo(() => navSections
-    .map((section) => ({ ...section, items: section.items.filter((item) => canViewPage(item.label)) }))
-    .filter((section) => section.items.length > 0), [isAdmin, allowedPages]);
   const avatar = String(userName).charAt(0).toUpperCase();
+
+  // Sidebar kullanıcının gerçek ekran yetkisine göre oluşur. Yönetici/Admin tüm menüyü görür.
+  const isAdmin = ["ADMIN", "YÖNETİCİ", "YONETICI", "SUPERADMIN"].includes(String(role).toLocaleUpperCase("tr-TR"));
+  const allowedPages = useMemo(() => {
+    if (isAdmin) return new Set(navSections.flatMap((section) => section.items.map((item) => item.label)));
+    const raw = Array.isArray(user?.yetki) ? user.yetki : [];
+    return new Set(
+      raw
+        .filter((permission: any) => permission && typeof permission.page === "string" &&
+          (!Array.isArray(permission.actions) || permission.actions.includes("view")))
+        .map((permission: any) => permission.page)
+    );
+  }, [user?.yetki, isAdmin]);
+
+  const visibleNavSections = useMemo(() => navSections
+    .map((section) => ({ ...section, items: section.items.filter((item) => allowedPages.has(item.label)) }))
+    .filter((section) => section.items.length > 0), [allowedPages]);
+
   const allNavItems = useMemo(() => visibleNavSections.flatMap((section) => section.items.map((item) => ({ ...item, section: section.title }))), [visibleNavSections]);
   const filteredCommands = useMemo(() => {
     const q = commandQuery.trim().toLocaleLowerCase("tr-TR");
@@ -129,10 +140,9 @@ export default function Home({ onLogout }: HomeProps) {
   }, [menuOpen]);
 
   useEffect(() => {
-    if (canViewPage(activePage)) return;
-    const firstAllowedPage = visibleNavSections[0]?.items[0]?.label || "Aktif Seferler";
-    setActivePage(firstAllowedPage);
-  }, [activePage, visibleNavSections]);
+    localStorage.setItem("fts_active_page", activePage);
+    localStorage.setItem("fts_open_tabs", JSON.stringify(openTabs));
+  }, [activePage, openTabs]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -159,10 +169,24 @@ export default function Home({ onLogout }: HomeProps) {
   }, [commandOpen]);
 
   function navigate(label: string) {
-    if (!canViewPage(label)) return;
+    setOpenTabs((tabs) => tabs.includes(label) ? tabs : [...tabs, label]);
     setActivePage(label);
     setCommandOpen(false);
   }
+
+  function closeTab(label: string) {
+    setOpenTabs((tabs) => {
+      if (tabs.length === 1) return tabs;
+      const index = tabs.indexOf(label);
+      const next = tabs.filter((tab) => tab !== label);
+      if (activePage === label) {
+        setActivePage(next[Math.max(0, index - 1)] || next[0] || "Dashboard");
+      }
+      return next;
+    });
+  }
+
+  const getNavIcon = (label: string) => allNavItems.find((item) => item.label === label)?.icon || Layers3;
 
   function handleNotificationVehicleOpen(plate: string) {
     if (!plate) return;
@@ -171,7 +195,6 @@ export default function Home({ onLogout }: HomeProps) {
   }
 
   const renderPage = () => {
-    if (!canViewPage(activePage)) return null;
     if (activePage === "Dashboard") return <Dashboard onNavigate={navigate} />;
     if (activePage === "Aktif Seferler") return <AktifSeferler />;
     if (activePage === "Tamamlanan Seferler") return <TamamlananSeferler />;
@@ -200,7 +223,7 @@ export default function Home({ onLogout }: HomeProps) {
   };
 
   return (
-    <div className="home-container premium-shell">
+    <div className={`home-container premium-shell ${menuOpen ? "sidebar-expanded" : "sidebar-collapsed"}`}>
       <InteractionFeedback />
 
       <aside className={`sidebar ${menuOpen ? "is-open" : ""}`} aria-label="Ana menü" onKeyDown={(event) => { if (event.key === "Escape" && !menuOpen) { (event.target as HTMLElement).blur(); } }}>
@@ -261,7 +284,7 @@ export default function Home({ onLogout }: HomeProps) {
               <span>{theme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}</span><b>{theme === "dark" ? "Açık tema" : "Koyu tema"}</b>
             </button>
           </div>
-          <button className="sidebar-profile" aria-label="Kullanıcı profili" title={canViewPage("Yönetim Paneli") ? "Yönetim Paneli" : "Kullanıcı profili"} type="button" onClick={() => { if (canViewPage("Yönetim Paneli")) navigate("Yönetim Paneli"); }} disabled={!canViewPage("Yönetim Paneli")} style={!canViewPage("Yönetim Paneli") ? { cursor: "default", opacity: 1 } : undefined}>
+          <button className="sidebar-profile" aria-label="Kullanıcı profili" title="Kullanıcı profili" type="button" onClick={() => allowedPages.has("Yönetim Paneli") && navigate("Yönetim Paneli")}>
             <span className="sidebar-avatar">{avatar}<i/></span>
             <span className="sidebar-profile-copy"><strong>{userName}</strong><small>{role}</small></span>
             <span className="sidebar-profile-go"><UserRoundCog size={16}/></span>
@@ -292,6 +315,20 @@ export default function Home({ onLogout }: HomeProps) {
             <span>{theme === "dark" ? "Koyu" : "Açık"}</span>
           </button>
           <div className="premium-live-chip"><CircleDot size={14}/><span>Sistem aktif</span></div>
+        </div>
+        <div className="workspace-tabs" role="tablist" aria-label="Açık ekranlar">
+          <div className="workspace-tabs-scroll">
+            {openTabs.map((tab) => {
+              const TabIcon = getNavIcon(tab);
+              return (
+                <button key={tab} type="button" role="tab" aria-selected={activePage === tab} className={`workspace-tab ${activePage === tab ? "active" : ""}`} onClick={() => setActivePage(tab)}>
+                  <TabIcon size={14} strokeWidth={2}/><span>{tab}</span>
+                  {openTabs.length > 1 && <i role="button" aria-label={`${tab} sekmesini kapat`} onClick={(event) => { event.stopPropagation(); closeTab(tab); }}><X size={12}/></i>}
+                </button>
+              );
+            })}
+          </div>
+          <button className="workspace-new-tab" type="button" title="Ekran aç" aria-label="Ekran aç" onClick={() => setCommandOpen(true)}><Plus size={15}/></button>
         </div>
         <div className="content-frame"><div key={activePage} className="premium-page-enter">{renderPage()}</div></div>
       </main>

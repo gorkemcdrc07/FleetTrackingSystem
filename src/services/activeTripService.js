@@ -1,6 +1,6 @@
 import { prepareActiveTrips } from '../domain/activeTrips';
 import { getExcludedTripNumbers, saveActiveTrips } from './tripRepository';
-import { mapTMSRows, syncFromTMS } from './tmsIntegrationService';
+import { mapTMSRows, syncFromTMS } from '../pages/AktifSeferler/tmsService';
 export async function synchronizeActiveTrips({ startDate,endDate,onProgress }) {
     if(!startDate||!endDate||startDate>endDate)throw new Error('Geçerli bir tarih aralığı seçin.');
     onProgress?.({stage:'fetching',message:'TMS’den seferler alınıyor…'});

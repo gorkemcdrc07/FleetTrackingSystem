@@ -1,0 +1,262 @@
+.arac-takibi-page {
+    min-height: 100vh;
+    padding: 24px;
+    background: #f4f6fb;
+    color: #111827;
+}
+
+.arac-takibi-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+    .arac-takibi-header span {
+        font-size: 12px;
+        font-weight: 800;
+        color: #4f5df7;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .arac-takibi-header h1 {
+        margin: 6px 0;
+        font-size: 30px;
+        color: #111827;
+    }
+
+    .arac-takibi-header p {
+        margin: 0;
+        color: #6b7280;
+    }
+
+    .arac-takibi-header button {
+        height: 44px;
+        border: none;
+        border-radius: 14px;
+        padding: 0 20px;
+        background: #111827;
+        color: white;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+        .arac-takibi-header button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+.arac-takibi-ozet {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+    .arac-takibi-ozet div {
+        padding: 18px;
+        border-radius: 20px;
+        background: white;
+        border: 1px solid #e6e8ef;
+    }
+
+    .arac-takibi-ozet span {
+        display: block;
+        margin-bottom: 8px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .arac-takibi-ozet strong {
+        font-size: 28px;
+        color: #111827;
+    }
+
+.arac-takibi-filtre {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    padding: 16px;
+    border-radius: 20px;
+    background: white;
+    border: 1px solid #e6e8ef;
+    margin-bottom: 16px;
+}
+
+    .arac-takibi-filtre input,
+    .arac-takibi-filtre select {
+        height: 42px;
+        border: 1px solid #d8dce8;
+        border-radius: 12px;
+        padding: 0 12px;
+        outline: none;
+        background: #fff;
+    }
+
+    .arac-takibi-filtre button {
+        height: 42px;
+        border: none;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: #3730a3;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+.arac-takibi-grid {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr);
+    gap: 16px;
+}
+
+.arac-takibi-liste {
+    border: 1px solid #e6e8ef;
+    background: white;
+    border-radius: 22px;
+    overflow: hidden;
+    height: 720px;
+    display: flex;
+    flex-direction: column;
+}
+
+.arac-takibi-liste-head {
+    padding: 18px;
+    border-bottom: 1px solid #edf0f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .arac-takibi-liste-head h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .arac-takibi-liste-head span {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+.arac-takibi-liste-body {
+    padding: 14px;
+    overflow: auto;
+}
+
+.arac-takibi-item {
+    padding: 14px;
+    border: 1px solid #edf0f7;
+    border-radius: 16px;
+    background: #f8fafc;
+    margin-bottom: 10px;
+}
+
+.arac-takibi-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+    .arac-takibi-item-top strong {
+        font-size: 16px;
+    }
+
+.durum-badge {
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+    .durum-badge.hareketli {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .durum-badge.rolanti {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .durum-badge.park {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+.arac-takibi-item-info {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+    .arac-takibi-item-info span {
+        font-size: 13px;
+        color: #4b5563;
+    }
+
+.arac-takibi-item small {
+    color: #6b7280;
+}
+
+.arac-takibi-bos {
+    padding: 24px;
+    color: #6b7280;
+    text-align: center;
+}
+
+.arac-takibi-grid .arac-harita-layout {
+    grid-template-columns: 1fr;
+    min-height: 720px;
+}
+
+.arac-takibi-grid .arac-harita-liste {
+    display: none;
+}
+
+.arac-takibi-grid .arac-map {
+    height: 720px;
+}
+
+@media (max-width: 1200px) {
+    .arac-takibi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .arac-takibi-liste {
+        height: auto;
+        max-height: 420px;
+    }
+
+    .arac-takibi-ozet {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .arac-takibi-filtre {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .arac-takibi-page {
+        padding: 14px;
+    }
+
+    .arac-takibi-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .arac-takibi-ozet {
+        grid-template-columns: 1fr;
+    }
+
+    .arac-takibi-filtre {
+        grid-template-columns: 1fr;
+    }
+}

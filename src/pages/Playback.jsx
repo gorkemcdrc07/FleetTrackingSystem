@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./Playback.css";
+import { useTrackedVehicles } from "../context/TrackedVehiclesContext";
 
 const MAP_CENTER = [39.0, 35.0];
 
@@ -206,6 +207,7 @@ function MapFocus({ route, selectedPoint }) {
 }
 
 export default function Playback() {
+    const { trackedPlates, hasTrackedVehicles, isTracked } = useTrackedVehicles();
     const timerRef = useRef(null);
     const autoLoadRef = useRef(false);
 
@@ -261,7 +263,7 @@ export default function Playback() {
     async function loadVehicles() {
         try {
             const list = await mobilizService.araclar();
-            const vehicleList = Array.isArray(list) ? list : [];
+            const vehicleList = (Array.isArray(list) ? list : []).filter((vehicle) => hasTrackedVehicles && isTracked(vehicle?.plate || vehicle?.licensePlate || vehicle?.plateNo));
 
             setVehicles(vehicleList);
 
@@ -318,9 +320,11 @@ export default function Playback() {
 
     useEffect(() => {
         try {
-            const vehicle = readStorageJson(STORAGE_KEYS.playbackVehicle, null);
+            const raw = localStorage.getItem("fts_playback_vehicle");
 
-            if (!vehicle) return;
+            if (!raw) return;
+
+            const vehicle = JSON.parse(raw);
 
             if (vehicle?.plate) {
                 autoLoadRef.current = true;
@@ -328,7 +332,7 @@ export default function Playback() {
                 setPlate(vehicle.plate);
             }
 
-            removeStorageItem(STORAGE_KEYS.playbackVehicle);
+            localStorage.removeItem("fts_playback_vehicle");
         } catch (err) {
             console.error(err);
         }

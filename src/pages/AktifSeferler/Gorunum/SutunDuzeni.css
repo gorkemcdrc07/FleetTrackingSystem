@@ -1,0 +1,270 @@
+﻿.sutun-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(15, 23, 42, 0.22);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: flex-end;
+    padding: 22px;
+}
+
+.sutun-panel {
+    width: 440px;
+    max-width: calc(100vw - 44px);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 24px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
+    animation: sutunSlide 0.18s ease;
+}
+
+.sutun-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 22px 16px;
+    border-bottom: 1px solid #eef2f7;
+    background: radial-gradient(circle at top left, rgba(59, 110, 245, 0.14), transparent 36%), linear-gradient(180deg, #f8fbff, #ffffff);
+}
+
+.sutun-eyebrow {
+    margin-bottom: 5px;
+    color: #3b6ef5;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.sutun-head h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+}
+
+.sutun-head p {
+    margin: 7px 0 0;
+    color: #64748b;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.sutun-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 14px;
+    background: #eef2ff;
+    color: #3154d4;
+    cursor: pointer;
+    font-size: 25px;
+    line-height: 1;
+    transition: 0.15s;
+}
+
+    .sutun-close:hover {
+        background: #dbe6ff;
+    }
+
+.sutun-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    padding: 15px 22px;
+    background: #ffffff;
+}
+
+    .sutun-stats span {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+.sutun-list {
+    flex: 1;
+    overflow: auto;
+    padding: 6px 16px 16px;
+}
+
+.sutun-item {
+    display: grid;
+    grid-template-columns: 28px 38px 1fr;
+    align-items: center;
+    gap: 10px;
+    min-height: 60px;
+    margin-bottom: 9px;
+    padding: 9px 11px;
+    border: 1px solid #e6ebf3;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff, #fbfdff);
+    transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s, background 0.14s, opacity 0.14s;
+    cursor: grab;
+}
+
+    .sutun-item:hover {
+        border-color: #bdd0ff;
+        background: #f8fbff;
+        box-shadow: 0 10px 22px rgba(59, 110, 245, 0.11);
+        transform: translateY(-1px);
+    }
+
+    .sutun-item:active {
+        cursor: grabbing;
+    }
+
+    .sutun-item.is-hidden {
+        opacity: 0.56;
+        background: #f8fafc;
+    }
+
+    .sutun-item.is-dragging {
+        opacity: 0.38;
+        transform: scale(0.98);
+        box-shadow: none;
+    }
+
+    .sutun-item.is-over {
+        border-color: #3b6ef5;
+        background: #eef4ff;
+        box-shadow: 0 0 0 3px rgba(59, 110, 245, 0.12);
+    }
+
+    .sutun-item.is-locked {
+        background: linear-gradient(180deg, #ffffff, #fbfdff), repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(59, 110, 245, 0.04) 8px, rgba(59, 110, 245, 0.04) 16px);
+    }
+
+.sutun-grip {
+    width: 24px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+    .sutun-grip svg,
+    .sutun-eye svg {
+        width: 17px;
+        height: 17px;
+    }
+
+.sutun-item:hover .sutun-grip {
+    color: #3b6ef5;
+}
+
+.sutun-eye {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+    .sutun-eye.active {
+        background: #eef2ff;
+        border-color: #c7d5fd;
+        color: #3b6ef5;
+    }
+
+    .sutun-eye:hover:not(:disabled) {
+        background: #eaf0ff;
+        border-color: #9fb8ff;
+        color: #2553d8;
+    }
+
+    .sutun-eye:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+.sutun-info {
+    min-width: 0;
+}
+
+    .sutun-info strong {
+        display: block;
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sutun-info span {
+        display: block;
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+.sutun-footer {
+    display: flex;
+    gap: 10px;
+    padding: 15px 22px 22px;
+    border-top: 1px solid #eef2f7;
+    background: #ffffff;
+}
+
+.sutun-reset,
+.sutun-done {
+    flex: 1;
+    height: 42px;
+    border: none;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.sutun-reset {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+    .sutun-reset:hover {
+        background: #e2e8f0;
+    }
+
+.sutun-done {
+    background: #3b6ef5;
+    color: #fff;
+    box-shadow: 0 9px 20px rgba(59, 110, 245, 0.28);
+}
+
+    .sutun-done:hover {
+        background: #2553d8;
+    }
+
+@keyframes sutunSlide {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
