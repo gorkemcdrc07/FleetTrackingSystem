@@ -819,7 +819,7 @@ function ColumnFiltersPanel({ columns, rows, filters, onChange, onClearAll }) {
     );
 }
 
-function AktifSeferler() {
+function ActiveTrips() {
     const [expandedId, setExpandedId] = useState(null);
     const [search, setSearch] = useState("");
     const initialPrefs = useMemo(() => loadActiveTripsPreferences(), []);
