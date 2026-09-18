@@ -568,6 +568,248 @@
     .operasyon-selected-detail-btn:hover {
         background: rgba(255, 255, 255, 0.2);
     }
+.operasyon-intelligence-filter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid #c7d2fe;
+    border-radius: 18px;
+    background: radial-gradient( circle at top right, rgba(99, 102, 241, 0.15), transparent 42% ), #eef2ff;
+    box-shadow: 0 14px 34px rgba(79, 70, 229, 0.08);
+}
+
+    .operasyon-intelligence-filter > div {
+        min-width: 0;
+    }
+
+    .operasyon-intelligence-filter span {
+        display: block;
+        color: #6366f1;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .operasyon-intelligence-filter strong {
+        display: block;
+        margin-top: 4px;
+        color: #1e1b4b;
+        font-size: 15px;
+    }
+
+    .operasyon-intelligence-filter small {
+        display: block;
+        margin-top: 3px;
+        color: #6366f1;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .operasyon-intelligence-filter button {
+        flex: 0 0 auto;
+        min-height: 36px;
+        border: 1px solid #a5b4fc;
+        border-radius: 11px;
+        padding: 0 12px;
+        background: #ffffff;
+        color: #4338ca;
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+        .operasyon-intelligence-filter button:hover {
+            background: #e0e7ff;
+        }
+/* Takip edilen araçlar drawer bağlantıları */
+.operasyon-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.operasyon-tracked-open-btn {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid #c7d2fe !important;
+    border-radius: 12px;
+    padding: 0 11px !important;
+    background: #eef2ff !important;
+    color: #4338ca !important;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+    .operasyon-tracked-open-btn span {
+        font-size: 10px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .operasyon-tracked-open-btn strong {
+        min-width: 26px;
+        height: 23px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        padding: 0 7px;
+        background: #ffffff;
+        color: #312e81;
+        font-size: 9px;
+        font-weight: 950;
+        box-shadow: inset 0 0 0 1px #c7d2fe;
+    }
+
+.operasyon-tracked-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid #c7d2fe;
+    border-radius: 18px;
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.14), transparent 42%), #eef2ff;
+    box-shadow: 0 12px 30px rgba(79, 70, 229, 0.07);
+}
+
+    .operasyon-tracked-summary > div:first-child {
+        min-width: 0;
+    }
+
+    .operasyon-tracked-summary span,
+    .operasyon-tracked-summary strong,
+    .operasyon-tracked-summary small {
+        display: block;
+    }
+
+    .operasyon-tracked-summary span {
+        color: #6366f1;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .operasyon-tracked-summary strong {
+        margin-top: 4px;
+        color: #1e1b4b;
+        font-size: 14px;
+    }
+
+    .operasyon-tracked-summary small {
+        margin-top: 3px;
+        color: #6366f1;
+        font-size: 10px;
+        font-weight: 750;
+    }
+
+.operasyon-tracked-summary-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+    .operasyon-tracked-summary-actions button {
+        min-height: 35px;
+        border: 1px solid #a5b4fc;
+        border-radius: 10px;
+        padding: 0 10px;
+        background: #ffffff;
+        color: #4338ca;
+        font-family: inherit;
+        font-size: 9px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+        .operasyon-tracked-summary-actions button.danger {
+            border-color: #fecaca;
+            background: #fff1f2;
+            color: #b91c1c;
+        }
+.operasyon-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.operasyon-tracked-open-btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #c7d2fe;
+    border-radius: 13px;
+    padding: 0 12px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+    .operasyon-tracked-open-btn span {
+        font-size: 11px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .operasyon-tracked-open-btn strong {
+        min-width: 27px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        padding: 0 7px;
+        background: #ffffff;
+        color: #4338ca;
+        font-size: 10px;
+        font-weight: 950;
+    }
+
+    .operasyon-tracked-open-btn:hover {
+        border-color: #818cf8;
+        background: #e0e7ff;
+    }
+
+@media (max-width: 700px) {
+    .operasyon-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .operasyon-tracked-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .operasyon-tracked-summary-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+
+@media (max-width: 700px) {
+    .operasyon-intelligence-filter {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+        .operasyon-intelligence-filter button {
+            width: 100%;
+        }
+}
+
 
 @media (max-width: 1300px) {
     .operasyon-main-column {
@@ -613,3 +855,80 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================
+   V11 MODERN OPERATION THEME
+========================= */
+.operasyon-page{--op-bg:#f3f6fa;--op-card:#fff;--op-border:#e0e8ee;--op-text:#183448;--op-muted:#718996;--op-primary:#285d6d;--op-accent:#4f8987;--op-accent-soft:#eaf4f2;--op-amber:#b98535;--op-danger:#b86672;gap:16px;min-width:0;color:var(--op-text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.operasyon-page *{box-sizing:border-box}.operasyon-page .page-header{background:#fff;border:1px solid var(--op-border);border-radius:14px;box-shadow:0 8px 28px rgba(24,52,72,.06);padding:22px 24px}.operasyon-page .page-header-eyebrow{color:var(--op-accent);font-size:10px;letter-spacing:.09em}.operasyon-page .page-header h1{color:var(--op-text);font-size:clamp(27px,3vw,34px);letter-spacing:-.035em}.operasyon-page .page-header p{color:var(--op-muted);font-size:12px;line-height:1.55}.operasyon-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.operasyon-header-actions>button,.operasyon-tracked-open-btn{min-height:40px!important;border-radius:8px!important;border:1px solid transparent!important;background:var(--op-primary)!important;color:#fff!important;padding:0 13px!important;font-size:10px!important;font-weight:700!important;box-shadow:none!important}.operasyon-tracked-open-btn{background:#fff!important;border-color:#d5e2e7!important;color:var(--op-text)!important}.operasyon-tracked-open-btn strong{margin-left:7px;color:var(--op-accent)}.operasyon-kpi-grid{grid-template-columns:repeat(7,minmax(110px,1fr));gap:9px}.operasyon-page .ui-stat-card,.operasyon-kpi-grid>div{border:1px solid var(--op-border)!important;border-radius:11px!important;background:#fff!important;box-shadow:none!important;padding:13px 14px!important}.operasyon-page .ui-stat-card span{color:var(--op-muted)!important;font-size:9px!important;text-transform:uppercase;letter-spacing:.05em}.operasyon-page .ui-stat-card strong{color:var(--op-text)!important;font-size:24px!important}.operasyon-quick-filters{display:flex;gap:7px;flex-wrap:wrap;padding:9px;background:#fff;border:1px solid var(--op-border);border-radius:12px}.operasyon-quick-filters button{min-height:34px;border:1px solid #dfe8ed;border-radius:8px;background:#f7fafb;color:#607d8c;padding:0 11px;font-size:10px;font-weight:700;cursor:pointer}.operasyon-quick-filters button.active{background:var(--op-accent-soft);border-color:#c7ddda;color:#3f7774}.operasyon-layout{grid-template-columns:minmax(0,1fr) 390px;gap:16px}.operasyon-map-card,.operasyon-panel{background:#fff;border:1px solid var(--op-border);border-radius:14px;box-shadow:0 8px 28px rgba(24,52,72,.055)}.operasyon-map-card{padding:9px}.operasyon-section-title{padding:8px 8px 12px}.operasyon-section-title h2,.operasyon-panel h2{color:var(--op-text);font-size:13px}.operasyon-section-title p{color:var(--op-muted);font-size:10px}.operasyon-panel{padding:15px;box-shadow:none}.operasyon-filters{grid-template-columns:minmax(0,1fr) 135px;gap:7px}.operasyon-filters input,.operasyon-filters select{height:38px;border:1px solid #d8e4ea;border-radius:8px;padding:0 10px;color:var(--op-text);font-size:10px;font-weight:600}.operasyon-vehicle-list{gap:7px;max-height:350px}.operasyon-vehicle-list button{border:1px solid #e2eaee;background:#f8fafb;border-radius:9px;padding:10px 11px}.operasyon-vehicle-list button.active{background:var(--op-accent-soft);border-color:#c3ddda;box-shadow:inset 3px 0 0 var(--op-accent)}.operasyon-vehicle-list strong{color:var(--op-text);font-size:11px}.operasyon-vehicle-list span,.op-vehicle-meta,.op-vehicle-footer{color:var(--op-muted);font-size:9px}.operasyon-selected{background:#f7fafb;border:1px solid #dfe8ed;border-radius:11px;padding:14px;color:var(--op-text)}.operasyon-selected>strong,.operasyon-selected-head strong{color:var(--op-text)}.operasyon-selected>span,.operasyon-selected-head span{color:var(--op-muted)}.operasyon-selected-grid{gap:7px;margin:12px 0}.operasyon-selected-grid div{background:#fff;border:1px solid #e2eaee;border-radius:8px;padding:10px}.operasyon-selected-grid small{color:var(--op-muted);opacity:1}.operasyon-selected-grid b{color:var(--op-text);font-size:15px}.operasyon-selected-detail-btn{width:100%;min-height:36px;border:1px solid transparent;border-radius:8px;background:var(--op-primary);color:#fff;font-size:10px;font-weight:700;cursor:pointer}.operasyon-error{border:1px solid #efd9de!important;border-radius:9px!important;background:#fff2f4!important;color:#a85d69!important;box-shadow:none!important}.operasyon-error button{background:#fff!important;color:#a85d69!important;border:1px solid #e7cdd3!important;border-radius:8px!important}.operasyon-intelligence-filter{border-radius:9px!important}.operasyon-page .danger{color:var(--op-danger)}
+@media(max-width:1250px){.operasyon-kpi-grid{grid-template-columns:repeat(4,minmax(120px,1fr))}.operasyon-layout{grid-template-columns:minmax(0,1fr) 350px}}
+@media(max-width:980px){.operasyon-layout{grid-template-columns:1fr}.operasyon-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.operasyon-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.operasyon-page .page-header{padding:18px}.operasyon-header-actions{width:100%}.operasyon-header-actions>button{flex:1}.operasyon-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.operasyon-side{display:flex}.operasyon-quick-filters{overflow-x:auto;flex-wrap:nowrap}.operasyon-quick-filters button{white-space:nowrap}.operasyon-filters{grid-template-columns:1fr}}
+
+/* v30 canonical premium theme */
+.operasyon-page{color:var(--premium-text)!important;background:transparent!important;gap:16px!important}
+.operasyon-page :is(.operasyon-head,.operasyon-kpi-grid>div,.operasyon-map-card,.operasyon-panel){background:var(--premium-surface-glass)!important;border:1px solid var(--premium-line)!important;border-radius:17px!important;box-shadow:var(--premium-shadow)!important;backdrop-filter:blur(14px) saturate(140%)}
+.operasyon-page :is(h1,h2,h3,strong){color:var(--premium-text)!important}.operasyon-page :is(p,small,.muted){color:var(--premium-muted)!important}
+.operasyon-page .operasyon-head span{color:#6b67e8!important}
+.operasyon-page .operasyon-head button,.operasyon-page .operasyon-header-actions button,.operasyon-page .operasyon-tracked-open-btn,.operasyon-page .operasyon-selected-detail-btn{border-radius:11px!important}
+.operasyon-page .operasyon-head button:first-of-type,.operasyon-page .operasyon-tracked-open-btn{background:linear-gradient(135deg,var(--premium-primary),var(--premium-primary-2))!important;border:0!important;color:#fff!important;box-shadow:0 9px 22px rgba(91,92,240,.22)!important}
+.operasyon-page .operasyon-kpi-grid>div{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.operasyon-page .operasyon-kpi-grid>div:hover{transform:translateY(-3px)!important;border-color:#d9dcf0!important;box-shadow:var(--premium-shadow-hover)!important}
+.operasyon-page :is(.operasyon-filters input,.operasyon-filters select){background:var(--premium-input)!important;border-color:var(--premium-line)!important;color:var(--premium-text)!important;border-radius:11px!important}
+.operasyon-page .operasyon-vehicle-list button{background:var(--premium-surface-2)!important;border-color:var(--premium-line)!important;color:var(--premium-text)!important;border-radius:12px!important;transition:transform .16s ease,background .16s ease,border-color .16s ease!important}
+.operasyon-page .operasyon-vehicle-list button:hover{transform:translateX(2px)!important;background:var(--premium-row-hover)!important;border-color:#cfd2ff!important}
+.operasyon-page .operasyon-vehicle-list button.active{background:var(--premium-primary-soft)!important;border-color:#bfc2ff!important;box-shadow:inset 3px 0 0 var(--premium-primary)!important}
+.operasyon-page .operasyon-selected{background:linear-gradient(135deg,#20254b,#4a3d91)!important;border:1px solid rgba(134,134,255,.3)!important;box-shadow:0 16px 36px rgba(66,55,139,.18)!important}
+.operasyon-page .operasyon-selected-grid div{background:rgba(255,255,255,.10)!important;border:1px solid rgba(255,255,255,.08)!important}
+.operasyon-page .operasyon-quick-filters button,.operasyon-page .operasyon-intelligence-filter button{background:var(--premium-surface-2)!important;border:1px solid var(--premium-line)!important;color:var(--premium-muted)!important;border-radius:10px!important}
+.operasyon-page .operasyon-quick-filters button:hover,.operasyon-page .operasyon-intelligence-filter button:hover{color:var(--premium-primary)!important;border-color:#cfd2ff!important;transform:translateY(-1px)}
+.operasyon-page .operasyon-intelligence-filter{background:var(--premium-primary-soft)!important;border:1px solid #d8d9ff!important;border-radius:14px!important;color:var(--premium-text)!important}
+.operasyon-page .operasyon-event{background:var(--premium-surface-2)!important;border-color:var(--premium-line)!important;border-radius:12px!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-head span{color:#aaa8ff!important}
+:root[data-theme="dark"] .operasyon-page :is(.operasyon-head,.operasyon-kpi-grid>div,.operasyon-map-card,.operasyon-panel){background:rgba(23,28,41,.91)!important;border-color:var(--premium-line)!important;box-shadow:0 18px 42px rgba(0,0,0,.22)!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-vehicle-list button{background:#121927!important;border-color:#29354b!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-vehicle-list button:hover{background:#1b2435!important;border-color:#3b4770!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-vehicle-list button.active{background:#272b4c!important;border-color:#565bb9!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-quick-filters button,:root[data-theme="dark"] .operasyon-page .operasyon-intelligence-filter button{background:#171e2c!important;border-color:#2d374d!important;color:#b7bfd0!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-intelligence-filter{background:#20243f!important;border-color:#494e91!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-event{background:#121927!important;border-color:#29354b!important}
+:root[data-theme="dark"] .operasyon-page .leaflet-tile-pane{filter:brightness(.72) saturate(.62) contrast(1.12) hue-rotate(175deg)}
+:root[data-theme="dark"] .operasyon-page :is(.leaflet-control-zoom a,.leaflet-control-attribution,.leaflet-popup-content-wrapper,.leaflet-popup-tip){background:#171e2c!important;color:#dbe2ef!important;border-color:#344057!important}
+
+/* v31 - screenshot-driven operation center theme correction */
+.operasyon-page{--op-bg:#f6f7fb;--op-card:#fff;--op-card-soft:#f8faff;--op-border:#e4e7ef;--op-text:#111827;--op-muted:#667085;--op-primary:#6d5dfc;--op-accent:#7c6cff;--op-accent-soft:#f0edff;--op-danger:#ef596f}
+.operasyon-page .page-header,.operasyon-map-card,.operasyon-panel{border-radius:18px!important}
+.operasyon-header-actions>button:not(.operasyon-tracked-open-btn){background:linear-gradient(135deg,#7163ff,#9a5cff)!important;box-shadow:0 10px 24px rgba(109,93,252,.2)!important}
+.operasyon-tracked-open-btn{background:var(--op-card-soft)!important;border-color:var(--op-border)!important;color:var(--op-text)!important}
+.operasyon-quick-filters{background:var(--op-card)!important;border-color:var(--op-border)!important}
+.operasyon-quick-filters button{background:var(--op-card-soft)!important;border-color:var(--op-border)!important;color:var(--op-muted)!important}
+.operasyon-quick-filters button.active{background:linear-gradient(135deg,#312e65,#3f3770)!important;border-color:#7469df!important;color:#fff!important;box-shadow:0 8px 20px rgba(80,70,200,.18)}
+.operasyon-quick-filters button.active :is(span,strong){color:#fff!important}
+
+:root[data-theme="dark"] .operasyon-page{--op-bg:#0b1018;--op-card:#141a26;--op-card-soft:#101722;--op-border:#273247;--op-text:#f4f6fb;--op-muted:#98a2b3;--op-primary:#7c6cff;--op-accent:#9b8cff;--op-accent-soft:#28254a;--op-danger:#ff7888;color:var(--op-text)}
+:root[data-theme="dark"] .operasyon-page .page-header{background:linear-gradient(180deg,#161d2a,#131a26)!important;border-color:var(--op-border)!important;box-shadow:0 20px 48px rgba(0,0,0,.24)!important}
+:root[data-theme="dark"] .operasyon-page .page-header :is(h1,.page-header-title){color:#f5f7fb!important}
+:root[data-theme="dark"] .operasyon-page .page-header :is(p,.page-header-description){color:#98a2b3!important}
+:root[data-theme="dark"] .operasyon-page .page-header-eyebrow{color:#9d91ff!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-tracked-open-btn{background:#101722!important;border-color:#2b374b!important;color:#e9ecf4!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-header-actions>button:not(.operasyon-tracked-open-btn){background:linear-gradient(135deg,#7567ff,#9d61ff)!important;color:#fff!important}
+:root[data-theme="dark"] .operasyon-page :is(.ui-stat-card,.operasyon-kpi-grid>div,.operasyon-map-card,.operasyon-panel){background:linear-gradient(180deg,#151c28,#121925)!important;border-color:var(--op-border)!important;box-shadow:0 18px 42px rgba(0,0,0,.2)!important}
+:root[data-theme="dark"] .operasyon-page .ui-stat-card span{color:#8792a5!important}
+:root[data-theme="dark"] .operasyon-page .ui-stat-card strong{color:#f4f6fb!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-quick-filters{background:#121925!important;border-color:#273247!important;box-shadow:none!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-quick-filters button{background:#0f1621!important;border-color:#2a3549!important;color:#aab2c2!important;box-shadow:none!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-quick-filters button :is(span,strong){color:#aab2c2!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-quick-filters button.active{background:linear-gradient(135deg,#302d5a,#443973)!important;border-color:#756ae7!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-quick-filters button.active :is(span,strong){color:#f5f3ff!important}
+:root[data-theme="dark"] .operasyon-page :is(.operasyon-section-title h2,.operasyon-panel h2,.op-vehicle-main strong,.op-vehicle-main em,.op-vehicle-footer strong,.operasyon-selected-head strong){color:#f4f6fb!important}
+:root[data-theme="dark"] .operasyon-page :is(.operasyon-section-title p,.op-vehicle-main span,.op-vehicle-footer span,.operasyon-selected-head span){color:#98a2b3!important}
+:root[data-theme="dark"] .operasyon-page :is(.operasyon-filters input,.operasyon-filters select){background:#0f1621!important;border-color:#2a3549!important;color:#e4e8f1!important;color-scheme:dark}
+:root[data-theme="dark"] .operasyon-page .operasyon-vehicle-list button{background:#0f1621!important;border-color:#273247!important;color:#eef1f7!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-vehicle-list button:hover{background:#161f2e!important;border-color:#3a4964!important;transform:translateY(-1px)}
+:root[data-theme="dark"] .operasyon-page .operasyon-vehicle-list button.active{background:linear-gradient(135deg,#292d50,#34305b)!important;border-color:#7168d8!important;box-shadow:inset 3px 0 0 #8d82ff!important}
+:root[data-theme="dark"] .operasyon-page .op-vehicle-footer{border-color:#2b374b!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-selected{background:linear-gradient(135deg,#191e34,#27224b)!important;border-color:#4f4a82!important;color:#fff!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-selected-grid div{background:rgba(255,255,255,.055)!important;border-color:rgba(255,255,255,.09)!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-selected-detail-btn{background:linear-gradient(135deg,#7163ff,#9a5cff)!important;border-color:transparent!important;box-shadow:0 10px 24px rgba(109,93,252,.2)!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-event{background:#0f1621!important;border-color:#273247!important;color:#e6e9f0!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-event :is(time,span,p){color:#99a4b6!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-event strong{color:#f2f4f8!important}
+:root[data-theme="dark"] .operasyon-page .operasyon-empty{background:#0f1621!important;color:#98a2b3!important}

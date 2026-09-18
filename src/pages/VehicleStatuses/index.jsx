@@ -1,3 +1,4 @@
+<<<<<<< HEAD:src/pages/VehicleStatuses/index.jsx
 import { useEffect, useMemo, useState } from "react";
 import "./VehicleStatuses.css";
 import { logAuditEvent } from "../../services/auditLogger";
@@ -21,6 +22,15 @@ import {
     vehicleExitHasWarning as exitHasWarning,
     vehicleStatusCssKey as cssKey,
 } from "../../domain/vehicleStatusView";
+=======
+import { Truck, Plus, Search, X, Pencil, CalendarDays, Wallet, LogOut, ListChecks, FileWarning, ChevronLeft, ChevronRight, Rows3, Download, PanelRightOpen } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../supabaseClient";
+import "./AracDurumlari.css";
+import "./FleetModern.css";
+import { islemLogla } from "../../utils/islemLogla";
+import * as XLSX from "xlsx";
+>>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracDurumları/index.jsx
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin", "Bakım İzni"];
@@ -60,6 +70,7 @@ function ExitWarningBadge({ row }) { return exitHasWarning(row) ? <span classNam
 
 export default function VehicleStatuses() {
     const [rows, setRows] = useState([]);
+    const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[compact,setCompact]=useState(false);
     const [loading, setLoading] = useState(true);
     const [selectedRow, setSelectedRow] = useState(null);
     const [search, setSearch] = useState("");
@@ -573,16 +584,21 @@ export default function VehicleStatuses() {
         return true;
     }), [activeRows, search, statusFilter, bolgeFilter, aracTipFilter, onlyProblematic]);
 
-    return <div className="arac-page">
+    useEffect(()=>{if(!selectedRow)return;const previous=document.activeElement;document.querySelector('.fleet-drawer-close')?.focus();return()=>previous?.focus?.();},[selectedRow?.id]);
+    const pages=Math.max(1,Math.ceil(filteredRows.length/pageSize)),currentPage=Math.min(page,pages);
+    const pageRows=filteredRows.slice((currentPage-1)*pageSize,currentPage*pageSize);
+    useEffect(()=>{setPage(1);},[search,statusFilter,bolgeFilter,aracTipFilter,onlyProblematic,pageSize]);
+    useEffect(()=>{const key=e=>{if(e.key==='Escape'&&!formOpen&&!izinModalRow&&!kesintiModalRow&&!cikisModalRow&&!listModalOpen)setSelectedRow(null);};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[formOpen,izinModalRow,kesintiModalRow,cikisModalRow,listModalOpen]);
+    return <div className={`arac-page fleet-modern ${compact?'fleet-compact':''}`}>
         <div className="arac-hero">
             <div>
-                <span className="arac-eyebrow">Filo Yönetimi</span>
+                <span className="arac-eyebrow">OPERASYON / ARAÇ YÖNETİMİ</span>
                 <h1>Araç Durumları</h1>
-                <p>Araç, sürücü, evrak fotoğrafları, izin, kesinti ve işten çıkartma takibi.</p>
+                <p>Filonuzun durumunu izleyin; sürücü, evrak ve operasyon kayıtlarını tek yerden yönetin.</p>
             </div>
             <div className="hero-actions">
-                <button className="add-btn" onClick={openAddForm}>+ Araç Ekle</button>
-                <button className={`problem-btn ${onlyProblematic ? "active" : ""}`} onClick={() => setOnlyProblematic((p) => !p)}>Problemli Araçlar</button>
+                <button className="add-btn" onClick={openAddForm}><Plus size={16}/> Araç Ekle</button>
+                <button className={`problem-btn ${onlyProblematic ? "active" : ""}`} onClick={() => setOnlyProblematic((p) => !p)}><FileWarning size={16}/> İnceleme gerekenler</button>
                 <button
                     className="list-btn"
                     onClick={() => {
@@ -590,7 +606,7 @@ export default function VehicleStatuses() {
                         setListModalOpen(true);
                     }}
                 >
-                    Listeler
+                    <ListChecks size={16}/> İzin ve kesinti kayıtları
                 </button>
                 <button
                     className="list-btn danger"
@@ -599,34 +615,35 @@ export default function VehicleStatuses() {
                         setListModalOpen(true);
                     }}
                 >
-                    İşten Çıkartılanlar
+                    <LogOut size={16}/> Çıkartılanlar
                 </button>
             </div>
         </div>
 
+        <div className="fleet-overview">{[{label:'Aktif araç',count:activeRows.length,icon:Truck},{label:'Müsait',count:activeRows.filter(r=>r.durum==='Müsait').length,icon:PanelRightOpen},{label:'Seferde',count:activeRows.filter(r=>r.durum==='Seferde').length,icon:Truck},{label:'Evrak takibi gereken',count:activeRows.filter(r=>r.documentRisk!=='ok').length,icon:FileWarning}].map(({label,count,icon:Icon})=><div key={label}><span><Icon size={21}/></span><div><small>{label}</small><strong>{count}</strong></div></div>)}</div>
         <div className="filter-card">
-            <div className="search-box"><span>⌕</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Plaka, sürücü, telefon, tedarikçi ara..." /></div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>{statusOptions.map((x) => <option key={x}>{x}</option>)}</select>
-            <select value={bolgeFilter} onChange={(e) => setBolgeFilter(e.target.value)}>{bolgeOptions.map((x) => <option key={x}>{x}</option>)}</select>
-            <select value={aracTipFilter} onChange={(e) => setAracTipFilter(e.target.value)}>{aracTipOptions.map((x) => <option key={x}>{x}</option>)}</select>
+            <div className="search-box"><Search size={17}/><input aria-label="Araçlarda ara" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Plaka, sürücü, telefon, tedarikçi ara..." /></div>
+            <label className="fleet-filter-label"><span>Durum</span><select aria-label="Durum filtresi" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>{statusOptions.map((x) => <option key={x}>{x}</option>)}</select></label>
+            <label className="fleet-filter-label"><span>Bölge</span><select aria-label="Bölge filtresi" value={bolgeFilter} onChange={(e) => setBolgeFilter(e.target.value)}>{bolgeOptions.map((x) => <option key={x}>{x}</option>)}</select></label>
+            <label className="fleet-filter-label"><span>Araç tipi</span><select aria-label="Araç tipi filtresi" value={aracTipFilter} onChange={(e) => setAracTipFilter(e.target.value)}>{aracTipOptions.map((x) => <option key={x}>{x}</option>)}</select></label><button className="fleet-clear" onClick={()=>{setSearch('');setStatusFilter('Tümü');setBolgeFilter('Tümü');setAracTipFilter('Tümü');setOnlyProblematic(false);}}><X size={14}/> Temizle</button>
         </div>
 
         <div className="content-grid">
             <div className="table-card">
-                <div className="table-top"><div><h2>Araç Listesi</h2><span>{filteredRows.length} aktif kayıt gösteriliyor</span></div></div>
+                <div className="table-top"><div><h2>Araç Listesi</h2><span>{filteredRows.length} sonuç · Detayları açmak için bir araç seçin</span></div><div className="fleet-table-tools"><button onClick={exportAktifAraclar}><Download size={15}/> Aktif filo raporu</button><button aria-pressed={compact} onClick={()=>setCompact(v=>!v)}><Rows3 size={15}/>{compact?"Kompakt":"Rahat"}</button></div></div>
                 <div className="fleet-table-wrap">
                     <table className="fleet-table">
                         <thead>
                             <tr>
-                                <th>İşlem</th><th>Plaka</th><th>Sürücü</th><th>Tel No</th><th>Tedarikçi</th><th>Kira / Yakıt</th><th>Yakıt</th><th>Bölge</th><th>Araç Tip</th><th>Durum</th><th>Evrak</th><th>Fotoğraf</th>
+                                <th>Plaka</th><th>İşlem</th><th>Sürücü</th><th>Tel No</th><th>Tedarikçi</th><th>Kira / Yakıt</th><th>Yakıt</th><th>Bölge</th><th>Araç Tip</th><th>Durum</th><th>Evrak</th><th>Fotoğraf</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading && <tr><td colSpan="12" className="empty-cell">Yükleniyor...</td></tr>}
                             {!loading && filteredRows.length === 0 && <tr><td colSpan="12" className="empty-cell">Araç bulunamadı.</td></tr>}
-                            {!loading && filteredRows.map((row) => <tr key={row.id} onClick={() => setSelectedRow(row)} className={selectedRow?.id === row.id ? "selected" : ""}>
-                                <td><div className="row-actions"><button className="edit-btn" onClick={(e) => { e.stopPropagation(); openEditForm(row); }}>Düzenle</button><button className="permit-btn" onClick={(e) => { e.stopPropagation(); openIzinModal(row); }}>İzin</button><button className="deduction-btn" onClick={(e) => { e.stopPropagation(); openKesintiModal(row); }}>Kesinti</button><button className="exit-btn" onClick={(e) => { e.stopPropagation(); openCikisModal(row); }}>İşten Çıkart</button></div></td>
+                            {!loading && pageRows.map((row) => <tr key={row.id} onClick={() => setSelectedRow(row)} className={selectedRow?.id === row.id ? "selected" : ""}>
                                 <td><span className="plate">{value(row.plaka)}</span></td>
+                                <td><div className="row-actions"><button className="inspect-btn" aria-label={`${row.plaka} detaylarını aç`} onClick={e=>{e.stopPropagation();setSelectedRow(row);}}><PanelRightOpen size={15}/></button><button className="edit-btn" onClick={(e) => { e.stopPropagation(); openEditForm(row); }}><Pencil size={14}/> Düzenle</button><button className="permit-btn" onClick={(e) => { e.stopPropagation(); openIzinModal(row); }}><CalendarDays size={14}/> İzin</button><button className="deduction-btn" onClick={(e) => { e.stopPropagation(); openKesintiModal(row); }}><Wallet size={14}/> Kesinti</button><button className="exit-btn" onClick={(e) => { e.stopPropagation(); openCikisModal(row); }}><LogOut size={14}/> İşten Çıkart</button></div></td>
                                 <td>{value(row.surucu_isim)}</td>
                                 <td>{value(row.tel_no)}</td>
                                 <td>{value(row.tedarikci_isim)}</td>
@@ -643,10 +660,10 @@ export default function VehicleStatuses() {
                 </div>
             </div>
 
-            <aside className="detail-panel">
+            {selectedRow && <div className="fleet-drawer-backdrop" onMouseDown={()=>setSelectedRow(null)}><aside className="detail-panel" role="dialog" aria-modal="true" aria-label="Araç detayları" onMouseDown={e=>e.stopPropagation()}><button className="fleet-drawer-close" aria-label="Araç detaylarını kapat" onClick={()=>setSelectedRow(null)}><X size={18}/></button>
                 {!selectedRow ? <div className="empty-detail"><div className="empty-icon">🚚</div><h3>Araç seçin</h3><p>Detayları görmek için listeden bir araç seçin.</p></div> : <>
                     <div className="detail-head"><div><span>Seçili Araç</span><h2>{value(selectedRow.plaka)}</h2></div><StatusBadge status={getDisplayStatus(selectedRow)} /></div>
-                    <div className="detail-actions"><button className="permit-btn" onClick={() => openIzinModal(selectedRow)}>İzin Ekle</button><button className="deduction-btn" onClick={() => openKesintiModal(selectedRow)}>Kesinti Ekle</button><button className="exit-btn wide" onClick={() => openCikisModal(selectedRow)}>İşten Çıkart</button></div>
+                    <div className="detail-actions"><button className="permit-btn" onClick={() => openIzinModal(selectedRow)}>İzin Ekle</button><button className="deduction-btn" onClick={() => openKesintiModal(selectedRow)}>Kesinti Ekle</button><button className="exit-btn wide" onClick={() => openCikisModal(selectedRow)}><LogOut size={14}/> İşten Çıkart</button></div>
                     <div className="detail-section"><h3>Sürücü Bilgileri</h3><Info label="Sürücü" value={selectedRow.surucu_isim} /><Info label="Telefon" value={selectedRow.tel_no} /><Info label="TC Kimlik No" value={selectedRow.tc_kimlik_no} /><Info label="İkamet Adresi" value={selectedRow.ikamet_adresi} /></div>
                     <div className="detail-section"><h3>Araç Bilgileri</h3><Info label="Araç Tip" value={selectedRow.arac_tip} /><Info label="Araç Yıl" value={selectedRow.arac_yil} /><Info label="Dorse Tip" value={selectedRow.dorse_tip} /><Info label="Dorse Yıl" value={selectedRow.dorse_yil} /><Info label="Bölge" value={selectedRow.bolge} /><Info label="Tedarikçi" value={selectedRow.tedarikci_isim} /></div>
                     <div className="detail-section"><h3>Evrak & Takip</h3><Info label="Çekici Muayene" value={selectedRow.cekici_muayene} /><Info label="Dorse Muayene" value={selectedRow.dorse_muayene} /><Info label="Trafik Sigorta" value={selectedRow.trafik_sigorta} /><Info label="GPS No" value={selectedRow.gps_no} /><Info label="Taşıt Kartı" value={selectedRow.tasit_karti} /></div>
@@ -654,10 +671,11 @@ export default function VehicleStatuses() {
                     <RecordPreview title="İzinler" records={selectedRow.izinler || []} type="izin" row={selectedRow} onRemove={removeIzin} />
                     <RecordPreview title="Kesintiler" records={selectedRow.kesintiler || []} type="kesinti" row={selectedRow} onRemove={removeKesinti} />
                 </>}
-            </aside>
+            </aside></div>}
         </div>
 
 
+        <nav className="fleet-pagination" aria-label="Araç sayfaları"><span>{filteredRows.length?`${(currentPage-1)*pageSize+1}–${Math.min(currentPage*pageSize,filteredRows.length)}`:'0'} / {filteredRows.length} araç</span><div><label>Sayfada <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>{[25,50,100].map(n=><option key={n}>{n}</option>)}</select></label><button aria-label="Önceki sayfa" disabled={currentPage===1} onClick={()=>setPage(currentPage-1)}><ChevronLeft size={17}/></button><span>{currentPage} / {pages}</span><button aria-label="Sonraki sayfa" disabled={currentPage===pages} onClick={()=>setPage(currentPage+1)}><ChevronRight size={17}/></button></div></nav>
         {formOpen && <VehicleForm editingRow={editingRow} form={form} updateForm={updateForm} onSubmit={saveVehicle} onClose={closeForm} />}
         {izinModalRow && <SmallRecordModal title="İzin Ekle" subtitle={izinModalRow.plaka} type="izin" form={izinForm} setForm={setIzinForm} records={izinModalRow.izinler || []} row={izinModalRow} onRemove={removeIzin} onSubmit={addIzin} leaveStatusOptions={izinStatuOptions} onClose={() => setIzinModalRow(null)} />}
         {kesintiModalRow && <SmallRecordModal title="Kesinti Ekle" subtitle={kesintiModalRow.plaka} type="kesinti" form={kesintiForm} setForm={setKesintiForm} records={kesintiModalRow.kesintiler || []} row={kesintiModalRow} onRemove={removeKesinti} onSubmit={addKesinti} onClose={() => setKesintiModalRow(null)} />}
@@ -693,7 +711,7 @@ function VehicleForm({ editingRow, form, updateForm, onSubmit, onClose }) {
         <form className="vehicle-form" onSubmit={onSubmit}>
             <div className="vehicle-form-head">
                 <div><span>{editingRow ? "Kayıt Güncelle" : "Yeni Kayıt"}</span><h2>{editingRow ? "Araç Düzenle" : "Araç Ekle"}</h2></div>
-                <button type="button" onClick={onClose}>×</button>
+                <button type="button" aria-label="Kapat" onClick={onClose}><X size={18}/></button>
             </div>
             <div className="vehicle-form-grid">
                 <FormInput label="Plaka" value={form.plaka} onChange={(v) => updateForm("plaka", v)} />
@@ -841,7 +859,7 @@ function SmallRecordModal({ title, subtitle, type, form, setForm, records = [], 
 
     return <div className="vehicle-modal">
         <form className="small-record-modal" onSubmit={onSubmit}>
-            <div className="small-modal-head"><div><span>{subtitle}</span><h2>{title}</h2></div><button type="button" onClick={onClose}>×</button></div>
+            <div className="small-modal-head"><div><span>{subtitle}</span><h2>{title}</h2></div><button type="button" aria-label="Kapat" onClick={onClose}><X size={18}/></button></div>
             <div className="small-modal-body">
                 {isIzin ? <>
                     <FormInput label="Başlangıç Tarihi" type="date" value={form.baslangic} onChange={(v) => setForm((p) => ({ ...p, baslangic: v }))} />
@@ -867,7 +885,7 @@ function SmallRecordModal({ title, subtitle, type, form, setForm, records = [], 
 function CikisModal({ row, form, setForm, onSubmit, onClose }) {
     return <div className="vehicle-modal">
         <form className="small-record-modal exit-modal" onSubmit={onSubmit}>
-            <div className="small-modal-head"><div><span>{row.plaka}</span><h2>İşten Çıkart</h2></div><button type="button" onClick={onClose}>×</button></div>
+            <div className="small-modal-head"><div><span>{row.plaka}</span><h2>İşten Çıkart</h2></div><button type="button" aria-label="Kapat" onClick={onClose}><X size={18}/></button></div>
             <div className="small-modal-body exit-body">
                 <FormInput label="Çıkartılan Tarih" type="date" value={form.cikartilan_tarih} onChange={(v) => setForm((p) => ({ ...p, cikartilan_tarih: v }))} />
                 <label className="textarea-label">Çıkarılma Nedeni<textarea value={form.cikartilma_nedeni || ""} placeholder="Çıkarılma nedenini yazın" onChange={(e) => setForm((p) => ({ ...p, cikartilma_nedeni: e.target.value }))} /></label>
@@ -879,7 +897,7 @@ function CikisModal({ row, form, setForm, onSubmit, onClose }) {
                 </div>
                 {(!form.iade_gps || !form.iade_evraklar) && <div className="exit-warning">GPS veya evrak teslimi eksik. Araç çıkarılan araçlar panelinde uyarı verecek.</div>}
             </div>
-            <div className="small-modal-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn danger-save">İşten Çıkart</button></div>
+            <div className="small-modal-actions"><button type="button" className="cancel-btn" onClick={onClose}>Vazgeç</button><button type="submit" className="save-btn danger-save"><LogOut size={14}/> İşten Çıkart</button></div>
         </form>
     </div>;
 }
@@ -1104,7 +1122,7 @@ function ListCenterModal({
 
                     <div className="list-modern-actions">
                         <button type="button" className="modal-excel-btn" onClick={exportFn}>Excel’e Aktar</button>
-                        <button type="button" className="modal-close-btn" onClick={onClose}>×</button>
+                        <button type="button" className="modal-close-btn" aria-label="Kapat" onClick={onClose}><X size={18}/></button>
                     </div>
                 </div>
 
@@ -1141,7 +1159,7 @@ function ListCenterModal({
                         <span>⌕</span>
                         <input value={listSearch} onChange={(e) => setListSearch(e.target.value)} placeholder="Plaka, sürücü, telefon, tedarikçi veya açıklama ara..." />
                     </div>
-                    <select value={listBolge} onChange={(e) => setListBolge(e.target.value)}>{bolgeOptions.map((x) => <option key={x}>{x}</option>)}</select>
+                    <select aria-label="Liste bölgesi" value={listBolge} onChange={(e) => setListBolge(e.target.value)}>{bolgeOptions.map((x) => <option key={x}>{x}</option>)}</select>
                     <select value={listExtra} onChange={(e) => setListExtra(e.target.value)}>{extraOptions.map((x) => <option key={x}>{x}</option>)}</select>
                     <input type="date" value={listDateStart} onChange={(e) => setListDateStart(e.target.value)} />
                     <input type="date" value={listDateEnd} onChange={(e) => setListDateEnd(e.target.value)} />
@@ -1202,7 +1220,7 @@ function ListCenterModal({
                                         </div>
 
                                         <div className="modern-card-actions">
-                                            <button type="button" className="edit-soft-btn" onClick={() => openEdit(item)}>Düzenle</button>
+                                            <button type="button" className="edit-soft-btn" onClick={() => openEdit(item)}><Pencil size={14}/> Düzenle</button>
                                             {isIzin && <button type="button" className="delete-soft-btn" onClick={() => onRemoveIzin(item.row, item.id)}>Sil</button>}
                                             {isKesinti && <button type="button" className="delete-soft-btn" onClick={() => onRemoveKesinti(item.row, item.id)}>Sil</button>}
                                             {!isIzin && !isKesinti && <button type="button" className="rehire-btn compact" onClick={() => onUndoCikis(item)}>Tekrar İşe Al</button>}

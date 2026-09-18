@@ -1,3 +1,4 @@
+import { BellRing } from "lucide-react";
 ﻿import {
     useEffect,
     useMemo,
@@ -295,7 +296,7 @@ export default function NotificationCenter({
                 }
                 aria-label="Bildirim merkezini aç"
             >
-                🔔
+                <BellRing size={19} strokeWidth={2}/>
 
                 {unreadCount > 0 && (
                     <span>

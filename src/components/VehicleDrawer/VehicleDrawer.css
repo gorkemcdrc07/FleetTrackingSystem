@@ -594,6 +594,149 @@
 .vehicle-command-main-actions button:hover {
     transform: translateY(-1px);
 }
+.vehicle-health-card {
+    padding: 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 19px;
+    background: #f8fafc;
+}
+
+    .vehicle-health-card.good {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+    }
+
+    .vehicle-health-card.warning {
+        border-color: #fde68a;
+        background: #fffbeb;
+    }
+
+    .vehicle-health-card.critical {
+        border-color: #fecaca;
+        background: #fff7f7;
+    }
+
+.vehicle-health-score {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 15px;
+    align-items: center;
+}
+
+.vehicle-health-ring {
+    --health-score: 0;
+    width: 88px;
+    height: 88px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient( circle at center, #ffffff 58%, transparent 60% ), conic-gradient( #22c55e calc( var(--health-score) * 1% ), #e2e8f0 0 );
+}
+
+.vehicle-health-card.warning
+.vehicle-health-ring {
+    background: radial-gradient( circle at center, #ffffff 58%, transparent 60% ), conic-gradient( #f59e0b calc( var(--health-score) * 1% ), #e2e8f0 0 );
+}
+
+.vehicle-health-card.critical
+.vehicle-health-ring {
+    background: radial-gradient( circle at center, #ffffff 58%, transparent 60% ), conic-gradient( #dc2626 calc( var(--health-score) * 1% ), #e2e8f0 0 );
+}
+
+.vehicle-health-ring > div {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+}
+
+.vehicle-health-ring strong {
+    color: #0f172a;
+    font-size: 25px;
+    line-height: 1;
+}
+
+.vehicle-health-ring span {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.vehicle-health-summary span {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.vehicle-health-summary strong {
+    display: block;
+    margin-top: 4px;
+    color: #0f172a;
+    font-size: 20px;
+}
+
+.vehicle-health-summary p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.vehicle-health-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 14px;
+}
+
+.vehicle-health-reason {
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    gap: 9px;
+    align-items: center;
+    padding: 9px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.78);
+}
+
+    .vehicle-health-reason i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #94a3b8;
+    }
+
+    .vehicle-health-reason.success i {
+        background: #22c55e;
+    }
+
+    .vehicle-health-reason.warning i {
+        background: #f59e0b;
+    }
+
+    .vehicle-health-reason.critical i {
+        background: #dc2626;
+    }
+
+    .vehicle-health-reason span {
+        color: #475569;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .vehicle-health-reason strong {
+        color: #b91c1c;
+        font-size: 10px;
+        font-weight: 950;
+    }
+
+@media (max-width: 500px) {
+    .vehicle-health-score {
+        grid-template-columns: 1fr;
+    }
+}
 
 @media (max-width: 700px) {
     .vehicle-command-drawer {

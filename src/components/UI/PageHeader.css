@@ -44,6 +44,37 @@
         font-weight: 900;
         cursor: pointer;
     }
+.page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    width: 100%;
+}
+
+.page-header-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.page-header-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+@media (max-width: 850px) {
+    .page-header {
+        flex-direction: column;
+    }
+
+    .page-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
 
 @media (max-width: 800px) {
     .ui-page-header {

@@ -1,9 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
+<<<<<<< HEAD:src/pages/Alarms/index.jsx
 import "./Alarms.css";
 import { notificationEngine } from "../../services/notificationEngine";
 import { mobilizService } from "../../services/mobiliz";
 import { getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
 import { readStorageArray, readStorageJson, STORAGE_KEYS, writeStorageJson } from "../../services/browserStorage";
+=======
+import { CheckCheck, MapPin, RefreshCw } from "lucide-react";
+import "./Alarmlar.css";
+import { notificationEngine } from "../../services/notificationEngine";
+import { mobilizService } from "../../services/mobiliz";
+const GEOFENCE_EVENT_KEY = "fts_geofence_events";
+
+function getSpeed(vehicle) {
+    return Number(vehicle?.speed || vehicle?.velocity || 0);
+}
+
+function getPlate(vehicle) {
+    return vehicle?.plate || "-";
+}
+>>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Alarmlar/index.jsx
 
 function getAddress(vehicle) {
     return vehicle?.address || vehicle?.location || vehicle?.city || "-";
@@ -146,6 +162,9 @@ export default function Alarms() {
     const [typeFilter, setTypeFilter] = useState("all");
     const [search, setSearch] = useState("");
     const [lastRefresh, setLastRefresh] = useState(null);
+    const [error, setError] = useState("");
+    const [autoRefresh, setAutoRefresh] = useState(true);
+    const [acknowledged, setAcknowledged] = useState(() => new Set(JSON.parse(localStorage.getItem("fts_acknowledged_alarms") || "[]")));
     const [alarmSettings, setAlarmSettings] = useState(() => {
         try {
             const saved = readStorageJson(STORAGE_KEYS.alarmSettings, null);
@@ -174,6 +193,7 @@ export default function Alarms() {
 
     async function loadData() {
         setLoading(true);
+        setError("");
 
         try {
             const data = await mobilizService.araclar();
@@ -185,6 +205,7 @@ export default function Alarms() {
             setLastRefresh(new Date());
         } catch (err) {
             console.error("Alarm verisi alınamadı:", err);
+            setError(err?.message || "Alarm verisi alınamadı.");
         } finally {
             setLoading(false);
         }
@@ -193,10 +214,10 @@ export default function Alarms() {
     useEffect(() => {
         loadData();
 
+        if (!autoRefresh) return undefined;
         const timer = setInterval(loadData, 30000);
-
         return () => clearInterval(timer);
-    }, []);
+    }, [autoRefresh]);
 
     const vehicleAlarms = useMemo(
         () => createAlarms(vehicles, alarmSettings),
@@ -213,6 +234,19 @@ export default function Alarms() {
         [geofenceAlarms, vehicleAlarms]
     );
 
+    function alarmKey(alarm) {
+        return `${alarm.plate}|${alarm.type}|${alarm.title}`;
+    }
+
+    function acknowledgeAlarm(alarm) {
+        setAcknowledged((prev) => {
+            const next = new Set(prev);
+            next.add(alarmKey(alarm));
+            localStorage.setItem("fts_acknowledged_alarms", JSON.stringify([...next]));
+            return next;
+        });
+    }
+
     const filteredAlarms = useMemo(() => {
         return alarms.filter((alarm) => {
             const levelMatch =
@@ -225,9 +259,10 @@ export default function Alarms() {
                 normalizePlate(search)
             );
 
-            return levelMatch && typeMatch && searchMatch;
+            const notAcknowledged = !acknowledged.has(alarmKey(alarm));
+            return levelMatch && typeMatch && searchMatch && notAcknowledged;
         });
-    }, [alarms, levelFilter, typeFilter, search]);
+    }, [alarms, levelFilter, typeFilter, search, acknowledged]);
 
     const summary = useMemo(() => {
         return {
@@ -257,10 +292,18 @@ export default function Alarms() {
                     </p>
                 </div>
 
-                <button onClick={loadData} disabled={loading}>
-                    {loading ? "Yükleniyor..." : "Yenile"}
-                </button>
+                <div className="alarm-extra-actions">
+                    <label className="alarm-toggle">
+                        <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+                        30 sn otomatik yenile
+                    </label>
+                    <button onClick={loadData} disabled={loading}>
+                        <RefreshCw size={15} /> {loading ? "Yükleniyor..." : "Yenile"}
+                    </button>
+                </div>
             </div>
+
+            {error && <div className="alarm-error">{error}</div>}
 
             <div className="alarm-summary">
                 <div>
@@ -284,56 +327,59 @@ export default function Alarms() {
                 </div>
             </div>
 
+            <div className="alarm-toolbar">
             <div className="alarm-search">
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Plaka ara..."
-                />
-            </div>
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Plaka ara..."
+                    />
+                </div>
 
-            <div className="alarm-filter">
-                <button
-                    className={levelFilter === "all" ? "active" : ""}
-                    onClick={() => setLevelFilter("all")}
-                >
-                    Tümü
-                </button>
+                <div className="alarm-filter">
+                    <button
+                        className={levelFilter === "all" ? "active" : ""}
+                        onClick={() => setLevelFilter("all")}
+                    >
+                        Tümü
+                    </button>
 
-                <button
-                    className={levelFilter === "critical" ? "active" : ""}
-                    onClick={() => setLevelFilter("critical")}
-                >
-                    Kritik
-                </button>
+                    <button
+                        className={levelFilter === "critical" ? "active" : ""}
+                        onClick={() => setLevelFilter("critical")}
+                    >
+                        Kritik
+                    </button>
 
-                <button
-                    className={levelFilter === "warning" ? "active" : ""}
-                    onClick={() => setLevelFilter("warning")}
-                >
-                    Uyarı
-                </button>
+                    <button
+                        className={levelFilter === "warning" ? "active" : ""}
+                        onClick={() => setLevelFilter("warning")}
+                    >
+                        Uyarı
+                    </button>
 
-                <button
-                    className={levelFilter === "danger" ? "active" : ""}
-                    onClick={() => setLevelFilter("danger")}
-                >
-                    Dikkat
-                </button>
-            </div>
+                    <button
+                        className={levelFilter === "danger" ? "active" : ""}
+                        onClick={() => setLevelFilter("danger")}
+                    >
+                        Dikkat
+                    </button>
+                </div>
 
-            <div className="alarm-type-filter">
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                >
-                    <option value="all">Tüm Alarm Tipleri</option>
-                    <option value="speed">Hız Limiti</option>
-                    <option value="idle">Rölanti</option>
-                    <option value="oldData">Veri Eski</option>
-                    <option value="gps">GPS Yok</option>
-                    <option value="geofence">Geofence</option>
-                </select>
+                <div className="alarm-type-filter">
+                    <select
+                        value={typeFilter}
+                        onChange={(e) => setTypeFilter(e.target.value)}
+                    >
+                        <option value="all">Tüm Alarm Tipleri</option>
+                        <option value="speed">Hız Limiti</option>
+                        <option value="idle">Rölanti</option>
+                        <option value="oldData">Veri Eski</option>
+                        <option value="gps">GPS Yok</option>
+                        <option value="geofence">Geofence</option>
+                    </select>
+                </div>
+
             </div>
 
             <div className="alarm-settings">
@@ -424,6 +470,10 @@ export default function Alarms() {
                                         {alarm.level === "danger" && "Dikkat"}
                                     </em>
 
+                                    <button type="button" className="alarm-ack-btn" onClick={() => acknowledgeAlarm(alarm)}>
+                                        <CheckCheck size={13} /> İncelendi
+                                    </button>
+
                                     {mapsUrl && (
                                         <a
                                             className="alarm-map-link"
@@ -431,7 +481,7 @@ export default function Alarms() {
                                             target="_blank"
                                             rel="noreferrer"
                                         >
-                                            Haritada Aç
+                                            <MapPin size={13} /> Haritada Aç
                                         </a>
                                     )}
                                 </div>

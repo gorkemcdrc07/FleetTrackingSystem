@@ -1,6 +1,11 @@
+<<<<<<< HEAD:src/services/tmsIntegrationService.js
 ﻿const API_BASE_URL =
     import.meta.env?.VITE_API_BASE_URL ||
     "https://filo-backend-57wx.onrender.com";
+=======
+import { apiUrl } from "../../config/api";
+import { requestJson, responseList } from "../../services/requestJson";
+>>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/tmsService.js
 
 function normalizeDocumentNo(value) {
     return String(value || "")
@@ -12,7 +17,7 @@ function isSFRDocument(item) {
     return normalizeDocumentNo(item?.DocumentNo).startsWith("SFR");
 }
 
-export async function syncFromTMS({ start, end }) {
+export async function syncFromTMS({ start, end, signal, onRetry }) {
     if (!start || !end) {
         throw new Error("TMS sorgusu için başlangıç ve bitiş tarihi zorunludur.");
     }
@@ -30,6 +35,7 @@ export async function syncFromTMS({ start, end }) {
         WorkingTypesId: Array.from({ length: 80 }, (_, index) => index + 1),
     };
 
+<<<<<<< HEAD:src/services/tmsIntegrationService.js
     const requestUrl = `${API_BASE_URL}/api/proxy/tmsdespatches`;
 
     let response;
@@ -94,6 +100,14 @@ export async function syncFromTMS({ start, end }) {
     const sfrRows = allRows.filter(isSFRDocument);
 
     return sfrRows;
+=======
+    if(new Date(start)>new Date(end))throw new Error("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
+    const json=await requestJson(apiUrl("/api/proxy/tmsdespatches"),{
+        method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),signal
+    },{timeoutMs:90000,retries:1,onRetry});
+    if(json?.Success===false || json?.success===false)throw new Error("TMS sorgusu başarısız oldu. Mevcut kayıtlar korunuyor.");
+    return responseList(json).filter(isSFRDocument);
+>>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/tmsService.js
 }
 
 export function mapTMSRows(list) {

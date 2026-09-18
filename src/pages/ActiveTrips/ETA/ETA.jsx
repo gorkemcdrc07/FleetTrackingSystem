@@ -114,7 +114,7 @@ function parseGunValue(value) {
         .replace(/[^\d.]/g, "");
 
     const num = Number(text);
-    return Number.isFinite(num) ? num : null;
+    return text && Number.isFinite(num) && num > 0 ? num : null;
 }
 
 function getActualEtaInfo(row) {
@@ -158,8 +158,9 @@ function getActualEtaInfo(row) {
     }
 
     const totalHours = diffMs / (1000 * 60 * 60);
-    const days = Math.floor(totalHours / 24);
-    const hours = Math.round(totalHours % 24);
+    const roundedHours = Math.round(totalHours);
+    const days = Math.floor(roundedHours / 24);
+    const hours = roundedHours % 24;
 
     return {
         startValue,
@@ -183,8 +184,8 @@ function ETA({ row, onClose }) {
         const lastDeliveryStop = getLastDeliveryStop(row);
 
         const yuklemeIl =
-            getLastValue(row.yukleme_ili) ||
             firstLoadStop?.il ||
+            split(row.yukleme_ili)[0] ||
             firstLoadStop?.city ||
             row.ham_veri?.yukleme_ili;
 
@@ -201,8 +202,8 @@ function ETA({ row, onClose }) {
             row.ham_veri?.yukleme_ilce;
 
         const teslimIl =
-            getLastValue(row.teslim_ili) ||
             lastDeliveryStop?.il ||
+            getLastValue(row.teslim_ili) ||
             lastDeliveryStop?.city ||
             row.ham_veri?.teslim_ili;
 
@@ -235,6 +236,7 @@ function ETA({ row, onClose }) {
     useEffect(() => {
         if (!row || !etaKeys) return;
 
+        let disposed=false;
         async function fetchEta() {
             setLoading(true);
             setErrorText("");
@@ -261,7 +263,21 @@ function ETA({ row, onClose }) {
                     return;
                 }
 
+<<<<<<< HEAD:src/pages/ActiveTrips/ETA/ETA.jsx
                 const matchedEta = await findEtaReference(etaKeys.cikis, etaKeys.varis);
+=======
+                const { data, error } = await supabase
+                    .from("eta_referanslari")
+                    .select("*")
+                    .ilike("cikis", `${etaKeys.cikis}%`)
+                    .ilike("varis", `${etaKeys.varis}%`)
+                    .limit(1).abortSignal(AbortSignal.timeout(20000));
+                if(disposed)return;
+
+                if (error) throw error;
+
+                const matchedEta = data?.[0];
+>>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/ETA/ETA.jsx
 
                 if (!matchedEta) {
                     setErrorText(`${etaKeys.cikis} - ${etaKeys.varis} için ETA kaydı bulunamadı.`);
@@ -270,14 +286,16 @@ function ETA({ row, onClose }) {
 
                 setEtaData(matchedEta);
             } catch (err) {
+                if(disposed)return;
                 console.error("ETA sorgu hatası:", err);
                 setErrorText(err?.message || "ETA bilgisi alınırken hata oluştu.");
             } finally {
-                setLoading(false);
+                if(!disposed)setLoading(false);
             }
         }
 
         fetchEta();
+        return()=>{disposed=true;};
     }, [row, etaKeys]);
 
     if (!row) return null;

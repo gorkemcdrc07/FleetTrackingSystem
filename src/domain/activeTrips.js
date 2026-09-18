@@ -2,9 +2,19 @@ export const ALLOWED_WORKING_TYPES = [
     "FİLO",
     "DENTAŞ ÇORLU KİRALIK",
     "PEPSİ KİRALIK",
+<<<<<<< HEAD
 ];
 
 export function splitTripValues(value) {
+=======
+    "DENTAŞ ESKİŞEHİR KİRALIK",
+    "ES GLOBAL FİLO",
+    "GOLD HARVEST KİRALIK",
+    "MODERN AMBALAJ FİLO",
+];
+
+function split(value) {
+>>>>>>> e19f46db99295929579026857074dda7619efeec
     return String(value || "").split(";").map((item) => item.trim()).filter(Boolean);
 }
 
@@ -24,6 +34,7 @@ function uniqueStops(stops) {
 }
 
 export function createRouteDetails(row) {
+<<<<<<< HEAD
     const loadingPoints = splitTripValues(row.yukleme_noktasi);
     const loadingCities = splitTripValues(row.yukleme_ili);
     const loadingCounties = splitTripValues(row.yukleme_ilcesi);
@@ -31,6 +42,15 @@ export function createRouteDetails(row) {
     const deliveryPoints = splitTripValues(row.teslim_noktasi);
     const deliveryCities = splitTripValues(row.teslim_ili);
     const deliveryCounties = splitTripValues(row.teslim_ilcesi);
+=======
+    const loadingPoints = split(row.yukleme_noktasi);
+    const loadingCities = split(row.yukleme_ili);
+    const loadingCounties = split(row.yukleme_ilcesi);
+    const deliveryCompanies = split(row.teslim_alan_firma);
+    const deliveryPoints = split(row.teslim_noktasi);
+    const deliveryCities = split(row.teslim_ili);
+    const deliveryCounties = split(row.teslim_ilcesi);
+>>>>>>> e19f46db99295929579026857074dda7619efeec
 
     const loadingCount = Math.max(loadingPoints.length, loadingCities.length, loadingCounties.length);
     const deliveryCount = Math.max(
@@ -59,10 +79,26 @@ export function createRouteDetails(row) {
     return [...loadingStops, ...deliveryStops];
 }
 
+<<<<<<< HEAD
 export function isAllowedWorkingType(value) {
     return ALLOWED_WORKING_TYPES.includes(
         String(value || "").toLocaleUpperCase("tr-TR").trim()
     );
+=======
+function normalizeWorkingType(value) {
+    return String(value || "")
+        .toLocaleUpperCase("tr-TR")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+const ALLOWED_WORKING_TYPE_SET = new Set(
+    ALLOWED_WORKING_TYPES.map(normalizeWorkingType)
+);
+
+export function isAllowedWorkingType(value) {
+    return ALLOWED_WORKING_TYPE_SET.has(normalizeWorkingType(value));
+>>>>>>> e19f46db99295929579026857074dda7619efeec
 }
 
 export function prepareActiveTrips(rows, { completed, passive }) {
