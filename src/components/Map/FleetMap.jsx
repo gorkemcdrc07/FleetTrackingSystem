@@ -1,9 +1,3 @@
-<<<<<<< HEAD:src/components/Map/FleetMap.jsx
-﻿import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import { useEffect, useMemo, useState } from "react";
-import VehicleMarkers from "./VehicleMarkers";
-import "./FleetMap.css";
-=======
 ﻿import {
     MapContainer,
     ScaleControl,
@@ -18,9 +12,8 @@ import {
     useState,
 } from "react";
 
-import Markerlar from "./Markerlar";
-import "./Harita.css";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/components/Harita/Harita.jsx
+import Markerlar from "./VehicleMarkers";
+import "./FleetMap.css";
 
 const DEFAULT_CENTER = [39.0, 35.0];
 
@@ -59,13 +52,6 @@ const MAP_THEMES = {
     },
 };
 
-<<<<<<< HEAD:src/components/Map/FleetMap.jsx
-function getAverageCenter(vehicles = []) {
-    const valid = vehicles.filter(
-        (v) =>
-            Number.isFinite(Number(v.latitude || v.lat || v.y)) &&
-            Number.isFinite(Number(v.longitude || v.lng || v.lon || v.x))
-=======
 function normalizePlate(value) {
     return String(value || "")
         .replace(/\s/g, "")
@@ -142,7 +128,6 @@ function getAverageCenter(vehicles = []) {
             lat: 0,
             lng: 0,
         }
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/components/Harita/Harita.jsx
     );
 
     return [
@@ -151,18 +136,10 @@ function getAverageCenter(vehicles = []) {
     ];
 }
 
-<<<<<<< HEAD:src/components/Map/FleetMap.jsx
-function normalizePlate(value) {
-    return String(value || "").replace(/\s/g, "").toUpperCase();
-}
-
-function MapFocus({ vehicles, selectedPlate }) {
-=======
 function SelectedVehicleFocus({
     vehicles,
     selectedPlate,
 }) {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/components/Harita/Harita.jsx
     const map = useMap();
 
     useEffect(() => {
@@ -326,10 +303,6 @@ export default function FleetMap({
 }) {
     const shellRef = useRef(null);
 
-<<<<<<< HEAD:src/components/Map/FleetMap.jsx
-    const center = useMemo(() => getAverageCenter(vehicles), [vehicles]);
-    const activeTheme = MAP_THEMES[theme] || MAP_THEMES.standart;
-=======
     const [theme, setTheme] =
         useState(defaultTheme);
 
@@ -422,7 +395,6 @@ export default function FleetMap({
             Date.now()
         );
     }
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/components/Harita/Harita.jsx
 
     return (
         <div
@@ -657,31 +629,6 @@ export default function FleetMap({
                     </div>
                 </div>
             </div>
-<<<<<<< HEAD:src/components/Map/FleetMap.jsx
-
-            <MapContainer
-                center={center}
-                zoom={zoom}
-                className="harita-map"
-            >
-                <TileLayer
-                    attribution={activeTheme.attribution}
-                    url={activeTheme.url}
-                />
-
-                <MapFocus
-                    vehicles={vehicles}
-                    selectedPlate={selectedPlate}
-                />
-
-                <VehicleMarkers
-                    vehicles={vehicles}
-                    selectedPlate={selectedPlate}
-                    onVehicleClick={onVehicleClick}
-                />
-            </MapContainer>
-=======
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/components/Harita/Harita.jsx
         </div>
     );
 }

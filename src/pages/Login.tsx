@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-﻿import { useEffect, useState } from "react";
-import { createSessionUser } from "../domain/userSession";
-import { authenticateLogin } from "../services/authService";
-import { getRememberedUsername, saveSession } from "../services/sessionStorage";
-=======
 import { useEffect, useMemo, useState } from "react";
 import {
     ArrowRight,
@@ -20,8 +14,10 @@ import {
     Wifi,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
+import { authenticateLogin } from "../services/authService";
+import { getRememberedUsername, saveSession } from "../services/sessionStorage";
+import { createSessionUser } from "../domain/userSession";
 import ftsLogo from "../assets/fts-logo.png";
->>>>>>> e19f46db99295929579026857074dda7619efeec
 import "./Login.css";
 
 type KullaniciYetki = Record<string, unknown>;
@@ -131,18 +127,7 @@ function Login({ onLogin }: LoginProps) {
 
             const sessionUser: KullaniciSession = createSessionUser(data!);
 
-<<<<<<< HEAD
             saveSession({ username: cleanUser, user: sessionUser, remember });
-
-=======
-            if (remember) {
-                localStorage.setItem("fts_kullanici", cleanUser);
-            } else {
-                localStorage.removeItem("fts_kullanici");
-            }
-
-            localStorage.setItem("fts_user", JSON.stringify(sessionUser));
->>>>>>> e19f46db99295929579026857074dda7619efeec
             setSuccess(true);
 
             window.setTimeout(() => {

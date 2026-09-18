@@ -2,13 +2,9 @@ import { Route, RefreshCw } from "lucide-react";
 import { requestJson, responseList } from "../../../services/requestJson";
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Detay.css";
-<<<<<<< HEAD:src/pages/ActiveTrips/Details/RouteHistory.jsx
-import { mobilizService } from "../../../services/mobiliz";
-=======
 import { apiUrl } from "../../../config/api";
 
 const API_URL = apiUrl("/api/mobiliz/activity-detail");
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/Detay/RotaGecmisi.jsx
 
 function pad(value) {
     return String(value).padStart(2, "0");
@@ -80,12 +76,8 @@ function getAddress(item) {
     );
 }
 
-<<<<<<< HEAD:src/pages/ActiveTrips/Details/RouteHistory.jsx
-export default function RouteHistory({ plaka }) {
-=======
 export default function RotaGecmisi({ plaka }) {
     const generation=useRef(0);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/Detay/RotaGecmisi.jsx
     const [loading, setLoading] = useState(false);
     const [locations, setLocations] = useState([]);
     const [error, setError] = useState("");
@@ -115,15 +107,8 @@ export default function RotaGecmisi({ plaka }) {
                     endDate.getTime() - 24 * 60 * 60 * 1000
                 );
 
-                const params = {
+                const params = new URLSearchParams({
                     plate: normalizedPlate,
-<<<<<<< HEAD:src/pages/ActiveTrips/Details/RouteHistory.jsx
-                    start: formatDateForMobiliz(startDate),
-                    end: formatDateForMobiliz(endDate),
-                };
-
-                const data = (await mobilizService.locations(params, { signal }))
-=======
                     startTime: formatDateForMobiliz(startDate),
                     endTime: formatDateForMobiliz(endDate),
                 });
@@ -131,7 +116,6 @@ export default function RotaGecmisi({ plaka }) {
                 const json=await requestJson(`${API_URL}?${params.toString()}`,{signal},{timeoutMs:30000,retries:1});
                 if(id!==generation.current)return;
                 const data = responseList(json)
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/Detay/RotaGecmisi.jsx
                     .filter(Boolean)
                     .sort((a, b) => {
                         const aTime = new Date(

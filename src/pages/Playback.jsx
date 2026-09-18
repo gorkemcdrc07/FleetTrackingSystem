@@ -17,9 +17,6 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { mobilizService } from "../services/mobiliz";
-<<<<<<< HEAD
-import { readStorageJson, removeStorageItem, STORAGE_KEYS } from "../services/browserStorage";
-=======
 import {
     Activity,
     CalendarDays,
@@ -42,7 +39,6 @@ import {
     CalendarClock,
     ExternalLink,
 } from "lucide-react";
->>>>>>> e19f46db99295929579026857074dda7619efeec
 import "leaflet/dist/leaflet.css";
 import "./Playback.css";
 

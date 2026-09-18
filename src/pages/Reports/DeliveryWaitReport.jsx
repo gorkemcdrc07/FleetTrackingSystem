@@ -2,15 +2,9 @@ import { Fragment, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import { saveAs } from "file-saver";
-<<<<<<< HEAD:src/pages/Reports/DeliveryWaitReport.jsx
-import { normalizeRouteDetails } from "../../domain/reportTrips";
-import { listReportTrips } from "../../services/reportRepository";
-import "./DeliveryWaitReport.css";
-=======
 import { supabase } from "../../supabaseClient";
 import { CalendarDays, ChevronDown, ChevronUp, Download, FilterX, RefreshCw, Search } from "lucide-react";
-import "./TeslimdeBekleme.css";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Raporlar/TeslimdeBekleme.jsx
+import "./DeliveryWaitReport.css";
 
 dayjs.locale("tr");
 

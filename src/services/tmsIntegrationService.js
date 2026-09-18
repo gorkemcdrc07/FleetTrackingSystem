@@ -1,11 +1,5 @@
-<<<<<<< HEAD:src/services/tmsIntegrationService.js
-﻿const API_BASE_URL =
-    import.meta.env?.VITE_API_BASE_URL ||
-    "https://filo-backend-57wx.onrender.com";
-=======
-import { apiUrl } from "../../config/api";
-import { requestJson, responseList } from "../../services/requestJson";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/tmsService.js
+import { apiUrl } from "../config/api";
+import { requestJson, responseList } from "./requestJson";
 
 function normalizeDocumentNo(value) {
     return String(value || "")
@@ -35,79 +29,12 @@ export async function syncFromTMS({ start, end, signal, onRetry }) {
         WorkingTypesId: Array.from({ length: 80 }, (_, index) => index + 1),
     };
 
-<<<<<<< HEAD:src/services/tmsIntegrationService.js
-    const requestUrl = `${API_BASE_URL}/api/proxy/tmsdespatches`;
-
-    let response;
-
-    try {
-        response = await fetch(requestUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-            body: JSON.stringify(body),
-        });
-    } catch (networkError) {
-        throw new Error(
-            `TMS backend sunucusuna bağlanılamadı: ${networkError?.message || "Bilinmeyen bağlantı hatası"
-            }`
-        );
-    }
-
-    const responseText = await response.text();
-
-    let responseJson = null;
-
-    if (responseText) {
-        try {
-            responseJson = JSON.parse(responseText);
-        } catch {
-            throw new Error(
-                `TMS sunucusu geçersiz cevap döndürdü. HTTP ${response.status
-                }: ${responseText.slice(0, 500)}`
-            );
-        }
-    }
-
-    if (!response.ok) {
-        const errorDetail =
-            responseJson?.detail ||
-            responseJson?.error ||
-            responseJson?.message ||
-            responseText ||
-            "Bilinmeyen sunucu hatası";
-
-        throw new Error(
-            `TMS API hatası — HTTP ${response.status}: ${String(
-                errorDetail
-            ).slice(0, 1000)}`
-        );
-    }
-
-    const allRows = Array.isArray(responseJson?.Data)
-        ? responseJson.Data
-        : Array.isArray(responseJson?.data)
-            ? responseJson.data
-            : Array.isArray(responseJson)
-                ? responseJson
-                : [];
-
-    /*
-     * Yalnızca DocumentNo değeri SFR ile başlayan kayıtları alıyoruz.
-     */
-    const sfrRows = allRows.filter(isSFRDocument);
-
-    return sfrRows;
-=======
     if(new Date(start)>new Date(end))throw new Error("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
     const json=await requestJson(apiUrl("/api/proxy/tmsdespatches"),{
         method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),signal
     },{timeoutMs:90000,retries:1,onRetry});
     if(json?.Success===false || json?.success===false)throw new Error("TMS sorgusu başarısız oldu. Mevcut kayıtlar korunuyor.");
     return responseList(json).filter(isSFRDocument);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/tmsService.js
 }
 
 export function mapTMSRows(list) {

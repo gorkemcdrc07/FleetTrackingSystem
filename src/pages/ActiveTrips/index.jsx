@@ -1,123 +1,3 @@
-<<<<<<< HEAD:src/pages/ActiveTrips/index.jsx
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { deactivateActiveTrip, moveTripToCompleted, updateActiveTrip } from "../../services/tripRepository";
-import { createRouteDetails as createRotaDetaylari, splitTripValues as split } from "../../domain/activeTrips";
-import { useActiveTrips } from "./useActiveTrips";
-import { getCurrentUser } from "../../services/sessionStorage";
-import "./ActiveTrips.css";
-import TripDetails from "./TripDetails";
-import ColumnLayout from "./ViewSettings/ColumnLayout";
-import ETA from "./ETA/ETA";
-import { logAuditEvent } from "../../services/auditLogger";
-import { findUserByIdentity, findUserWithPreferences, updateUserPreferences } from "../../services/userRepository";
-import { findEtaReference } from "../../services/etaReferenceRepository";
-
-function IconChevron({ open }) {
-    return (
-        <svg viewBox="0 0 16 16" fill="none" width="13" height="13" style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.18s ease", flexShrink: 0 }}>
-            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function IconPin() {
-    return (
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-            <path d="M12 21s-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-8 12-8 12z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="2" />
-        </svg>
-    );
-}
-
-function IconDetail() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" />
-            <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconETA() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconIkaz() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M12 9v4M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function IconTonaj() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path
-                d="M3 17h18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-            <path
-                d="M7 17V9l5-4 5 4v8"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
-function IconTrash() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path
-                d="M3 6h18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-
-            <path
-                d="M8 6V4h8v2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-
-            <path
-                d="M19 6l-1 14H6L5 6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinejoin="round"
-            />
-
-            <path
-                d="M10 11v5M14 11v5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
-function IconColumns() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
-            <path d="M9 4v16M15 4v16" stroke="currentColor" strokeWidth="2" />
-        </svg>
-    );
-=======
 import { hasWarning, toggleWarningText } from "../../domain/tripWarning";
 ﻿import { createPortal } from "react-dom";
 import { Search, RefreshCw, CalendarDays, SlidersHorizontal, Download, ArrowRight, ChevronLeft, ChevronRight, MoreHorizontal, X, Truck, Route, Clock3, Weight, TriangleAlert, Trash2, Columns3, FileText, MapPin, ListFilter, CheckCircle2, Copy, CheckSquare2, Square, Sparkles, Layers3, Keyboard, RotateCcw, ClipboardList, CalendarRange } from "lucide-react";
@@ -126,12 +6,12 @@ import { supabase } from "../../supabaseClient";
 import { moveTripToCompleted } from "../../services/tripRepository";
 import { createRouteDetails as createRotaDetaylari } from "../../domain/activeTrips";
 import { useActiveTrips } from "./useActiveTrips";
-import "./AktifSeferler.css";
-import Detaylar from "./detaylar";
-import SutunDuzeni from "./Gorunum/SutunDuzeni";
+import "./ActiveTrips.css";
+import Detaylar from "./TripDetails";
+import SutunDuzeni from "./ViewSettings/ColumnLayout";
 import ETA from "./ETA/ETA";
 import * as XLSX from "xlsx";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import "./AktifSeferlerModern.css";
 import "./DetailsModern.css";
 
@@ -160,7 +40,6 @@ function MoreActions({children, plate}) {
         return ()=>{document.removeEventListener("pointerdown",dismiss);document.removeEventListener("keydown",close);window.removeEventListener("resize",move);};
     },[position]);
     return <><button ref={trigger} className="op-btn trip-more" aria-label={`${plate || "Sefer"} diğer işlemler`} aria-expanded={!!position} title="Diğer işlemler" onClick={e=>{e.stopPropagation();const r=trigger.current.getBoundingClientRect();setPosition(position?null:{left:Math.min(r.left,window.innerWidth-200),top:Math.min(r.bottom+8,window.innerHeight-180)});}}><MoreHorizontal size={17}/></button>{position && createPortal(<div ref={panel} className="trip-actions-popover" role="group" aria-label="Diğer sefer işlemleri" style={position}>{React.Children.map(children,child=>React.isValidElement(child)?React.cloneElement(child,{onClick:async e=>{try{await child.props.onClick?.(e);}finally{setPosition(null);trigger.current?.focus();}}}):child)}</div>,document.body)}</>;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/index.jsx
 }
 
 function RouteStep({ index, total, step }) {
@@ -940,11 +819,7 @@ function ColumnFiltersPanel({ columns, rows, filters, onChange, onClearAll }) {
     );
 }
 
-<<<<<<< HEAD:src/pages/ActiveTrips/index.jsx
-function ActiveTrips() {
-=======
 function AktifSeferler() {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/index.jsx
     const [expandedId, setExpandedId] = useState(null);
     const [search, setSearch] = useState("");
     const initialPrefs = useMemo(() => loadActiveTripsPreferences(), []);
@@ -976,17 +851,10 @@ function AktifSeferler() {
         rows,
         setRows,
         loading,
-<<<<<<< HEAD:src/pages/ActiveTrips/index.jsx
-        syncing,
-        synchronize: tmsdenCekVeKaydet,
-    } = useActiveTrips({ startDate, endDate });
-    const [showColumnLayout, setShowColumnLayout] = useState(false);
-=======
         syncing, syncState, loadError, refresh,
         synchronize: tmsdenCekVeKaydet,
     } = useActiveTrips({ startDate, endDate });
     const [showSutunDuzeni, setShowSutunDuzeni] = useState(false);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/index.jsx
     const [showColumnFilters, setShowColumnFilters] = useState(false);
     const [toast, setToast] = useState(null);
     const [completionCandidate, setCompletionCandidate] = useState(null);
@@ -1373,25 +1241,6 @@ function AktifSeferler() {
         warningPending.current.add(row.sefer_no);
         const next = toggleWarningText(row.aciklama);
         try {
-<<<<<<< HEAD:src/pages/ActiveTrips/index.jsx
-            await updateActiveTrip(row, { aciklama: IKAZ_ACIKLAMA });
-
-            setToast({
-                type: "success",
-                message: "İkaz verildi ve açıklama kaydedildi.",
-            });
-
-            setTimeout(() => setToast(null), 2600);
-        } catch (err) {
-            console.error("İkaz açıklaması kaydedilemedi:", err);
-
-            setToast({
-                type: "error",
-                message: "İkaz kaydedilirken hata oluştu.",
-            });
-
-            setTimeout(() => setToast(null), 2600);
-=======
             const { data, error } = await supabase.from("aktif_seferler")
                 .update({ aciklama: next }).eq("sefer_no", row.sefer_no).select("sefer_no, aciklama");
             if (error) throw error;
@@ -1403,7 +1252,6 @@ function AktifSeferler() {
         } finally {
             warningPending.current.delete(row.sefer_no);
             setTimeout(()=>setToast(null),4000);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/index.jsx
         }
     }, [setRows]);
     const handleTonaj = useCallback(async (row) => {
@@ -1684,31 +1532,6 @@ function AktifSeferler() {
             <header className="aktif-header">
                 <div><span className="aktif-eyebrow">OPERASYON / SEFER YÖNETİMİ</span><h1>Aktif Seferler</h1><p>Atamadan teslimata, tüm operasyonunuzu yönetin.</p></div>
                 <div className="aktif-header-actions">
-<<<<<<< HEAD:src/pages/ActiveTrips/index.jsx
-                    <div className="aktif-count-badge">{visibleRows.length}/{baseRows.length} sefer</div>
-
-                    {canExport && (
-                        <button
-                            className="eta-export-btn"
-                            type="button"
-                            onClick={exportEtaUyumsuzExcel}
-                            disabled={!etaUyumsuzRows.length}
-                            title="ETA uyumsuz satırları Excel'e aktar"
-                        >
-                            ETA Uyumsuz Excel
-                            <span>{etaUyumsuzRows.length}</span>
-                        </button>
-                    )}
-                    <button
-                        className="columns-icon-btn"
-                        type="button"
-                        onClick={() => setShowColumnLayout(true)}
-                        title="Sütun Düzeni"
-                        aria-label="Sütun Düzeni"
-                    >
-                        <IconColumns />
-                    </button>
-=======
                     {canExport && <button className="eta-export-btn" type="button" onClick={exportEtaUyumsuzExcel} disabled={!etaUyumsuzRows.length} title="ETA uyumsuz satırları Excel’e aktar"><Download size={16}/> ETA raporu <span>{etaUyumsuzRows.length}</span></button>}
                     <button className="columns-icon-btn" type="button" onClick={()=>setShowSutunDuzeni(true)} aria-label="Sütun Düzeni"><IconColumns/> Görünüm</button>
                 </div>
@@ -1740,7 +1563,6 @@ function AktifSeferler() {
                 <div className="project-filter-list" aria-label="Proje filtreleri">
                     <button type="button" className={`project-filter-chip ${projectFilter==="all"?"selected":""}`} aria-pressed={projectFilter==="all"} onClick={()=>setProjectFilter("all")}><span>Tüm projeler</span><b>{baseRows.length}</b></button>
                     {projectStats.map(project=><button type="button" key={project.key} className={`project-filter-chip ${projectFilter===project.key?"selected":""}`} aria-pressed={projectFilter===project.key} title={`${project.label}: ${project.count} aktif sefer`} onClick={()=>setProjectFilter(prev=>prev===project.key?"all":project.key)}><span>{project.label}</span><b>{project.count}</b></button>)}
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/index.jsx
                 </div>
             </div>
             <div className="table-toolbar">
@@ -1906,16 +1728,11 @@ function AktifSeferler() {
                 </div>
             </div>
 
-<<<<<<< HEAD:src/pages/ActiveTrips/index.jsx
-            {showColumnLayout && (
-                <ColumnLayout
-=======
             <footer className="trip-pagination"><span>{visibleRows.length ? (currentPage-1)*pageSize+1 : 0}–{Math.min(currentPage*pageSize,visibleRows.length)} / {visibleRows.length} sefer</span><div><label>Satır <select aria-label="Sayfa başına satır" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>{[25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label><button aria-label="Önceki sayfa" disabled={currentPage===1} onClick={()=>setPage(currentPage-1)}><ChevronLeft size={17}/></button><b>{currentPage} / {pageCount}</b><button aria-label="Sonraki sayfa" disabled={currentPage===pageCount} onClick={()=>setPage(currentPage+1)}><ChevronRight size={17}/></button></div></footer>
             </section>
 
             {showSutunDuzeni && (
                 <SutunDuzeni
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/index.jsx
                     columns={orderedColumns}
                     visibleColumnKeys={visibleColumnKeys}
                     onToggleColumn={toggleColumn}

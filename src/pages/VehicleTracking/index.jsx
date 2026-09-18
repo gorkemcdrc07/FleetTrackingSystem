@@ -1,13 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-import FleetMap from "../../components/Map/FleetMap";
-import MapFilters from "../../components/Map/MapFilters";
-import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
-import "../../components/Map/FleetMap.css";
-import { mobilizService } from "../../services/mobiliz";
-import { STORAGE_KEYS, writeStorageJson, writeStorageText } from "../../services/browserStorage";
-import { getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
-=======
 import {
     Activity,
     CarFront,
@@ -27,9 +18,9 @@ import {
     WifiOff,
     Zap,
 } from "lucide-react";
-import Harita from "../../components/Harita/Harita";
+import Harita from "../../components/Map/FleetMap";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
-import "../../components/Harita/Harita.css";
+import "../../components/Map/FleetMap.css";
 import "./AracTakibiModern.css";
 import { apiUrl } from "../../config/api";
 
@@ -47,7 +38,6 @@ function getPlate(vehicle) {
 function getSpeed(vehicle) {
     return Number(vehicle?.speed || vehicle?.velocity || 0);
 }
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
 
 function getStatus(vehicle) {
     const speed = getSpeed(vehicle);
@@ -95,9 +85,6 @@ function formatDate(value) {
     return date.toLocaleString("tr-TR");
 }
 
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-export default function VehicleTracking({ onNavigate }) {
-=======
 function getResponseList(json) {
     if (Array.isArray(json)) return json;
     if (Array.isArray(json?.data)) return json.data;
@@ -115,7 +102,6 @@ function getGroup(vehicle) {
 }
 
 export default function AracTakibi({ onNavigate }) {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -138,11 +124,6 @@ export default function AracTakibi({ onNavigate }) {
         try {
             setLoading(true);
             setError("");
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-
-            const data = await mobilizService.araclar({ signal });
-
-=======
             const response = await fetch(API_URL, {
                 method: "GET",
                 headers: { Accept: "application/json" },
@@ -160,7 +141,6 @@ export default function AracTakibi({ onNavigate }) {
                 throw new Error(json?.message || json?.error || `Mobiliz isteği başarısız oldu. HTTP ${response.status}`);
             }
             const data = getResponseList(json);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
             setVehicles(data);
             setSelectedVehicle((previous) => {
                 if (!previous) return data[0] || null;
@@ -241,23 +221,13 @@ export default function AracTakibi({ onNavigate }) {
     }
 
     function handleGoPlayback(vehicle) {
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-        writeStorageJson(STORAGE_KEYS.playbackVehicle, vehicle);
-
-=======
         localStorage.setItem("fts_playback_vehicle", JSON.stringify(vehicle));
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
         setDrawerOpen(false);
         onNavigate?.("Playback");
     }
 
     function handleOpenOperations(vehicle) {
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-        writeStorageText(STORAGE_KEYS.focusPlate, getPlate(vehicle));
-
-=======
         localStorage.setItem("fts_focus_plate", getPlate(vehicle));
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
         setDrawerOpen(false);
         onNavigate?.("Operasyon Merkezi");
     }
@@ -316,13 +286,6 @@ export default function AracTakibi({ onNavigate }) {
                 </div>
             )}
 
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-            <MapFilters
-                vehicles={vehicles}
-                filters={filters}
-                onChange={setFilters}
-            />
-=======
             <section className="at-filter-card">
                 <div className="at-filter-title"><ListFilter size={18} /><div><strong>Araçları filtrele</strong><span>{activeFilterCount ? `${activeFilterCount} aktif filtre` : "Plaka, konum, filo veya grup ile hızlıca daraltın"}</span></div></div>
                 <div className="at-filter-grid">
@@ -333,7 +296,6 @@ export default function AracTakibi({ onNavigate }) {
                     <button className="at-reset-button" type="button" onClick={resetFilters} disabled={!activeFilterCount}><RotateCcw size={16} /> Temizle</button>
                 </div>
             </section>
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
 
             <section className="at-tracking-workspace">
                 <aside className="at-vehicle-panel">
@@ -365,20 +327,6 @@ export default function AracTakibi({ onNavigate }) {
                     </div>
                 </aside>
 
-<<<<<<< HEAD:src/pages/VehicleTracking/index.jsx
-                <div className="arac-harita-alani premium">
-                    <FleetMap
-                        vehicles={filteredVehicles}
-                        selectedPlate={
-                            selectedVehicle
-                                ? getPlate(selectedVehicle)
-                                : undefined
-                        }
-                        onVehicleClick={handleSelectVehicle}
-                        height="720px"
-                        zoom={6}
-                    />
-=======
                 <div className="at-map-column">
                     <div className="at-map-head">
                         <div><strong>Canlı Filo Haritası</strong><span>Filtrelenmiş {filteredVehicles.length} araç haritada gösteriliyor</span></div>
@@ -387,7 +335,6 @@ export default function AracTakibi({ onNavigate }) {
                     <div className="at-map-shell">
                         <Harita vehicles={filteredVehicles} selectedPlate={selectedVehicle ? getPlate(selectedVehicle) : undefined} onVehicleClick={handleSelectVehicle} height="680px" zoom={6} />
                     </div>
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracTakibi/index.jsx
                 </div>
             </section>
 

@@ -1,18 +1,3 @@
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-import { useEffect, useMemo, useState } from "react";
-import {
-    buildHandlingFeePayload,
-    filterHandlingFees,
-    summarizeHandlingFees,
-} from "../../domain/handlingFees";
-import {
-    deleteHandlingFee,
-    listHandlingFees,
-    saveHandlingFee,
-} from "../../services/handlingFeeRepository";
-import { getCurrentUser } from "../../services/sessionStorage";
-import "./HandlingFee.css";
-=======
 import "./HakedisPremium.css";
 import { applyHakedisSheetBranding } from "./shared/hakedisSheetBranding";
 // src/Hakedisler/Hamaliye.js
@@ -37,7 +22,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import UploadFileIcon from '@mui/icons-material/UploadFile'; // <-- İçeri aktarma için eklendi
 import { supabase } from "../../supabaseClient";
 import * as XLSX from 'xlsx'; // <-- Excel için eklendi
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
 
 // plakalar için dönen alanlar
 const PLATE_FIELDS = "id, plaka, treyler, surucu_adi";
@@ -97,11 +81,6 @@ const getChipColor = (gelirGider) => {
     return gelirGider === "Prim" ? { color: "success", variant: "filled" } : { color: "primary", variant: "filled" };
 };
 
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-function bugununTarihi() {
-    return new Date().toISOString().slice(0, 10);
-}
-=======
 export default function Hamaliye() {
     // tablo state
     const [rows, setRows] = useState([]);
@@ -117,7 +96,6 @@ export default function Hamaliye() {
     const [sortDir, setSortDir] = useState("desc");
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
 
     // localStorage kullanıcı adı
     const [localUserName, setLocalUserName] = useState("");
@@ -137,28 +115,10 @@ export default function Hamaliye() {
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
 
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-function getInitialForm() {
-    const aktifKullanici = getCurrentUser();
-
-    const kullaniciAdi =
-        aktifKullanici?.ad ||
-        aktifKullanici?.ad_soyad ||
-        aktifKullanici?.kullanici ||
-        aktifKullanici?.kullanici_adi ||
-        aktifKullanici?.email ||
-        "Kullanıcı";
-
-    return {
-        gelirGider: "",
-        seferNo: "",
-        tarih: bugununTarihi(),
-=======
     const initialFormState = {
         tarih: now.toISOString().slice(0, 10),
         gelir_gider: "Prim",
         kullanici_adi: "",
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
         plaka: "",
         treyler: "",
         surucu: "",
@@ -171,59 +131,10 @@ function getInitialForm() {
         bolge_palet_sayisi: 0,
         palet_sayisi: 0,
     };
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-}
-
-function formatCurrency(value) {
-    return Number(value || 0).toLocaleString("tr-TR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-}
-
-function formatDateForDisplay(value) {
-    if (!value) return "—";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-
-    return date.toLocaleDateString("tr-TR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-    });
-}
-
-function mapRowToForm(row) {
-    return {
-        gelirGider: row.gelir_gider || "",
-        seferNo: row.sefer_no || "",
-        tarih: row.tarih || bugununTarihi(),
-        plaka: row.plaka || "",
-        adSoyad: row.ad_soyad || "",
-        surucuTel: row.surucu_tel || "",
-        yuklemeMusteri: row.yukleme_musteri || "",
-        faturaMusteri: row.fatura_musteri || "",
-        bolgePaletSayisi: row.bolge_palet_sayisi || "",
-        odenenTutar: row.odenen_tutar ?? "",
-        paletSayisi: row.palet_sayisi ?? "",
-        donem: row.donem || otomatikDonem(),
-        kullanici: row.kullanici || getInitialForm().kullanici,
-    };
-}
-
-export default function HandlingFee() {
-    const [form, setForm] = useState(getInitialForm);
-    const [kayitlar, setKayitlar] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [editingRow, setEditingRow] = useState(null);
-    const [filters, setFilters] = useState(filterInitial);
-    const [showFilters, setShowFilters] = useState(true);
-=======
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState({});
     const [actionErr, setActionErr] = useState(""); // insert/update/delete hataları
     const [importLoading, setImportLoading] = useState(false); // <-- İçeri aktarma için eklendi
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
 
     // kullanıcı adını çek
     useEffect(() => {
@@ -248,25 +159,6 @@ export default function HandlingFee() {
                 .select("*")
                 .order("created_at", { ascending: false });
 
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-        try {
-            setKayitlar(await listHandlingFees());
-        } catch (error) {
-            console.error("Hamaliye verileri alınamadı:", error);
-            alert("Veriler alınamadı: " + error.message);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const filteredKayitlar = useMemo(() => {
-        return filterHandlingFees(kayitlar, filters);
-    }, [kayitlar, filters]);
-
-    const stats = useMemo(() => {
-        return summarizeHandlingFees(filteredKayitlar);
-    }, [filteredKayitlar]);
-=======
             if (error) throw error;
             setRows(data || []);
         } catch (e) {
@@ -456,7 +348,6 @@ export default function HandlingFee() {
             donem: String(form.donem || ""),
             kullanici_adi: String(form.kullanici_adi || localUserName || ""),
         };
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
 
         try {
             let data;
@@ -609,19 +500,6 @@ export default function HandlingFee() {
         const file = e.target?.files?.[0];
         if (!file) return;
 
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-        const payload = buildHandlingFeePayload(form);
-
-        try {
-            await saveHandlingFee({ id: editingRow?.id, payload });
-        } catch (error) {
-            console.error("Hamaliye kayıt hatası:", error);
-            alert("Kayıt yapılamadı: " + error.message);
-            return;
-        } finally {
-            setLoading(false);
-        }
-=======
         setImportLoading(true);
         setActionErr("");
 
@@ -709,7 +587,6 @@ export default function HandlingFee() {
             }
             return s;
         };
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
 
         // parse para / sayı
         const parseNumberSafe = (val) => {
@@ -934,15 +811,6 @@ export default function HandlingFee() {
     };
 
 
-<<<<<<< HEAD:src/pages/Settlements/HandlingFee.jsx
-        try {
-            await deleteHandlingFee(id);
-        } catch (error) {
-            console.error("Hamaliye silme hatası:", error);
-            alert("Kayıt silinemedi: " + error.message);
-            return;
-        }
-=======
 
     // Seçilen Plaka/Treyler nesnesi (Autocomplete için)
     const selectedPlateObj =
@@ -959,7 +827,6 @@ export default function HandlingFee() {
     });
 
     const getMonthFromDonem = form.donem ? form.donem.slice(5, 7) : mm;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/Hamaliye.jsx
 
 
     return (

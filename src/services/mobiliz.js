@@ -22,16 +22,6 @@ function unwrapList(data) {
 }
 
 async function request(path, options = {}) {
-<<<<<<< HEAD
-    const { headers, ...requestOptions } = options;
-    const response = await fetch(`${MOBILIZ_API_URL}${path}`, {
-        headers: {
-            "Content-Type": "application/json",
-            ...headers,
-        },
-        ...requestOptions,
-    });
-=======
     let response;
 
     try {
@@ -46,7 +36,6 @@ async function request(path, options = {}) {
     } catch (error) {
         throw new Error(`Mobiliz servisine ulaşılamadı: ${error?.message || "bağlantı hatası"}`);
     }
->>>>>>> e19f46db99295929579026857074dda7619efeec
 
     const text = await response.text();
     let data = null;
@@ -70,31 +59,14 @@ async function request(path, options = {}) {
 }
 
 export const mobilizService = {
-<<<<<<< HEAD
-    async araclar(options = {}) {
-        return extractMobilizList(await request("/activity-last", options));
-    },
-
-    sonKonum(options = {}) {
-        return this.araclar(options);
-=======
     async araclar() {
         return unwrapList(await request("/activity-last"));
->>>>>>> e19f46db99295929579026857074dda7619efeec
     },
 
     async sonKonum() {
         return this.araclar();
     },
 
-<<<<<<< HEAD
-    async locations(params = {}, options = {}) {
-        const searchParams = new URLSearchParams(params);
-
-        return extractMobilizList(
-            await request(`/locations?${searchParams.toString()}`, options)
-        );
-=======
     async rotaDetayi(plate, startTime, endTime) {
         const params = new URLSearchParams({ plate, startTime, endTime });
         return unwrapList(await request(`/activity-detail?${params.toString()}`));
@@ -103,7 +75,6 @@ export const mobilizService = {
     async locations(params = {}) {
         const searchParams = new URLSearchParams(params);
         return unwrapList(await request(`/locations?${searchParams.toString()}`));
->>>>>>> e19f46db99295929579026857074dda7619efeec
     },
 };
 

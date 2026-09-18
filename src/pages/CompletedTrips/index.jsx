@@ -1,31 +1,11 @@
 import { Columns3, SlidersHorizontal, X, Search, ChevronDown, RefreshCw, Pencil, ArrowUpDown, Truck, Clock3, Weight, TriangleAlert, TrendingUp, CircleCheck, CircleAlert, Download, ChevronLeft, ChevronRight, Rows3, CalendarDays, FolderKanban, UserRoundCheck, RotateCcw, Copy, Sparkles } from "lucide-react";
 // TamamlananSeferler.jsx
 import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
-<<<<<<< HEAD:src/pages/CompletedTrips/index.jsx
-import {
-    findEtaReferenceDays,
-    listCompletedTrips,
-    updateCompletedTrip,
-} from "../../services/completedTripRepository";
-import "./CompletedTrips.css";
-import ColumnLayout from "../ActiveTrips/ViewSettings/ColumnLayout";
-import {
-    formatDate, formatDateTime, formatNumber, fromDatetimeLocalValue,
-    getActualEtaDays, getCompletedTripKey as getRowKey,
-    getCompletedTripSortValue as getSortValue, getLastTripValue as getLastValue,
-    hasTripWarning as isIkazli, isTonnageTrip as isTonajli,
-    matchesCompletedTripColumn as matchColumnFilter,
-    matchesCompletedTripSearch as matchGlobalSearch, normalizeTurkishText as normalizeTR,
-    parseDate, parseDayValue as parseGunValue, splitTripValues as split,
-    toDatetimeLocalValue, TONNAGE_DESCRIPTION as TONAJ_ACIKLAMA,
-} from "../../domain/completedTripView";
-=======
 import { supabase } from "../../supabaseClient";
-import "./TamamlananSeferler.css";
+import "./CompletedTrips.css";
 import "./CompletedModern.css";
-import SutunDuzeni from "../AktifSeferler/Gorunum/SutunDuzeni";
+import SutunDuzeni from "../ActiveTrips/ViewSettings/ColumnLayout";
 import * as XLSX from "xlsx-js-style";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/TamamlananSeferler/index.jsx
 
 
 /* ---------------------------------- İkonlar ---------------------------------- */
@@ -1825,14 +1805,9 @@ function CompletedTrips() {
                 </div>
             </div>
 
-<<<<<<< HEAD:src/pages/CompletedTrips/index.jsx
-            {showColumnLayout && (
-                <ColumnLayout
-=======
             <nav className="completed-pagination" aria-label="Sefer sayfaları"><span>{sortedRows.length?`${(currentPage-1)*pageSize+1}–${Math.min(currentPage*pageSize,sortedRows.length)}`:'0'} / {sortedRows.length} sefer</span><div><label>Sayfada <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>{[25,50,100].map(n=><option key={n}>{n}</option>)}</select></label><button aria-label="Önceki sayfa" disabled={currentPage===1} onClick={()=>setPage(currentPage-1)}><ChevronLeft size={17}/></button><span>{currentPage} / {pageCount}</span><button aria-label="Sonraki sayfa" disabled={currentPage===pageCount} onClick={()=>setPage(currentPage+1)}><ChevronRight size={17}/></button></div></nav>
             {showSutunDuzeni && (
                 <SutunDuzeni
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/TamamlananSeferler/index.jsx
                     columns={orderedColumns}
                     visibleColumnKeys={visibleColumnKeys}
                     onToggleColumn={toggleColumn}

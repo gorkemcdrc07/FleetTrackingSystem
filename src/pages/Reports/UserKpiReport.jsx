@@ -1,24 +1,10 @@
-<<<<<<< HEAD:src/pages/Reports/UserKpiReport.jsx
-﻿import { useEffect, useMemo, useState } from "react";
-import {
-    filterActivityLogs,
-    getActionLabel,
-    getActivityUser,
-    groupActivityByType,
-    groupActivityByUser,
-    summarizeActivityLogs,
-} from "../../domain/userActivity";
-import { listUserActivityLogs } from "../../services/userActivityRepository";
-import "./UserKpiReport.css";
-=======
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import {
     Activity, ChevronDown, ChevronUp, Clock3, Database, Download, FilterX,
     History, RefreshCw, Route, Search, ShieldCheck, Target, Truck, Users
 } from "lucide-react";
-import "./kullanicikpi.css";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Raporlar/kullanicikpi.jsx
+import "./UserKpiReport.css";
 
 const PAGE_SIZE = 1000;
 const DISPLAY_OPTIONS = [25, 50, 100, 200];
@@ -30,15 +16,6 @@ function fmtDate(value) {
     return d.toLocaleString("tr-TR", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", second:"2-digit" });
 }
 
-<<<<<<< HEAD:src/pages/Reports/UserKpiReport.jsx
-export default function UserKpiReport() {
-    const [logs, setLogs] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [days, setDays] = useState("7");
-    const [selectedUser, setSelectedUser] = useState("Tümü");
-    const [selectedType, setSelectedType] = useState("Tümü");
-    const [error, setError] = useState("");
-=======
 function getActionLabel(type) {
     const map = {
         SEFER_DETAY_ACMA:"Detay Açtı", ETA_ACMA:"ETA Açtı", TONAJ_BUTON:"Tonaj İşlemi", IKAZ_BUTON:"İkaz İşlemi",
@@ -77,38 +54,10 @@ export default function KullaniciKPI() {
     const [expanded,setExpanded]=useState(new Set());
     const [page,setPage]=useState(1);
     const [pageSize,setPageSize]=useState(() => Number(localStorage.getItem("fts_kpi_page_size")) || 50);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Raporlar/kullanicikpi.jsx
 
     useEffect(()=>{ loadLogs(); },[days]);
     useEffect(()=>{ localStorage.setItem("fts_kpi_page_size",String(pageSize)); setPage(1); },[pageSize]);
 
-<<<<<<< HEAD:src/pages/Reports/UserKpiReport.jsx
-    async function loadLogs() {
-        setLoading(true);
-        setError("");
-
-        const since = new Date();
-        since.setDate(since.getDate() - Number(days));
-
-        try {
-            const data = await listUserActivityLogs({ since });
-            setLogs(data);
-        } catch (loadError) {
-            console.error("KPI logları alınamadı:", loadError);
-            setLogs([]);
-            setError("Kullanıcı işlem kayıtları alınamadı. Lütfen tekrar deneyin.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const users = useMemo(() => {
-        return [
-            "Tümü",
-            ...Array.from(new Set(logs.map(getActivityUser))),
-        ];
-    }, [logs]);
-=======
     async function loadLogs(){
         setLoading(true); setError("");
         try{
@@ -129,7 +78,6 @@ export default function KullaniciKPI() {
 
     const users=useMemo(()=>["Tümü",...Array.from(new Set(logs.map(x=>x.kullanici||x.kullanici_ad).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"tr"))],[logs]);
     const types=useMemo(()=>["Tümü",...Array.from(new Set(logs.map(x=>x.islem_tipi).filter(Boolean))).sort()],[logs]);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Raporlar/kullanicikpi.jsx
 
     const filteredLogs=useMemo(()=>logs.filter(log=>{
         const user=log.kullanici||log.kullanici_ad||"Bilinmeyen";
@@ -146,210 +94,6 @@ export default function KullaniciKPI() {
         return true;
     }),[logs,selectedUser,selectedType,selectedCategory,search]);
 
-<<<<<<< HEAD:src/pages/Reports/UserKpiReport.jsx
-    const filteredLogs = useMemo(() => {
-        return filterActivityLogs(logs, { user: selectedUser, type: selectedType });
-    }, [logs, selectedUser, selectedType]);
-
-    const summary = useMemo(() => {
-        return summarizeActivityLogs(filteredLogs);
-    }, [filteredLogs]);
-
-    const userStats = useMemo(() => {
-        return groupActivityByUser(filteredLogs);
-    }, [filteredLogs]);
-
-    const typeStats = useMemo(() => {
-        return groupActivityByType(filteredLogs);
-    }, [filteredLogs]);
-
-    return (
-        <div className="kpi-page">
-            <div className="kpi-header">
-                <div>
-                    <span>Kullanıcı Performansı</span>
-                    <h1>KPI & İşlem Analizi</h1>
-                    <p>Kim, ne zaman, hangi işlem yaptı kısa özet olarak görüntülenir.</p>
-                </div>
-
-                <div className="kpi-filters">
-                    <select value={days} onChange={(e) => setDays(e.target.value)}>
-                        <option value="1">Son 1 gün</option>
-                        <option value="7">Son 7 gün</option>
-                        <option value="30">Son 30 gün</option>
-                        <option value="90">Son 90 gün</option>
-                    </select>
-
-                    <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
-                        {users.map((x) => (
-                            <option key={x}>{x}</option>
-                        ))}
-                    </select>
-
-                    <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-                        {types.map((x) => (
-                            <option key={x} value={x}>
-                                {x === "Tümü" ? "Tüm İşlemler" : getActionLabel(x)}
-                            </option>
-                        ))}
-                    </select>
-
-                    <button onClick={loadLogs}>Yenile</button>
-                </div>
-            </div>
-
-            {error && <div className="empty-box">{error}</div>}
-
-            <div className="kpi-cards">
-                <div className="kpi-card">
-                    <span>Toplam İşlem</span>
-                    <strong>{summary.total}</strong>
-                </div>
-
-                <div className="kpi-card">
-                    <span>Aktif Kullanıcı</span>
-                    <strong>{summary.uniqueUsers}</strong>
-                </div>
-
-                <div className="kpi-card">
-                    <span>Sefer / Rota Güncelleme</span>
-                    <strong>{summary.routeUpdates}</strong>
-                </div>
-
-                <div className="kpi-card">
-                    <span>Araç İşlemleri</span>
-                    <strong>{summary.vehicleOps}</strong>
-                </div>
-            </div>
-
-            <div className="kpi-grid">
-                <section className="kpi-panel">
-                    <div className="panel-head">
-                        <h2>Kullanıcı Bazlı Özet</h2>
-                        <span>{userStats.length} kullanıcı</span>
-                    </div>
-
-                    <div className="kpi-table-wrap">
-                        <table className="kpi-table">
-                            <thead>
-                                <tr>
-                                    <th>Kullanıcı</th>
-                                    <th>Toplam</th>
-                                    <th>Sefer</th>
-                                    <th>Araç</th>
-                                    <th>Buton</th>
-                                    <th>Son İşlem</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {loading && (
-                                    <tr>
-                                        <td colSpan="6">Yükleniyor...</td>
-                                    </tr>
-                                )}
-
-                                {!loading && userStats.length === 0 && (
-                                    <tr>
-                                        <td colSpan="6">Kayıt bulunamadı.</td>
-                                    </tr>
-                                )}
-
-                                {!loading &&
-                                    userStats.map((item) => (
-                                        <tr key={item.kullanici}>
-                                            <td><strong>{item.kullanici}</strong></td>
-                                            <td>{item.toplam}</td>
-                                            <td>{item.sefer}</td>
-                                            <td>{item.arac}</td>
-                                            <td>{item.buton}</td>
-                                            <td>{fmtDate(item.sonIslem)}</td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section className="kpi-panel">
-                    <div className="panel-head">
-                        <h2>İşlem Dağılımı</h2>
-                        <span>{typeStats.length} işlem tipi</span>
-                    </div>
-
-                    <div className="type-list">
-                        {typeStats.map((item) => (
-                            <div className="type-row" key={item.type}>
-                                <div>
-                                    <strong>{getActionLabel(item.type)}</strong>
-                                    <span>{item.type}</span>
-                                </div>
-                                <b>{item.count}</b>
-                            </div>
-                        ))}
-
-                        {!loading && typeStats.length === 0 && (
-                            <div className="empty-box">İşlem bulunamadı.</div>
-                        )}
-                    </div>
-                </section>
-            </div>
-
-            <section className="kpi-panel full">
-                <div className="panel-head">
-                    <h2>Son İşlemler</h2>
-                    <span>{filteredLogs.length} kayıt</span>
-                </div>
-
-                <div className="activity-list">
-                    {filteredLogs.slice(0, 80).map((log) => {
-                        const changed = log.detay?.degisen_alanlar || [];
-                        const orderChanged = log.detay?.sira_degisikligi;
-
-                        return (
-                            <div className="activity-item" key={log.id}>
-                                <div className="activity-top">
-                                    <strong>{log.kullanici || log.kullanici_ad || "Bilinmeyen"}</strong>
-                                    <span>{fmtDate(log.created_at)}</span>
-                                </div>
-
-                                <div className="activity-main">
-                                    <b>{getActionLabel(log.islem_tipi)}</b>
-                                    <p>{log.islem_aciklama || "—"}</p>
-                                </div>
-
-                                <div className="activity-meta">
-                                    {log.sefer_no && <span>Sefer: {log.sefer_no}</span>}
-                                    {log.plaka && <span>Plaka: {log.plaka}</span>}
-                                    {log.tablo_adi && <span>Tablo: {log.tablo_adi}</span>}
-                                </div>
-
-                                {changed.length > 0 && (
-                                    <div className="change-box">
-                                        {changed.slice(0, 4).map((x, i) => (
-                                            <div key={i}>
-                                                <strong>{x.nokta || x.alan}</strong>
-                                                <span>{x.alan}: {x.eski_deger || "—"} → {x.yeni_deger || "—"}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {orderChanged && (
-                                    <div className="change-box order">
-                                        <strong>Rota sırası değişti</strong>
-                                        <span>Eski sıra / yeni sıra log detayında tutuluyor.</span>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-
-                    {!loading && filteredLogs.length === 0 && (
-                        <div className="empty-box">Seçili filtrelerde işlem bulunamadı.</div>
-                    )}
-                </div>
-=======
     const summary=useMemo(()=>{
         const total=filteredLogs.length;
         const uniqueUsers=new Set(filteredLogs.map(x=>x.kullanici||x.kullanici_ad).filter(Boolean)).size;
@@ -422,13 +166,9 @@ export default function KullaniciKPI() {
         <div className="kpi-grid kpi-overview-grid">
             <section className="kpi-panel"><div className="panel-head"><div><h2>Kullanıcı Performans Özeti</h2><small>Kullanıcıya tıklayarak loglarını filtreleyin.</small></div><span>{userStats.length} kullanıcı</span></div>
                 <div className="kpi-table-wrap"><table className="kpi-table"><thead><tr><th>Kullanıcı</th><th>Toplam</th><th>Sefer</th><th>Araç</th><th>Değişiklik</th><th>Son İşlem</th></tr></thead><tbody>{userStats.map(item=><tr key={item.kullanici} className="kpi-click-row" onClick={()=>{setSelectedUser(item.kullanici);setPage(1)}}><td><strong>{item.kullanici}</strong></td><td>{item.toplam}</td><td>{item.sefer}</td><td>{item.arac}</td><td>{item.degisiklik}</td><td>{fmtDate(item.sonIslem)}</td></tr>)}{!loading&&!userStats.length&&<tr><td colSpan="6">Kayıt bulunamadı.</td></tr>}</tbody></table></div>
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Raporlar/kullanicikpi.jsx
             </section>
             <section className="kpi-panel"><div className="panel-head"><div><h2>İşlem Dağılımı</h2><small>En sık yapılan işlemler</small></div><span>{typeStats.length} tip</span></div><div className="type-list">{typeStats.slice(0,18).map(item=><button className="type-row" key={item.type} onClick={()=>{setSelectedType(item.type);setPage(1)}}><div><strong>{getActionLabel(item.type)}</strong><span>{getCategory(item.type)} · {item.type}</span></div><b>{item.count}</b></button>)}{!loading&&!typeStats.length&&<div className="empty-box">İşlem bulunamadı.</div>}</div></section>
         </div>
-<<<<<<< HEAD:src/pages/Reports/UserKpiReport.jsx
-    );
-=======
 
         <section className="kpi-panel full kpi-audit-log">
             <div className="panel-head kpi-log-head"><div><h2>Detaylı İşlem Günlüğü</h2><small>Hedef, açıklama, değişen alanlar ve kayıtlı ham detaylar</small></div><div className="kpi-log-meta"><Database size={15}/><span>{filteredLogs.length} kayıt</span></div></div>
@@ -450,5 +190,4 @@ export default function KullaniciKPI() {
             <footer className="kpi-pagination"><span>{filteredLogs.length?`${(safePage-1)*pageSize+1}–${Math.min(safePage*pageSize,filteredLogs.length)} / ${filteredLogs.length}`:"0 kayıt"}</span><label>Sayfa başına <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>{DISPLAY_OPTIONS.map(x=><option key={x}>{x}</option>)}</select></label><button disabled={safePage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Önceki</button><b>{safePage} / {pageCount}</b><button disabled={safePage>=pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))}>Sonraki</button></footer>
         </section>
     </div>;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Raporlar/kullanicikpi.jsx
 }

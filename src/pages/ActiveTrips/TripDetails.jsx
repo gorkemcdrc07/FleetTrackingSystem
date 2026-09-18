@@ -253,46 +253,7 @@ function buildRoute(row) {
     }));
 }
 
-<<<<<<< HEAD:src/pages/ActiveTrips/TripDetails.jsx
-function applyLegalEtaToLeg(driveMin, state) {
-    let remaining = driveMin;
-    let totalMin = 0;
-    let breakMin = 0;
-    let restMin = 0;
-
-    while (remaining > 0) {
-        if (state.driveInBlock >= DRIVE_BLOCK_MIN) {
-            if (state.blocksInDay === 0) {
-                totalMin += SHORT_BREAK_MIN;
-                breakMin += SHORT_BREAK_MIN;
-                state.blocksInDay = 1;
-            } else {
-                totalMin += DAILY_REST_MIN;
-                restMin += DAILY_REST_MIN;
-                state.blocksInDay = 0;
-            }
-
-            state.driveInBlock = 0;
-        }
-
-        const available = DRIVE_BLOCK_MIN - state.driveInBlock;
-        const drivingNow = Math.min(remaining, available);
-
-        totalMin += drivingNow;
-        state.driveInBlock += drivingNow;
-        remaining -= drivingNow;
-    }
-
-    return {
-        legalDurationMin: totalMin,
-        breakMin,
-        restMin,
-        state,
-    };
-}
-=======
 const applyLegalEtaToLeg = applyDrivingPlan;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/detaylar.jsx
 
 function buildSegments(route, legs, baseDate) {
     const state = {
@@ -757,13 +718,6 @@ function TripDetails({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
 
             const aracStatu = getAracStatuFromRoute(rotaDetaylari);
 
-<<<<<<< HEAD:src/pages/ActiveTrips/TripDetails.jsx
-            await updateActiveTrip(row, {
-                rota_detaylari: rotaDetaylari,
-                arac_statu: aracStatu,
-                updated_at: new Date().toISOString(),
-            });
-=======
             let query = supabase
                 .from("aktif_seferler")
                 .update({
@@ -782,7 +736,6 @@ function TripDetails({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
             if(!error && !saved?.length)throw new Error("Rota kaydı güncellenemedi. Yetkiyi ve kaydı kontrol edin.");
 
             if (error) throw error;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/detaylar.jsx
 
             const eskiRota = buildRoute(row);
             const degisenAlanlar = getRouteChanges(eskiRota, rotaDetaylari);
@@ -1027,19 +980,11 @@ function TripDetails({ row, onClose, onRouteSaved, onTripReadyToComplete }) {
                 {activeTab === "eta" && routeLoading && <div className="mobiliz-loading" role="status">{routeProgress || "Rota hesaplanıyor…"}</div>}
                 {activeTab === "eta" && routeError && <div className="mobiliz-error" role="alert"><span>{routeError}</span><button onClick={()=>setRouteRetry(v=>v+1)}>Yeniden hesapla</button></div>}
                 {activeTab === "eta" && (
-<<<<<<< HEAD:src/pages/ActiveTrips/TripDetails.jsx
-                    <EtaAnalysis
-                        toplamMola={formatEta(totalBreakMin)}
-                        toplamDinlenme={formatEta(totalRestMin)}
-                        netSurus={mapRoute?.durationMin ? formatEta(mapRoute.durationMin) : "—"}
-                        gercekEta={totalLegalMin ? formatEta(totalLegalMin) : "—"}
-=======
                     <EtaAnalizi
                         toplamMola={mapRoute && !dateIssues.length ? formatEta(totalBreakMin) : "—"}
                         toplamDinlenme={mapRoute && !dateIssues.length ? formatEta(totalRestMin) : "—"}
                         netSurus={mapRoute ? formatEta(mapRoute.durationMin) : "—"}
                         gercekEta={mapRoute && !dateIssues.length ? formatEta(totalLegalMin) : "—"}
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/detaylar.jsx
                     />
                 )}
                 {toast && (

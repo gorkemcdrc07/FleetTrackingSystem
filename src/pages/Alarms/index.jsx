@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-<<<<<<< HEAD:src/pages/Alarms/index.jsx
-import "./Alarms.css";
-import { notificationEngine } from "../../services/notificationEngine";
-import { mobilizService } from "../../services/mobiliz";
-import { getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../../domain/vehicleTelemetry";
-import { readStorageArray, readStorageJson, STORAGE_KEYS, writeStorageJson } from "../../services/browserStorage";
-=======
 import { CheckCheck, MapPin, RefreshCw } from "lucide-react";
-import "./Alarmlar.css";
+import "./Alarms.css";
 import { notificationEngine } from "../../services/notificationEngine";
 import { mobilizService } from "../../services/mobiliz";
 const GEOFENCE_EVENT_KEY = "fts_geofence_events";
@@ -19,7 +12,6 @@ function getSpeed(vehicle) {
 function getPlate(vehicle) {
     return vehicle?.plate || "-";
 }
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Alarmlar/index.jsx
 
 function getAddress(vehicle) {
     return vehicle?.address || vehicle?.location || vehicle?.city || "-";

@@ -10,53 +10,38 @@ import {
 import "./Home.css";
 import logo from "../assets/fts-logo.png";
 
-<<<<<<< HEAD
-import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
-import NotificationToasts from "../components/NotificationCenter/NotificationToasts";
-import PageOutlet from "../navigation/PageOutlet";
-import { menuGroups, PAGE_IDS, pageLabels, resolvePageId, type PageId } from "../navigation/pages";
-import { getCurrentUser } from "../services/sessionStorage";
-import { STORAGE_KEYS, writeStorageText } from "../services/browserStorage";
-=======
-import AktifSeferler from "./AktifSeferler";
-import TamamlananSeferler from "./TamamlananSeferler";
-import AracDurumlari from "./AracDurumlari";
-import AracTakibi from "./AracTakibi";
-import YuklemedeBekleme from "./Raporlar/YuklemedeBekleme";
-import TeslimdeBekleme from "./Raporlar/TeslimdeBekleme";
-import KullaniciKPI from "./Raporlar/kullanicikpi";
-import AracFiyatYonetimi from "./Hakedisler/AracFiyatYonetimi";
-import HayatKimyaYakitHakedis from "./Hakedisler/HayatKimyaYakitHakedis";
-import PepsiYakitHakedis from "./Hakedisler/PepsiYakitHakedis";
-import Hamaliye from "./Hakedisler/Hamaliye";
-import EbebekYakitHakedis from "./Hakedisler/EbebekYakitHakedis";
-import FrigoYakitHakedis from "./Hakedisler/FrigoYakitHakedis";
-import FrigoHesaplamaPage from "./Hakedisler/FrigoHesaplamaPage";
-import FiloIskontoluHakedis from "./Hakedisler/FiloIskontoluHakedis";
-import HakedisSeferleri from "./Hakedisler/HakedisSeferleri";
-import TedarikciMasraf from "./Hakedisler/TedarikciMasraf";
-import HakedisMerkezi from "./Hakedisler/HakedisMerkezi";
-import HakedisExperience from "./Hakedisler/shared/HakedisExperience";
-import YonetimPaneli from "./Yonetici/YonetimPaneli";
-import Alarmlar from "./Alarmlar";
+import AktifSeferler from "./ActiveTrips";
+import TamamlananSeferler from "./CompletedTrips";
+import AracDurumlari from "./VehicleStatuses";
+import AracTakibi from "./VehicleTracking";
+import YuklemedeBekleme from "./Reports/LoadingWaitReport";
+import TeslimdeBekleme from "./Reports/DeliveryWaitReport";
+import KullaniciKPI from "./Reports/UserKpiReport";
+import AracFiyatYonetimi from "./Settlements/VehiclePricing";
+import HayatKimyaYakitHakedis from "./Settlements/HayatKimyaFuelSettlement";
+import PepsiYakitHakedis from "./Settlements/PepsiFuelSettlement";
+import Hamaliye from "./Settlements/HandlingFee";
+import EbebekYakitHakedis from "./Settlements/EbebekYakitHakedis";
+import FrigoYakitHakedis from "./Settlements/FrigoYakitHakedis";
+import FrigoHesaplamaPage from "./Settlements/FrigoHesaplamaPage";
+import FiloIskontoluHakedis from "./Settlements/FiloIskontoluHakedis";
+import HakedisSeferleri from "./Settlements/HakedisSeferleri";
+import TedarikciMasraf from "./Settlements/TedarikciMasraf";
+import HakedisMerkezi from "./Settlements/HakedisMerkezi";
+import HakedisExperience from "./Settlements/shared/HakedisExperience";
+import YonetimPaneli from "./Admin/AdminPanel";
+import Alarmlar from "./Alarms";
 import Dashboard from "./Dashboard";
 import Playback from "./Playback";
 import Geofence from "./Geofence";
-import OperasyonMerkezi from "./OperasyonMerkezi";
+import OperasyonMerkezi from "./OperationsCenter";
 import NotificationCenter from "../components/NotificationCenter/NotificationCenter";
 import InteractionFeedback from "../components/Premium/InteractionFeedback";
->>>>>>> e19f46db99295929579026857074dda7619efeec
 
 type HomeProps = { onLogout: () => void };
 type NavItem = { label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> };
 type NavSection = { title: string; items: NavItem[] };
 
-<<<<<<< HEAD
-function Home({ onLogout }: HomeProps) {
-    const [activePage, setActivePage] = useState<PageId>(PAGE_IDS.dashboard);
-
-    const aktifKullanici = getCurrentUser();
-=======
 const navSections: NavSection[] = [
   { title: "ANA MENÜ", items: [
     { label: "Dashboard", icon: LayoutDashboard },
@@ -125,7 +110,6 @@ export default function Home({ onLogout }: HomeProps) {
     return allNavItems.filter((item) => `${item.label} ${item.section}`.toLocaleLowerCase("tr-TR").includes(q));
   }, [allNavItems, commandQuery]);
 
->>>>>>> e19f46db99295929579026857074dda7619efeec
 
   useEffect(() => {
     localStorage.setItem("fts_sidebar_pinned", menuOpen ? "1" : "0");
@@ -137,41 +121,6 @@ export default function Home({ onLogout }: HomeProps) {
     localStorage.setItem("fts_theme", theme);
   }, [theme]);
 
-<<<<<<< HEAD
-    const avatarLetter = String(
-        kullaniciAdi || "K"
-    )
-        .charAt(0)
-        .toUpperCase();
-
-    function handleNotificationVehicleOpen(
-        plate: string
-    ) {
-        if (!plate) return;
-
-        writeStorageText(STORAGE_KEYS.focusPlate, plate);
-
-        setActivePage(PAGE_IDS.operationsCenter);
-    }
-
-    function handleNavigate(page: string) {
-        setActivePage(resolvePageId(page));
-    }
-
-    return (
-        <div className="home-container">
-            <header className="topbar">
-                <button
-                    type="button"
-                    className="brand"
-                    onClick={() =>
-                        setActivePage(PAGE_IDS.dashboard)
-                    }
-                >
-                    <div className="brand-logo">
-                        F
-                    </div>
-=======
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -189,7 +138,6 @@ export default function Home({ onLogout }: HomeProps) {
     setCommandQuery("");
     requestAnimationFrame(() => commandInputRef.current?.focus());
   }, [commandOpen]);
->>>>>>> e19f46db99295929579026857074dda7619efeec
 
   function navigate(label: string) {
     setActivePage(label);
@@ -243,114 +191,6 @@ export default function Home({ onLogout }: HomeProps) {
           <ChevronRight className="sidebar-brand-arrow" size={16}/>
         </button>
 
-<<<<<<< HEAD
-                                    <div>
-                                        <h3>
-                                            {group.title}
-                                        </h3>
-
-                                        <p>
-                                            {
-                                                group.items
-                                                    .length
-                                            }{" "}
-                                            işlem
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="mega-list">
-                                    {group.items.map(
-                                        (item) => (
-                                            <button
-                                                key={item}
-                                                type="button"
-                                                className={`mega-item ${activePage ===
-                                                        item
-                                                        ? "active"
-                                                        : ""
-                                                    }`}
-                                                onClick={() =>
-                                                    setActivePage(
-                                                        item
-                                                    )
-                                                }
-                                            >
-                                                <span>
-                                                    {pageLabels[item]}
-                                                </span>
-
-                                                <small>
-                                                    →
-                                                </small>
-                                            </button>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </nav>
-
-                <div className="top-actions">
-                    <NotificationCenter
-                        onOpenVehicle={
-                            handleNotificationVehicleOpen
-                        }
-                    />
-
-                    <div className="profile">
-                        <div className="avatar">
-                            {avatarLetter}
-                        </div>
-
-                        <div>
-                            <strong>
-                                {kullaniciAdi}
-                            </strong>
-
-                            <span>
-                                {kullaniciRol}
-                            </span>
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="admin-btn"
-                        onClick={() =>
-                            setActivePage(
-                                PAGE_IDS.admin
-                            )
-                        }
-                    >
-                        <MdAdminPanelSettings className="admin-icon" />
-
-                        <span>
-                            Yönetim Paneli
-                        </span>
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={onLogout}
-                        className="logout-btn"
-                    >
-                        Çıkış
-                    </button>
-                </div>
-            </header>
-
-            <main className="main-content">
-                <PageOutlet pageId={activePage} onNavigate={handleNavigate} />
-            </main>
-
-            <NotificationToasts
-                onOpenVehicle={
-                    handleNotificationVehicleOpen
-                }
-            />
-=======
         <div className="sidebar-top-actions">
           <button className="sidebar-toggle" type="button" aria-label={menuOpen ? "Menü sabitlemesini kaldır" : "Menüyü sabitle"} aria-expanded={menuOpen} aria-controls="main-navigation" onClick={(event) => { setMenuOpen(!menuOpen); event.currentTarget.blur(); }}>
             {menuOpen ? <PanelLeftClose size={17}/> : <PanelLeftOpen size={17}/>}<span>{menuOpen ? "Dar moda geç" : "Menüyü sabitle"}</span>
@@ -358,12 +198,8 @@ export default function Home({ onLogout }: HomeProps) {
           <button className="sidebar-command" type="button" onClick={() => setCommandOpen(true)} aria-label="Hızlı erişimi aç">
             <Search size={16}/><span>Hızlı erişim</span><kbd>⌘K</kbd>
           </button>
->>>>>>> e19f46db99295929579026857074dda7619efeec
         </div>
 
-<<<<<<< HEAD
-export default Home;
-=======
         <nav className="sidebar-nav" id="main-navigation" aria-label="Sayfalar">
           {navSections.map((section) => (
             <div className="sidebar-section" key={section.title}>
@@ -457,4 +293,3 @@ export default Home;
     </div>
   );
 }
->>>>>>> e19f46db99295929579026857074dda7619efeec

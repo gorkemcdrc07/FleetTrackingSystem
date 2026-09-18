@@ -1,23 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-<<<<<<< HEAD:src/pages/Settlements/VehiclePricing.jsx
-import { logAuditEvent } from "../../services/auditLogger";
-import {
-    buildVehiclePricingPayload,
-    filterVehiclePricing,
-    normalizePlate,
-    parsePricingNumber,
-    upsertVehiclePricingRow,
-} from "../../domain/vehiclePricing";
-import {
-    insertVehiclePricingBatch,
-    listVehiclePricing,
-    saveVehiclePricing,
-    setVehiclePricingPassive,
-    updateVehiclePricingBatch,
-    updateVehiclePricingDays,
-} from "../../services/vehiclePricingRepository";
-import "./VehiclePricing.css";
-=======
 import {
     Activity, ArchiveRestore, ArrowLeft, BadgeTurkishLira, CalendarDays, CarFront, CheckCircle2,
     ChevronRight, CircleDollarSign, Download, Edit3, FileDown, FileSpreadsheet, Home,
@@ -25,10 +6,9 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "../../supabaseClient";
-import { islemLogla } from "../../utils/islemLogla";
-import "./AracFiyatYonetimi.css";
+import { logAuditEvent } from "../../services/auditLogger";
+import "./VehiclePricing.css";
 import { applyHakedisSheetBranding } from "./shared/hakedisSheetBranding";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/AracFiyatYonetimi.jsx
 
 const emptyForm = {
     plaka: "",
@@ -108,11 +88,7 @@ function mapExcelRow(row) {
     return buildVehiclePricingPayload(row, { fromExcel: true });
 }
 
-<<<<<<< HEAD:src/pages/Settlements/VehiclePricing.jsx
-export default function VehiclePricing() {
-=======
 export default function AracFiyatYonetimi({ onNavigate }) {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/AracFiyatYonetimi.jsx
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
@@ -336,10 +312,6 @@ export default function AracFiyatYonetimi({ onNavigate }) {
     }
 
     const filteredRows = useMemo(() => {
-<<<<<<< HEAD:src/pages/Settlements/VehiclePricing.jsx
-        return filterVehiclePricing(rows, search);
-    }, [rows, search]);
-=======
         const q = search.toLocaleLowerCase("tr-TR").trim();
 
         return rows.filter((row) => {
@@ -371,7 +343,6 @@ export default function AracFiyatYonetimi({ onNavigate }) {
 
         return { active: active.length, passive, monthlyRent, monthlyDriver, total, uniqueCaris };
     }, [rows]);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/AracFiyatYonetimi.jsx
 
     return (
         <div className="afy-page premium-page-enter">

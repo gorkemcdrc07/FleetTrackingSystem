@@ -1,36 +1,10 @@
-<<<<<<< HEAD:src/pages/VehicleStatuses/index.jsx
-import { useEffect, useMemo, useState } from "react";
-import "./VehicleStatuses.css";
-import { logAuditEvent } from "../../services/auditLogger";
-import { buildVehiclePayload, upsertVehicleRow } from "../../domain/vehicles";
-import { createVehicle, listVehicles, updateVehicle } from "../../services/vehicleRepository";
-import { removeVehicleDocument, uploadVehicleDocument } from "../../services/vehicleDocumentStorage";
-import {
-    VEHICLE_DOCUMENT_TYPES as DOCUMENT_TYPES,
-    calculateLeaveDaysFromInput,
-    countMissingVehicleDocuments as missingDocumentCount,
-    countVehicleDocuments as countDocuments,
-    displayValue as value,
-    formatInputDate,
-    getActiveVehicleLeave as getActiveLeave,
-    getChangedVehicleFields as getChangedFields,
-    getVehicleDisplayStatus as getDisplayStatus,
-    getVehicleDocumentRisk as getDocumentRisk,
-    inputDateFromDisplay,
-    normalizeVehicleDocuments as normalizeDocuments,
-    normalizeVehicleStatusText as normalize,
-    vehicleExitHasWarning as exitHasWarning,
-    vehicleStatusCssKey as cssKey,
-} from "../../domain/vehicleStatusView";
-=======
 import { Truck, Plus, Search, X, Pencil, CalendarDays, Wallet, LogOut, ListChecks, FileWarning, ChevronLeft, ChevronRight, Rows3, Download, PanelRightOpen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import "./AracDurumlari.css";
+import "./VehicleStatuses.css";
 import "./FleetModern.css";
-import { islemLogla } from "../../utils/islemLogla";
+import { logAuditEvent } from "../../services/auditLogger";
 import * as XLSX from "xlsx";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AracDurumları/index.jsx
 
 const STATUS_OPTIONS = ["Tümü", "Müsait", "Seferde", "Bakımda", "Evrak Eksik", "Pasif", "İzinde", "Çıkartıldı"];
 const LEAVE_STATUS_OPTIONS = ["Yıllık İzin", "Raporlu", "Ücretsiz İzin", "Mazeret İzni", "İdari İzin", "Bakım İzni"];

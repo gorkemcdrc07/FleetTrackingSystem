@@ -1,27 +1,3 @@
-<<<<<<< HEAD:src/pages/Settlements/PepsiFuelSettlement.jsx
-import { useMemo, useRef, useState } from "react";
-import {
-    mapSettlementRow as mapRow,
-    normalizeSettlementPlate as normalizePlate,
-    parseSettlementClipboardRows as parseClipboardRows,
-    parseSettlementNumber as parseNumber,
-    pickSettlementValue as pick,
-} from "../../domain/settlementParsing";
-import {
-    downloadSettlementSpreadsheet as downloadExcel,
-    readSettlementSpreadsheet as readExcel,
-} from "../../services/settlementSpreadsheet";
-import {
-    aggregatePepsiFuelByPlate,
-    calculatePepsiFuelSummary,
-    distributePepsiSettlement,
-    summarizePepsiSettlement,
-} from "../../domain/pepsiFuelSettlement";
-import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
-import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
-import { logAuditEvent } from "../../services/auditLogger";
-import "./PepsiFuelSettlement.css";
-=======
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { applyHakedisWorkbookBranding } from "./shared/hakedisExcelBranding";
 import {
@@ -60,7 +36,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import { supabase } from "../../supabaseClient";
-import "./PepsiYakitHakedis.css";
+import "./PepsiFuelSettlement.css";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -209,7 +185,6 @@ const UploadCard = ({ title, icon, loaded, children }) => (
 const ProgressStep = ({ step, currentStep, description, icon }) => {
     const isActive = step === currentStep;
     const isCompleted = step < currentStep;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/PepsiYakitHakedis.jsx
 
     const color = isCompleted ? DARK.mint : isActive ? DARK.primary : DARK.textMuted;
     const IconComponent = isCompleted ? CheckCircleIcon : isActive ? RotateRightIcon : icon;
@@ -259,34 +234,6 @@ const roundToDecimal = (num, decimals = 4) => {
     return Math.round((Number(num || 0) * factor)) / factor;
 };
 
-<<<<<<< HEAD:src/pages/Settlements/PepsiFuelSettlement.jsx
-export default function PepsiFuelSettlement() {
-    const yakitInputRef = useRef(null);
-    const seferInputRef = useRef(null);
-
-    const [yakitRows, setYakitRows] = useState([]);
-    const [seferRows, setSeferRows] = useState([]);
-
-    const [loading, setLoading] = useState(false);
-    const [activeStep, setActiveStep] = useState(1);
-    const [calculated, setCalculated] = useState(false);
-
-    const [snackbar, setSnackbar] = useState("");
-    const [pasteOpen, setPasteOpen] = useState(false);
-    const [pasteText, setPasteText] = useState("");
-    const [dragOver, setDragOver] = useState(false);
-
-    const [previewTitle, setPreviewTitle] = useState("");
-    const [previewRows, setPreviewRows] = useState([]);
-
-    const yakitReady = yakitRows.length > 0;
-    const seferReady = seferRows.length > 0;
-    const canCalculate = yakitReady && seferReady && !loading;
-
-    function showSnackbar(text) {
-        setSnackbar(text);
-        window.setTimeout(() => setSnackbar(""), 3200);
-=======
 const toIntOrNull = (v) => {
     if (v === null || v === undefined || v === "") return null;
     const s = String(v).trim().replace(",", ".");
@@ -316,7 +263,6 @@ const toBigIntStringOrNull = (v) => {
         const n = Number(s);
         if (!Number.isFinite(n)) return null;
         return String(Math.trunc(n));
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/PepsiYakitHakedis.jsx
     }
 
     const digits = s.replace(/\D/g, "");
@@ -344,205 +290,7 @@ const getRateByMusteri = (musteriAdi) => {
 const PlakaKmList = ({ kmMap, mode = "km" }) => {
     if (!kmMap || Object.keys(kmMap).length === 0) return null;
 
-<<<<<<< HEAD:src/pages/Settlements/PepsiFuelSettlement.jsx
-            await replaceTemporarySettlementRows(SETTLEMENT_DATASETS.PEPSI_FUEL, parsed);
-
-            setYakitRows(parsed);
-            setPasteOpen(false);
-            setPasteText("");
-            setActiveStep(2);
-
-            logAuditEvent({
-                islem_tipi: "PEPSI_YAKIT_EXCEL_YUKLEME",
-                islem_aciklama: "Pepsi yakıt verisi yüklendi",
-                tablo_adi: "frigo_yakit_tmp",
-                detay: { dosya: sourceName, kayit_sayisi: parsed.length },
-            });
-
-            showSnackbar(`Yakıt verileri yüklendi. ${parsed.length} kayıt bulundu.`);
-        } catch (err) {
-            console.error(err);
-            alert("Yakıt verileri okunamadı.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function processSeferRows(rawRows, sourceName = "Yapıştırılan Veri") {
-        setLoading(true);
-        setCalculated(false);
-
-        try {
-            const parsed = rawRows
-                .map((raw) => {
-                    const row = mapRow(raw);
-
-                    return {
-                        musteri_adi: String(pick(row, ["musteri_adi", "müşteri adı", "musteri adi"]) || ""),
-                        sefer_no: String(pick(row, ["sefer_no", "sefer no"]) || ""),
-                        tms_despatch_id: String(pick(row, ["tms_despatch_id", "tms despatch id"]) || ""),
-                        plaka: normalizePlate(pick(row, ["plaka"])),
-                        toplam_km: parseNumber(pick(row, ["toplam_km", "toplam km", "km"])),
-                    };
-                })
-                .filter((x) => x.plaka && x.toplam_km > 0);
-
-            await replaceTemporarySettlementRows(SETTLEMENT_DATASETS.PEPSI_TRIPS, parsed);
-
-            setSeferRows(parsed);
-            setPasteOpen(false);
-            setPasteText("");
-            setActiveStep(3);
-
-            logAuditEvent({
-                islem_tipi: "PEPSI_SEFER_EXCEL_YUKLEME",
-                islem_aciklama: "Pepsi sefer verisi yüklendi",
-                tablo_adi: "frigo_sefer_tmp",
-                detay: { dosya: sourceName, kayit_sayisi: parsed.length },
-            });
-
-            showSnackbar(`Sefer verileri yüklendi. ${parsed.length} kayıt bulundu.`);
-        } catch (err) {
-            console.error(err);
-            alert("Sefer verileri okunamadı.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function processFile(file) {
-        if (!file) return;
-
-        const rawRows = await readExcel(file);
-
-        if (activeStep === 1) await processYakitRows(rawRows, file.name);
-        if (activeStep === 2) await processSeferRows(rawRows, file.name);
-    }
-
-    async function handleYakitUpload(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        await processYakitRows(await readExcel(file), file.name);
-        e.target.value = "";
-    }
-
-    async function handleSeferUpload(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        await processSeferRows(await readExcel(file), file.name);
-        e.target.value = "";
-    }
-
-    async function handlePasteSubmit() {
-        const rows = parseClipboardRows(pasteText);
-
-        if (!rows.length) {
-            alert("Yapıştırılan veri okunamadı. İlk satırda başlıklar olmalı.");
-            return;
-        }
-
-        if (activeStep === 1) await processYakitRows(rows);
-        if (activeStep === 2) await processSeferRows(rows);
-    }
-
-    function goBackStep() {
-        setPasteOpen(false);
-        setPasteText("");
-        setDragOver(false);
-        setCalculated(false);
-
-        if (activeStep === 2) {
-            setSeferRows([]);
-            setActiveStep(1);
-        }
-
-        if (activeStep === 3) {
-            setActiveStep(2);
-        }
-
-        if (activeStep === 4) {
-            setActiveStep(3);
-        }
-    }
-
-    function resetAll() {
-        setYakitRows([]);
-        setSeferRows([]);
-        setCalculated(false);
-        setActiveStep(1);
-        setPasteOpen(false);
-        setPasteText("");
-        setDragOver(false);
-        setPreviewRows([]);
-        setPreviewTitle("");
-    }
-
-    const yakitByPlate = useMemo(() => {
-        return aggregatePepsiFuelByPlate(yakitRows);
-    }, [yakitRows]);
-
-    const summaryRows = useMemo(() => {
-        if (!calculated) return [];
-
-        return calculatePepsiFuelSummary(seferRows, yakitByPlate);
-    }, [calculated, seferRows, yakitByPlate]);
-
-    const distributionRows = useMemo(() => {
-        if (!calculated) return [];
-
-        return distributePepsiSettlement(seferRows, summaryRows);
-    }, [calculated, seferRows, summaryRows]);
-
-    const totals = useMemo(() => {
-        return summarizePepsiSettlement(summaryRows);
-    }, [summaryRows]);
-
-    function handleCalculate() {
-        if (!canCalculate) return;
-        setCalculated(true);
-        setActiveStep(4);
-        showSnackbar("Pepsi yakıt hakediş hesaplaması tamamlandı.");
-    }
-
-    function exportSeferRaporu() {
-        const rows = distributionRows.map((x) => ({
-            sefer_no: x.sefer_no,
-            tms_despatch_id: x.tms_despatch_id,
-            plaka: x.plaka,
-            musteri_adi: x.musteri_adi,
-            km: Number(x.km.toFixed(4)),
-            oran: x.oran,
-            sefer_hakedisi_tl: Number(x.sefer_hakedisi_tl.toFixed(4)),
-            cari_unvan_id: x.cari_unvan_id,
-        }));
-
-        downloadExcel(rows, "pepsi_sefer_hakedisleri_raporu.xlsx", "Sefer Hakedişleri");
-    }
-
-    function exportOzetRaporu() {
-        const rows = summaryRows.map((x) => ({
-            plaka: x.plaka,
-            KM_38: Number(x.km_38.toFixed(4)),
-            KM_37: Number(x.km_37.toFixed(4)),
-            toplam_km: Number(x.toplam_km.toFixed(4)),
-            TOPLAM_TUKETIM: Number(x.toplam_tuketim.toFixed(4)),
-            gercek_yakit: Number(x.gercek_yakit.toFixed(4)),
-            litre_farki: Number(x.litre_farki.toFixed(4)),
-            birim_fiyat: Number(x.birim_fiyat.toFixed(4)),
-            iskontosuz_birim_fiyat: Number(x.iskontosuz_birim_fiyat.toFixed(4)),
-            DUZELTME_MALIYETI: Number(x.duzeltme_maliyeti.toFixed(4)),
-            durum: x.durum,
-        }));
-
-        downloadExcel(rows, "pepsi_ozet_data.xlsx", "Özet Data");
-    }
-
-    const detectedPasteRows = parseClipboardRows(pasteText).length;
-=======
     const list = Object.entries(kmMap).map(([plaka, data]) => ({ plaka, ...data }));
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/PepsiYakitHakedis.jsx
 
     return (
         <Box

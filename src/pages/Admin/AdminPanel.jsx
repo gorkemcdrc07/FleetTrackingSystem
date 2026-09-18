@@ -1,8 +1,3 @@
-<<<<<<< HEAD:src/pages/Admin/AdminPanel.jsx
-﻿import { useEffect, useMemo, useState } from "react";
-import { listUsers, updateUserPermissions } from "../../services/userRepository";
-import "./AdminPanel.css";
-=======
 import { useEffect, useMemo, useState } from "react";
 import {
     Activity,
@@ -34,8 +29,7 @@ import {
     XCircle,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
-import "./YonetimPaneli.css";
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Yonetici/YonetimPaneli.jsx
+import "./AdminPanel.css";
 
 const pageGroups = [
     { title: "Kullanıcı İşlemleri", icon: UserRound, pages: ["Aktif Seferler", "Tamamlanan Seferler"] },
@@ -70,9 +64,6 @@ const actions = [
     { key: "export", label: "Dışa Aktar", icon: Download },
 ];
 
-<<<<<<< HEAD:src/pages/Admin/AdminPanel.jsx
-function AdminPanel() {
-=======
 const emptyNewUser = { ad: "", kullanici: "", sifre: "", rol: "KULLANICI", aktif: true };
 
 const normalizePermissions = (value) =>
@@ -93,7 +84,6 @@ const permissionsSignature = (value) =>
 const hasPermissionSafe = (permissions, page, action) => permissions.find((item) => item.page === page)?.actions?.includes(action) || false;
 
 function YonetimPaneli() {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Yonetici/YonetimPaneli.jsx
     const [kullanicilar, setKullanicilar] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [permissions, setPermissions] = useState([]);
@@ -130,16 +120,6 @@ function YonetimPaneli() {
     const kullanicilariGetir = async () => {
         try {
             setLoading(true);
-<<<<<<< HEAD:src/pages/Admin/AdminPanel.jsx
-
-            const data = await listUsers();
-
-            setKullanicilar(data || []);
-
-            if (data?.length > 0) {
-                setSelectedUser(data[0]);
-            }
-=======
             setMessage(null);
             const { data, error } = await supabase
                 .from("kullanicilar")
@@ -149,7 +129,6 @@ function YonetimPaneli() {
             const users = data || [];
             setKullanicilar(users);
             setSelectedUser((current) => users.find((user) => user.id === current?.id) || users[0] || null);
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Yonetici/YonetimPaneli.jsx
         } catch (error) {
             console.error("Kullanıcılar alınamadı:", error);
             setMessage({ type: "error", text: "Kullanıcı listesi alınamadı." });
@@ -276,15 +255,6 @@ function YonetimPaneli() {
         if (!selectedUser || !hasChanges) return;
         try {
             setSaving(true);
-<<<<<<< HEAD:src/pages/Admin/AdminPanel.jsx
-
-            const data = await updateUserPermissions(selectedUser.id, permissions);
-
-            setKullanicilar((prev) =>
-                prev.map((user) => (user.id === data.id ? data : user))
-            );
-
-=======
             setMessage(null);
             const { data, error } = await supabase
                 .from("kullanicilar")
@@ -294,7 +264,6 @@ function YonetimPaneli() {
                 .single();
             if (error) throw error;
             setKullanicilar((prev) => prev.map((user) => user.id === data.id ? data : user));
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Yonetici/YonetimPaneli.jsx
             setSelectedUser(data);
             setPermissions(normalizePermissions(data.yetki));
             setMessage({ type: "success", text: "Yetkiler başarıyla kaydedildi." });
@@ -575,8 +544,4 @@ function YonetimPaneli() {
     );
 }
 
-<<<<<<< HEAD:src/pages/Admin/AdminPanel.jsx
-export default AdminPanel;
-=======
 export default YonetimPaneli;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Yonetici/YonetimPaneli.jsx

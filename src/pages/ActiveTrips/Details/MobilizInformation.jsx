@@ -23,11 +23,7 @@ function formatDate(value) {
     return date.toLocaleString("tr-TR");
 }
 
-<<<<<<< HEAD:src/pages/ActiveTrips/Details/MobilizInformation.jsx
-export default function MobilizInformation({ plaka }) {
-=======
 export default function MobilizBilgileri({ plaka }) {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/Detay/MobilizBilgileri.jsx
     const [loading, setLoading] = useState(true);
     const [vehicle, setVehicle] = useState(null);
     const [error, setError] = useState("");
@@ -47,14 +43,9 @@ export default function MobilizBilgileri({ plaka }) {
             setLoading(true);
             setError("");
 
-<<<<<<< HEAD:src/pages/ActiveTrips/Details/MobilizInformation.jsx
-            const list = await mobilizService.araclar();
-
-=======
             const json=await requestJson(API_URL,{signal},{timeoutMs:25000,retries:1});
             const list=responseList(json);
             if(id!==generation.current)return;
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/Detay/MobilizBilgileri.jsx
             const found = list.find(
                 (item) =>
                     normalizePlate(

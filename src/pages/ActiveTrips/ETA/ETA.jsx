@@ -263,9 +263,6 @@ function ETA({ row, onClose }) {
                     return;
                 }
 
-<<<<<<< HEAD:src/pages/ActiveTrips/ETA/ETA.jsx
-                const matchedEta = await findEtaReference(etaKeys.cikis, etaKeys.varis);
-=======
                 const { data, error } = await supabase
                     .from("eta_referanslari")
                     .select("*")
@@ -277,7 +274,6 @@ function ETA({ row, onClose }) {
                 if (error) throw error;
 
                 const matchedEta = data?.[0];
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/AktifSeferler/ETA/ETA.jsx
 
                 if (!matchedEta) {
                     setErrorText(`${etaKeys.cikis} - ${etaKeys.varis} için ETA kaydı bulunamadı.`);

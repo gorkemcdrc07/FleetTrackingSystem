@@ -28,10 +28,6 @@ import {
     notificationEngine,
 } from "../services/notificationEngine";
 
-<<<<<<< HEAD:src/pages/OperationsCenter.jsx
-import { mobilizService } from "../services/mobiliz";
-import { getVehicleIgnition as getIgnition, getVehiclePlate as getPlate, getVehicleSpeed as getSpeed, normalizeVehiclePlate as normalizePlate } from "../domain/vehicleTelemetry";
-=======
 import { apiUrl } from "../config/api";
 import DispatchBoard from "../components/DispatchBoard/DispatchBoard";
 import TrackedVehicleDrawer from "../components/TrackedVehicleSelector/TrackedVehicleDrawer";
@@ -39,7 +35,6 @@ import { useTrackedVehicles } from "../context/TrackedVehiclesContext";
 const API_URL = apiUrl(
     "/api/mobiliz/activity-last"
 );
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/OperasyonMerkezi.jsx
 
 const GEOFENCE_EVENT_KEY =
     "fts_geofence_events";
@@ -883,15 +878,8 @@ const trackedGeofenceEvents =
                         title="Canlı Harita"
                         subtitle={`${filteredVehicles.length} araç görüntüleniyor`}
                     >
-<<<<<<< HEAD:src/pages/OperationsCenter.jsx
-                        <FleetMap
-                            vehicles={
-                                filteredVehicles
-                            }
-=======
                         <Harita
                             vehicles={filteredVehicles}
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/OperasyonMerkezi.jsx
                             selectedPlate={
                                 selectedVehicle
                                     ? getPlate(selectedVehicle)

@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-<<<<<<< HEAD
-import FleetMap from "../../components/Map/FleetMap";
-=======
 import { Search, CalendarDays, Plus, Truck, PauseCircle, ParkingCircle, WifiOff, BellRing, MapPinned, ExternalLink, ShieldCheck, Activity, Clock3, Wrench, BarChart3, RefreshCw, Command, Navigation, Gauge, ChevronRight, Sparkles } from "lucide-react";
-import Harita from "../../components/Harita/Harita";
->>>>>>> e19f46db99295929579026857074dda7619efeec
+import Harita from "../../components/Map/FleetMap";
 import VehicleDrawer from "../../components/VehicleDrawer/VehicleDrawer";
 
 import "../../components/Map/FleetMap.css";
@@ -650,24 +646,7 @@ export default function Dashboard({ onNavigate }) {
                     </div>
                 </div>
 
-<<<<<<< HEAD
-                    <FleetMap
-                        vehicles={filteredVehicles}
-                        selectedPlate={
-                            selectedVehicle
-                                ? getVehiclePlate(
-                                    selectedVehicle
-                                )
-                                : undefined
-                        }
-                        onVehicleClick={openVehicle}
-                        height="660px"
-                        zoom={6}
-                    />
-                </section>
-=======
                 {error && <div className="command-alert" role="alert"><WifiOff size={18}/><div><strong>Canlı veri bağlantısı kesildi</strong><span>{lastRefresh ? "Son başarılı veriler ekranda tutuluyor." : error}</span></div><button onClick={loadData}>Tekrar bağlan</button></div>}
->>>>>>> e19f46db99295929579026857074dda7619efeec
 
                 <div className="command-stat-strip">
                     <button className={activeFilter === "all" ? "active" : ""} onClick={() => handleFilterChange("all")}><span>Filo</span><strong>{lastRefresh ? summary.all : "—"}</strong><small>Toplam araç</small></button>

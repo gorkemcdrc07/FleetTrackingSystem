@@ -1,29 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-<<<<<<< HEAD:src/pages/Settlements/HayatKimyaFuelSettlement.jsx
-import {
-    mapSettlementRow as mapRow,
-    normalizeSettlementPlate as normalizePlate,
-    parseSettlementClipboardRows as parseClipboardRows,
-    parseSettlementNumber as parseNumber,
-    pickSettlementValue as pick,
-} from "../../domain/settlementParsing";
-import {
-    downloadSettlementSpreadsheet as downloadExcel,
-    readSettlementSpreadsheet as readExcel,
-} from "../../services/settlementSpreadsheet";
-import {
-    aggregateHayatKimyaFuelByPlate,
-    calculateHayatKimyaFuelSummary,
-    distributeHayatKimyaSettlement,
-    indexHayatKimyaVehiclePricing,
-    summarizeHayatKimyaSettlement,
-} from "../../domain/hayatKimyaFuelSettlement";
-import { SETTLEMENT_DATASETS } from "../../domain/settlementDatasets";
-import { replaceTemporarySettlementRows } from "../../services/temporarySettlementRepository";
-import { listVehiclePricing } from "../../services/vehiclePricingRepository";
-import { logAuditEvent } from "../../services/auditLogger";
-import "./HayatKimyaFuelSettlement.css";
-=======
 import * as XLSX from "xlsx";
 import {
     Activity,
@@ -45,8 +20,8 @@ import {
     UploadCloud,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
-import { islemLogla } from "../../utils/islemLogla";
-import "./HayatKimyaYakitHakedis.css";
+import { logAuditEvent } from "../../services/auditLogger";
+import "./HayatKimyaFuelSettlement.css";
 import { applyHakedisSheetBranding } from "./shared/hakedisSheetBranding";
 
 const SPECIAL_CUSTOMERS = ["HAYAT KİMYA", "HAYAT KIMYA", "ODAK TEDARİK", "ODAK TEDARIK"];
@@ -86,7 +61,6 @@ function parseNumber(v) {
     const n = Number(s);
     return Number.isFinite(n) ? n : 0;
 }
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/HayatKimyaYakitHakedis.jsx
 
 function formatTL(v) {
     return Number(v || 0).toLocaleString("tr-TR", {
@@ -104,9 +78,6 @@ function formatNumber(v) {
     });
 }
 
-<<<<<<< HEAD:src/pages/Settlements/HayatKimyaFuelSettlement.jsx
-export default function HayatKimyaFuelSettlement() {
-=======
 function readExcel(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -174,7 +145,6 @@ function parseClipboardRows(text) {
 }
 
 export default function HayatKimyaYakitHakedis() {
->>>>>>> e19f46db99295929579026857074dda7619efeec:src/pages/Hakedisler/HayatKimyaYakitHakedis.jsx
     const yakitInputRef = useRef(null);
     const seferInputRef = useRef(null);
 

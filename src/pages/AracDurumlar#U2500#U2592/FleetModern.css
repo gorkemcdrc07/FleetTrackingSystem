@@ -1,0 +1,340 @@
+.arac-page.fleet-modern{padding:30px clamp(16px,2.5vw,38px) 40px;background:#f3f6fa;color:#284e63;font-family:Inter,system-ui,sans-serif;min-width:0}.arac-page.fleet-modern .arac-hero{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:0;margin-bottom:24px;border:0;background:none;box-shadow:none;border-radius:0}.arac-page.fleet-modern .arac-eyebrow{font-size:10px;font-weight:650;color:#6a8998;letter-spacing:.14em;background:none;padding:0}.arac-page.fleet-modern .arac-hero h1{font-size:32px;font-weight:750;letter-spacing:-1px;color:#183448;margin:8px 0}.arac-page.fleet-modern .arac-hero p{font-size:12px;color:#8296a3;line-height:1.7}.arac-page.fleet-modern .hero-actions{display:flex;gap:9px;flex-wrap:wrap}.arac-page.fleet-modern button{font-family:inherit;cursor:pointer;transition:background .15s}.arac-page.fleet-modern button:disabled{opacity:.4;cursor:not-allowed}.arac-page.fleet-modern button:focus-visible,.arac-page.fleet-modern input:focus-visible,.arac-page.fleet-modern select:focus-visible{outline:2px solid #58a1a7;outline-offset:2px}.arac-page.fleet-modern .hero-actions button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:39px;padding:0 12px;border:1px solid #d9e5ec;border-radius:9px;background:white;color:#648493;font-size:11px;font-weight:550;box-shadow:none;transform:none}.arac-page.fleet-modern .hero-actions .add-btn{background:#285d6d;border-color:#285d6d;color:white}.arac-page.fleet-modern .hero-actions .problem-btn.active{background:#faf2df;border-color:#e5d2a8;color:#a17d39}.arac-page.fleet-modern .hero-actions .danger{color:#b47b87}.fleet-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}.fleet-overview>div{display:flex;align-items:center;gap:15px;background:white;border:1px solid #e0e8ee;border-radius:13px;padding:20px;min-width:0}.fleet-overview>div>span{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;background:#edf4f6;color:#608796}.fleet-overview>div:nth-child(2)>span{background:#edf6f1;color:#638c7a}.fleet-overview>div:last-child>span{background:#faf3e4;color:#b39255}.fleet-overview small{font-size:11px;color:#8499a5;display:block}.fleet-overview strong{font-size:28px;font-weight:700;color:#2c5165;line-height:1.4}
+.arac-page.fleet-modern .filter-card{display:flex;gap:10px;align-items:center;padding:17px 20px;background:#eaf0f4;border:1px solid #dce6ec;border-radius:12px;box-shadow:none;margin-bottom:22px}.arac-page.fleet-modern .search-box{display:flex;align-items:center;gap:9px;padding:0 12px;flex:1;min-width:200px;background:white;border:1px solid #dce6ec;border-radius:8px;color:#88a0ad;height:40px}.arac-page.fleet-modern .search-box input{border:0;background:none;box-shadow:none;font-size:12px;color:#4d7184;min-width:0;width:100%;padding:0}.arac-page.fleet-modern .filter-card select{height:40px;min-width:130px;padding:0 12px;border:1px solid #dce6ec;background:white;border-radius:8px;color:#628292;font-size:11px}.fleet-clear{border:0;background:none;display:flex;gap:5px;align-items:center;color:#7c96a2;font-size:11px}.arac-page.fleet-modern .content-grid{display:block;grid-template-columns:none}.arac-page.fleet-modern .table-card{border:1px solid #e0e8ee;border-radius:15px 15px 0 0;background:white;box-shadow:none;overflow:hidden}.arac-page.fleet-modern .table-top{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:18px 20px;background:white;border-bottom:1px solid #e7edf1}.arac-page.fleet-modern .table-top h2{font-size:15px;color:#355e72;margin:0 0 5px;font-weight:650}.arac-page.fleet-modern .table-top span{font-size:10px;color:#8a9da8}.fleet-table-tools{display:flex;gap:9px}.fleet-table-tools button{display:flex;align-items:center;gap:7px;border:1px solid #dce6ec;background:white;border-radius:7px;color:#6b8b99;padding:8px 10px;font-size:11px}.arac-page.fleet-modern .fleet-table-wrap{height:auto;max-height:62dvh;overflow:auto;scrollbar-width:thin;scrollbar-color:#cad8df #f7fafb}.arac-page.fleet-modern .fleet-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;table-layout:auto}.arac-page.fleet-modern .fleet-table th{position:sticky;top:0;z-index:2;height:42px;padding:0 13px;background:#f4f7f9;color:#7b94a2;font-size:10px;font-weight:600;text-transform:none;border:0;border-bottom:1px solid #dfe8ee;white-space:nowrap}.arac-page.fleet-modern .fleet-table td{padding:12px 13px;height:62px;background:white;border-bottom:1px solid #edf2f5;border-right:1px solid #f4f7f9;color:#547386;font-size:11px;white-space:nowrap}.arac-page.fleet-modern .fleet-table tr:nth-child(even) td{background:#fcfdfe}.arac-page.fleet-modern .fleet-table tbody tr:hover td,.arac-page.fleet-modern .fleet-table tr.selected td{background:#eef7f6}.arac-page.fleet-modern .fleet-table th:first-child,.arac-page.fleet-modern .fleet-table td:first-child{position:sticky;left:0;z-index:1}.arac-page.fleet-modern .fleet-table th:first-child{z-index:3}.arac-page.fleet-modern .row-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}.arac-page.fleet-modern .row-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:30px;padding:0 8px;border:1px solid #dfe8ee;background:white;border-radius:6px;color:#698896;font-size:10px;font-weight:550;box-shadow:none;transform:none}.arac-page.fleet-modern .row-actions .edit-btn,.arac-page.fleet-modern .row-actions .inspect-btn{background:#f0f8f7;border-color:#d5e8e5;color:#488087}.arac-page.fleet-modern .row-actions .exit-btn{color:#b7828b;background:#fff9fa;border-color:#efdee2}.arac-page.fleet-modern .row-actions button:hover{background:#e8f3f3}.arac-page.fleet-modern .plate{padding:5px 7px;background:#fff;border:1px solid #d8e4eb;border-radius:5px;color:#355b71;font-size:11px;font-weight:650;box-shadow:none}.arac-page.fleet-modern .status-badge,.arac-page.fleet-modern .risk-badge,.arac-page.fleet-modern .mini-count{font-size:9px;font-weight:550;padding:5px 7px;border-radius:6px;box-shadow:none}.arac-page.fleet-modern .status-badge{background:#edf5f4;color:#5b857d;border:1px solid #dfece7}.arac-page.fleet-modern .risk-badge.danger{background:#fbf0f2;color:#b57986}.arac-page.fleet-modern .risk-badge.warning,.arac-page.fleet-modern .mini-count.warning{background:#faf4e7;color:#ac8b4e}.arac-page.fleet-modern .risk-badge.success{background:#eff6f1;color:#6c927e}.fleet-modern.fleet-compact .fleet-table td{height:43px;padding-top:5px;padding-bottom:5px}.arac-page.fleet-modern .empty-cell{height:230px;text-align:center;color:#8298a4}
+.fleet-pagination{display:flex;justify-content:space-between;align-items:center;gap:15px;background:white;border:1px solid #e0e8ee;border-top:0;border-radius:0 0 15px 15px;padding:14px 20px;color:#8399a5;font-size:11px}.fleet-pagination>div{display:flex;gap:12px;align-items:center}.fleet-pagination label{display:flex;gap:8px;align-items:center}.fleet-pagination select,.fleet-pagination button{background:white;border:1px solid #dce6ec;border-radius:6px;color:#72919e;font-size:11px;padding:5px}.fleet-pagination button{display:grid;place-items:center}
+.fleet-drawer-backdrop{position:fixed;inset:0;background:#17374855;backdrop-filter:blur(3px);z-index:900;display:flex;justify-content:flex-end}.arac-page.fleet-modern .fleet-drawer-backdrop .detail-panel{position:relative;top:auto;width:min(520px,96vw);height:100dvh;max-height:100dvh;overflow:auto;border:0;border-left:1px solid #dce6ed;border-radius:0;padding:26px;background:#f5f9fb;box-shadow:-20px 0 60px #16394c26;display:block}.fleet-drawer-close{position:absolute;right:18px;top:18px;display:grid;place-items:center;width:32px;height:32px;border:1px solid #dce6ec;border-radius:8px;color:#74929f;background:white}.arac-page.fleet-modern .detail-head{padding:0 40px 20px 0;background:none;border-bottom:1px solid #dce7ec}.arac-page.fleet-modern .detail-head h2{font-size:25px;color:#31596c}.arac-page.fleet-modern .detail-head>div>span{color:#839faa;font-size:10px;letter-spacing:.08em}.arac-page.fleet-modern .detail-actions{display:flex;gap:8px;padding:16px 0}.arac-page.fleet-modern .detail-actions button{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid #d8e7e9;border-radius:7px;background:white;color:#648895;font-size:11px;padding:9px}.arac-page.fleet-modern .detail-section{padding:17px;border:1px solid #dfe8ed;border-radius:11px;background:white;box-shadow:none;margin-bottom:12px}.arac-page.fleet-modern .detail-section h3{font-size:12px;color:#517888;margin:0 0 12px}.arac-page.fleet-modern .info-row{border-color:#edf2f5;font-size:11px}.arac-page.fleet-modern .info-row span{color:#8a9fab}.arac-page.fleet-modern .info-row strong{color:#4d7283;font-size:11px}.arac-page.fleet-modern .document-summary-row,.arac-page.fleet-modern .preview-item{background:#f8fbfc;border-color:#e1ebef;border-radius:7px;font-size:11px}
+.arac-page.fleet-modern .vehicle-modal,.arac-page.fleet-modern .list-center-overlay{background:#17374866;backdrop-filter:blur(3px);z-index:1100}.arac-page.fleet-modern :is(.vehicle-form,.vehicle-form-modal,.small-record-modal,.list-center-modal,.modern-edit-card){background:#f6f9fb;border:1px solid #dce6ed;border-radius:16px;box-shadow:0 25px 80px #15384c33;color:#355e70;font-family:inherit}.arac-page.fleet-modern :is(.form-header,.vehicle-form-head,.small-modal-head,.list-modern-head,.modern-edit-head){background:#eaf2f4;border-color:#dce7ec;padding:22px}.arac-page.fleet-modern :is(.form-header,.vehicle-form-head,.small-modal-head,.list-modern-head,.modern-edit-head) h2{font-size:23px;color:#31596c;letter-spacing:-.4px}.arac-page.fleet-modern :is(.small-modal-head,.list-modern-head,.modern-edit-head) span{color:#819ba6;font-size:10px}.arac-page.fleet-modern :is(.small-modal-body,.modern-edit-body) label{font-size:11px;color:#6b8a98}.arac-page.fleet-modern :is(input,textarea,select){font-family:inherit}.arac-page.fleet-modern :is(.vehicle-modal,.list-center-overlay) :is(input:not([type=checkbox]):not([type=file]),textarea,select){background:white;border:1px solid #dce6ec;border-radius:8px;color:#3e6377;font-size:12px;box-shadow:none}.arac-page.fleet-modern :is(.save-btn,.modal-excel-btn){background:#2c6876;color:white;border:1px solid #2c6876;border-radius:8px;font-size:12px;box-shadow:none}.arac-page.fleet-modern :is(.cancel-btn,.modal-close-btn){background:white;border:1px solid #dce6ec;border-radius:8px;color:#7694a1;box-shadow:none}.arac-page.fleet-modern .danger-save{background:#b77984;border-color:#b77984}.arac-page.fleet-modern .list-modern-tabs{background:#eaf1f4;border:0;border-radius:10px;padding:6px;gap:6px}.arac-page.fleet-modern .list-modern-tabs button{background:none;border:0;border-radius:7px;color:#829ba7;font-size:12px}.arac-page.fleet-modern .list-modern-tabs button.active{background:white;color:#3d7c85;box-shadow:0 2px 6px #193c4e08}.arac-page.fleet-modern .list-kpi-row>div,.arac-page.fleet-modern .modern-record-card{background:white;border:1px solid #dfe8ed;border-radius:11px;box-shadow:none}.arac-page.fleet-modern .list-kpi-row strong{color:#3d6678;font-size:25px}.arac-page.fleet-modern .modern-driver-box,.arac-page.fleet-modern .modern-info-grid>div,.arac-page.fleet-modern .modern-note-box{background:#f3f8f9;border-color:#e0eaee;color:#678996;border-radius:8px}.arac-page.fleet-modern .modern-card-actions button{border-radius:7px;font-size:11px;box-shadow:none}.arac-page.fleet-modern .edit-soft-btn{background:#eaf5f3;color:#56878a}.arac-page.fleet-modern .modern-record-top strong{color:#3c6579}.arac-page.fleet-modern .document-card{border:1px solid #dfe8ed;border-radius:11px;background:white;box-shadow:none}
+@media(max-width:1100px){.arac-page.fleet-modern .arac-hero{align-items:flex-start;flex-direction:column}.arac-page.fleet-modern .filter-card{flex-wrap:wrap}.arac-page.fleet-modern .search-box{flex-basis:100%}.arac-page.fleet-modern .filter-card select{flex:1}.fleet-overview>div{padding:15px;gap:10px}}
+@media(max-width:700px){.arac-page.fleet-modern{padding:24px 12px 32px}.arac-page.fleet-modern .arac-hero h1{font-size:28px}.fleet-overview{grid-template-columns:1fr 1fr;gap:9px}.fleet-overview>div{padding:12px;gap:9px}.fleet-overview>div>span{width:33px;height:33px;flex-shrink:0}.fleet-overview strong{font-size:24px}.fleet-overview small{font-size:10px}.arac-page.fleet-modern .hero-actions button{font-size:10px}.arac-page.fleet-modern .filter-card{padding:12px}.arac-page.fleet-modern .filter-card select{min-width:100px;width:100px}.arac-page.fleet-modern .table-top{flex-wrap:wrap;padding:15px}.arac-page.fleet-modern .fleet-table th:first-child,.arac-page.fleet-modern .fleet-table td:first-child{position:static}.arac-page.fleet-modern .fleet-table th:first-child{position:sticky;left:auto}.fleet-pagination{flex-wrap:wrap;padding:12px}.fleet-pagination>div{gap:8px}.arac-page.fleet-modern .fleet-drawer-backdrop .detail-panel{padding:20px 16px}.arac-page.fleet-modern .vehicle-modal{padding:10px}.arac-page.fleet-modern .list-kpi-row{grid-template-columns:1fr 1fr}.arac-page.fleet-modern .modern-record-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.arac-page.fleet-modern *{transition:none;animation:none}}
+.arac-page.fleet-modern .fleet-filter-label{display:flex;align-items:center;gap:8px;padding:0 10px;background:white;border:1px solid #dce6ec;border-radius:8px;height:40px;min-width:0}.arac-page.fleet-modern .fleet-filter-label>span{font-size:10px;color:#90a3ae;white-space:nowrap}.arac-page.fleet-modern .fleet-filter-label select{border:0;padding:0;min-width:90px;height:36px;background:none}.arac-page.fleet-modern .arac-eyebrow:before{display:none}.arac-page.fleet-modern .list-kpi-row>div:before,.arac-page.fleet-modern .modern-record-card:before{background:#80aaa8}.arac-page.fleet-modern .modern-record-top h3{color:#3e7180;font-size:17px;font-weight:650}.arac-page.fleet-modern .modern-record-top span,.arac-page.fleet-modern .modern-info-grid span{font-size:10px;color:#879eaa;font-weight:550}.arac-page.fleet-modern .modern-info-grid strong,.arac-page.fleet-modern .modern-driver-box strong{font-size:12px;color:#4e7284;font-weight:600}.arac-page.fleet-modern .modern-date-line{background:#edf6f4;border-color:#d6e8e4;color:#6a928c;border-radius:8px}.arac-page.fleet-modern .modern-date-line i{background:#8aafac}.arac-page.fleet-modern .modern-pill.purple{color:#7b939f;background:#f0f5f7;border-color:#dee8ed}.arac-page.fleet-modern .list-filter-search input{height:36px;border:0!important;background:transparent!important;font-size:12px}.arac-page.fleet-modern .list-modern-tabs button{font-weight:600}.arac-page.fleet-modern .list-modern-tabs button span{background:#eef5f5;color:#759699;font-size:10px}.arac-page.fleet-modern .list-modern-filter>button{border:1px solid #dce6ec;background:white;color:#7694a1;border-radius:8px;font-size:11px}.arac-page.fleet-modern .small-modal-head button,.arac-page.fleet-modern .vehicle-form-head button{display:grid;place-items:center;width:33px;height:33px;border:1px solid #dce6ec;border-radius:8px;color:#7694a1;background:white}.arac-page.fleet-modern .small-modal-actions,.arac-page.fleet-modern .vehicle-form-actions{background:#f1f6f8;border-color:#dce7ec}.arac-page.fleet-modern .vehicle-form-grid>label{font-size:11px;font-weight:550;color:#73919f}.arac-page.fleet-modern .auto-day-box{background:#edf5f4;border-color:#d6e8e4;border-radius:9px;color:#608b8a}
+@media(max-width:1100px){.arac-page.fleet-modern .fleet-filter-label{flex:1}.arac-page.fleet-modern .fleet-filter-label select{width:100%}}@media(max-width:700px){.arac-page.fleet-modern .fleet-filter-label{flex:1 0 100%;justify-content:space-between}.arac-page.fleet-modern .fleet-filter-label select{width:auto;flex:1}}
+.arac-page.fleet-modern .filter-card{flex-direction:row;align-items:center}.arac-page.fleet-modern .search-box{min-height:40px;flex:1 1 240px}.arac-page.fleet-modern .search-box input{height:36px}.arac-page.fleet-modern .fleet-table td:first-child{background:#fff}.arac-page.fleet-modern .fleet-table tr.selected td:first-child{background:#eef7f6}@media(max-width:700px){.arac-page.fleet-modern .search-box{flex:0 0 100%;width:100%;min-width:0;height:40px}.arac-page.fleet-modern .fleet-table td:first-child{position:sticky;left:0;z-index:1}.arac-page.fleet-modern .fleet-table th:first-child{position:sticky;left:0;z-index:3}.arac-page.fleet-modern .fleet-filter-label{width:100%}.arac-page.fleet-modern .fleet-table .plate{font-size:10px}}
+
+/* v25 — premium interaction layer */
+.arac-page.fleet-modern{--fleet-surface:#fff;--fleet-surface-2:#f7f9fc;--fleet-border:#e5eaf2;--fleet-text:#182230;--fleet-muted:#667085;--fleet-accent:#6366f1;--fleet-accent-2:#8b5cf6;--fleet-shadow:0 10px 30px rgba(16,24,40,.07)}
+[data-theme="dark"] .arac-page.fleet-modern{--fleet-surface:#111827;--fleet-surface-2:#0f172a;--fleet-border:#263244;--fleet-text:#f8fafc;--fleet-muted:#94a3b8;--fleet-accent:#818cf8;--fleet-accent-2:#a78bfa;--fleet-shadow:0 18px 44px rgba(0,0,0,.26)}
+.arac-page.fleet-modern .hero-actions button,.arac-page.fleet-modern .fleet-table-tools button,.arac-page.fleet-modern .row-actions button,.arac-page.fleet-modern .fleet-clear,.arac-page.fleet-modern .fleet-pagination button{position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .22s ease,border-color .2s ease,background .2s ease,color .2s ease}
+.arac-page.fleet-modern .hero-actions button:hover,.arac-page.fleet-modern .fleet-table-tools button:hover,.arac-page.fleet-modern .row-actions button:hover:not(:disabled),.arac-page.fleet-modern .fleet-clear:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 18px rgba(28,39,61,.12)}
+.arac-page.fleet-modern .hero-actions button:active,.arac-page.fleet-modern .fleet-table-tools button:active,.arac-page.fleet-modern .row-actions button:active:not(:disabled){transform:translateY(0) scale(.97)}
+.arac-page.fleet-modern .premium-add{isolation:isolate;background:linear-gradient(135deg,var(--fleet-accent),var(--fleet-accent-2))!important;border-color:transparent!important;box-shadow:0 10px 22px rgba(99,102,241,.25)!important;color:#fff!important}
+.arac-page.fleet-modern .premium-add .button-glow{position:absolute;inset:-80% auto -80% -35%;width:32%;transform:rotate(18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);z-index:-1;transition:left .5s ease}.arac-page.fleet-modern .premium-add:hover .button-glow{left:115%}
+.arac-page.fleet-modern .hero-refresh-btn{background:var(--fleet-surface)!important;color:var(--fleet-text)!important;border-color:var(--fleet-border)!important}.arac-page.fleet-modern .hero-refresh-btn:hover svg{transform:rotate(35deg)}.arac-page.fleet-modern .hero-refresh-btn svg{transition:transform .25s ease}.arac-page.fleet-modern .spin{animation:fleetSpin .8s linear infinite}@keyframes fleetSpin{to{transform:rotate(360deg)}}
+.arac-page.fleet-modern .fleet-overview{grid-template-columns:repeat(4,minmax(0,1fr))}.arac-page.fleet-modern .fleet-kpi{appearance:none;text-align:left;font:inherit;color:inherit;width:100%;cursor:pointer;position:relative;display:flex;align-items:center;gap:13px;padding:18px;border:1px solid var(--fleet-border);border-radius:16px;background:var(--fleet-surface);box-shadow:var(--fleet-shadow);transition:transform .2s ease,border-color .2s ease,box-shadow .25s ease,background .25s ease}.arac-page.fleet-modern .fleet-kpi:before{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;background:radial-gradient(circle at 85% 15%,rgba(99,102,241,.13),transparent 42%);transition:opacity .25s}.arac-page.fleet-modern .fleet-kpi:hover{transform:translateY(-3px);border-color:rgba(99,102,241,.38);box-shadow:0 16px 34px rgba(31,41,55,.11)}.arac-page.fleet-modern .fleet-kpi:hover:before,.arac-page.fleet-modern .fleet-kpi.active:before{opacity:1}.arac-page.fleet-modern .fleet-kpi.active{border-color:var(--fleet-accent);box-shadow:0 0 0 3px rgba(99,102,241,.10),var(--fleet-shadow)}.arac-page.fleet-modern .fleet-kpi-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto}.arac-page.fleet-modern .tone-indigo .fleet-kpi-icon{background:rgba(99,102,241,.12);color:#818cf8}.arac-page.fleet-modern .tone-green .fleet-kpi-icon{background:rgba(16,185,129,.12);color:#34d399}.arac-page.fleet-modern .tone-blue .fleet-kpi-icon{background:rgba(59,130,246,.12);color:#60a5fa}.arac-page.fleet-modern .tone-amber .fleet-kpi-icon{background:rgba(245,158,11,.12);color:#fbbf24}.arac-page.fleet-modern .fleet-kpi div{display:flex;min-width:0;flex-direction:column}.arac-page.fleet-modern .fleet-kpi small{color:var(--fleet-muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.arac-page.fleet-modern .fleet-kpi strong{color:var(--fleet-text);font-size:26px;line-height:1.15}.arac-page.fleet-modern .fleet-kpi em{font-style:normal;color:var(--fleet-muted);font-size:9px;margin-top:2px;opacity:.8}
+.arac-page.fleet-modern .search-box{position:relative}.arac-page.fleet-modern .search-box kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:600 10px/1 system-ui;padding:5px 7px;border:1px solid var(--fleet-border);border-bottom-width:2px;border-radius:6px;background:var(--fleet-surface-2);color:var(--fleet-muted)}.arac-page.fleet-modern .search-box input{padding-right:42px!important}.arac-page.fleet-modern .fleet-clear b{margin-left:2px;min-width:17px;height:17px;padding:0 5px;display:inline-grid;place-items:center;border-radius:999px;background:rgba(99,102,241,.13);color:var(--fleet-accent);font-size:9px}.arac-page.fleet-modern .fleet-clear:disabled{opacity:.45;cursor:not-allowed}
+.arac-page.fleet-modern .fleet-utility-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0;padding:10px 13px;border:1px solid var(--fleet-border);border-radius:12px;background:color-mix(in srgb,var(--fleet-surface) 85%,transparent);color:var(--fleet-muted);font-size:11px}.arac-page.fleet-modern .fleet-utility-strip>div{display:flex;align-items:center;gap:9px}.arac-page.fleet-modern .fleet-utility-strip strong{color:var(--fleet-text)}.arac-page.fleet-modern .active-filter-note{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;background:rgba(99,102,241,.1);color:var(--fleet-accent)}.arac-page.fleet-modern .fleet-utility-strip kbd{font:600 9px/1 system-ui;padding:3px 5px;border:1px solid var(--fleet-border);border-radius:5px;background:var(--fleet-surface);color:var(--fleet-text)}
+[data-theme="dark"] .arac-page.fleet-modern .filter-card,[data-theme="dark"] .arac-page.fleet-modern .table-card,[data-theme="dark"] .arac-page.fleet-modern .fleet-pagination,[data-theme="dark"] .arac-page.fleet-modern .fleet-filter-label,[data-theme="dark"] .arac-page.fleet-modern .search-box,[data-theme="dark"] .arac-page.fleet-modern .fleet-table td:first-child{background:var(--fleet-surface)!important;border-color:var(--fleet-border)!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table{color:#dbe4ef}[data-theme="dark"] .arac-page.fleet-modern .fleet-table th{background:#182234!important;color:#aab7c8!important;border-color:#2b384c!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table td{border-color:#253247!important;color:#dbe4ef!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table tbody tr{background:#111827!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table tbody tr:nth-child(even){background:#142033!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table tbody tr:hover{background:#1b2940!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table tr.selected{background:#202a4a!important}[data-theme="dark"] .arac-page.fleet-modern .fleet-table tr.selected td:first-child{background:#202a4a!important}[data-theme="dark"] .arac-page.fleet-modern .table-top h2,[data-theme="dark"] .arac-page.fleet-modern .arac-hero h1{color:#f8fafc!important}[data-theme="dark"] .arac-page.fleet-modern .table-top span,[data-theme="dark"] .arac-page.fleet-modern .arac-hero p{color:#94a3b8!important}
+.arac-page.fleet-modern .row-actions button svg{transition:transform .2s ease}.arac-page.fleet-modern .row-actions button:hover svg{transform:scale(1.12) rotate(-3deg)}.arac-page.fleet-modern .inspect-btn:hover svg{transform:translateX(2px) scale(1.12)}
+@media(max-width:900px){.arac-page.fleet-modern .fleet-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.arac-page.fleet-modern .fleet-utility-strip{align-items:flex-start;flex-direction:column}.arac-page.fleet-modern .fleet-utility-strip small{display:none}}
+@media(max-width:520px){.arac-page.fleet-modern .fleet-overview{grid-template-columns:1fr}.arac-page.fleet-modern .fleet-kpi{padding:14px}.arac-page.fleet-modern .fleet-kpi em{display:none}}
+@media(prefers-reduced-motion:reduce){.arac-page.fleet-modern .premium-add .button-glow{display:none}.arac-page.fleet-modern .spin{animation:none}}
+
+/* v26 — modal / form theme alignment */
+.arac-page.fleet-modern .vehicle-modal{
+  z-index:1200;
+  padding:clamp(12px,2vw,26px);
+  background:rgba(8,15,28,.58);
+  backdrop-filter:blur(14px) saturate(120%);
+  -webkit-backdrop-filter:blur(14px) saturate(120%);
+  animation:fleetModalFade .18s ease-out;
+}
+.arac-page.fleet-modern .vehicle-form,
+.arac-page.fleet-modern .small-record-modal{
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--fleet-border);
+  background:var(--fleet-surface);
+  color:var(--fleet-text);
+  box-shadow:0 28px 90px rgba(3,10,24,.28),0 0 0 1px rgba(255,255,255,.03) inset;
+  animation:fleetModalRise .24s cubic-bezier(.2,.75,.25,1);
+}
+.arac-page.fleet-modern .vehicle-form{border-radius:22px}
+.arac-page.fleet-modern .small-record-modal{border-radius:20px}
+.arac-page.fleet-modern .vehicle-form:before,
+.arac-page.fleet-modern .small-record-modal:before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,var(--fleet-accent),var(--fleet-accent-2),#22c55e);
+  z-index:5;
+}
+.arac-page.fleet-modern .small-record-izin:before{background:linear-gradient(90deg,#10b981,#14b8a6,#6366f1)}
+.arac-page.fleet-modern .small-record-kesinti:before{background:linear-gradient(90deg,#f59e0b,#f97316,#ef4444)}
+.arac-page.fleet-modern .vehicle-form-head,
+.arac-page.fleet-modern .small-modal-head{
+  background:color-mix(in srgb,var(--fleet-surface) 92%,var(--fleet-accent) 8%);
+  border-color:var(--fleet-border);
+  padding:20px 22px 17px;
+}
+.arac-page.fleet-modern .vehicle-form-head span,
+.arac-page.fleet-modern .small-modal-head span{color:var(--fleet-accent);font-size:10px;letter-spacing:.14em;font-weight:800}
+.arac-page.fleet-modern .vehicle-form-head h2,
+.arac-page.fleet-modern .small-modal-head h2{color:var(--fleet-text);font-size:22px;letter-spacing:-.02em;font-weight:760}
+.arac-page.fleet-modern .vehicle-form-head button,
+.arac-page.fleet-modern .small-modal-head button{
+  width:38px;height:38px;border-radius:11px;border:1px solid var(--fleet-border);
+  background:var(--fleet-surface-2);color:var(--fleet-muted);
+  transition:transform .18s ease,border-color .2s ease,color .2s ease,background .2s ease,box-shadow .2s ease;
+}
+.arac-page.fleet-modern .vehicle-form-head button:hover,
+.arac-page.fleet-modern .small-modal-head button:hover{
+  transform:rotate(4deg) scale(1.04);color:var(--fleet-text);border-color:color-mix(in srgb,var(--fleet-accent) 45%,var(--fleet-border));
+  box-shadow:0 8px 20px rgba(15,23,42,.10)
+}
+.arac-page.fleet-modern .vehicle-form-grid,
+.arac-page.fleet-modern .small-modal-body{background:var(--fleet-surface);}
+.arac-page.fleet-modern .vehicle-form-grid{gap:15px;padding:22px}
+.arac-page.fleet-modern .small-modal-body{gap:14px;padding:20px 22px}
+.arac-page.fleet-modern .vehicle-form-grid label,
+.arac-page.fleet-modern .small-modal-body label{color:var(--fleet-muted);font-weight:650;font-size:11px;letter-spacing:.01em}
+.arac-page.fleet-modern .vehicle-form-grid input,
+.arac-page.fleet-modern .vehicle-form-grid select,
+.arac-page.fleet-modern .small-modal-body input,
+.arac-page.fleet-modern .small-modal-body select,
+.arac-page.fleet-modern .small-modal-body textarea{
+  border:1px solid var(--fleet-border)!important;
+  background:var(--fleet-surface-2)!important;
+  color:var(--fleet-text)!important;
+  border-radius:11px!important;
+  font-weight:600;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease,transform .18s ease;
+}
+.arac-page.fleet-modern .vehicle-form-grid input:hover,
+.arac-page.fleet-modern .vehicle-form-grid select:hover,
+.arac-page.fleet-modern .small-modal-body input:hover,
+.arac-page.fleet-modern .small-modal-body select:hover,
+.arac-page.fleet-modern .small-modal-body textarea:hover{border-color:color-mix(in srgb,var(--fleet-accent) 32%,var(--fleet-border))!important}
+.arac-page.fleet-modern .vehicle-form-grid input:focus,
+.arac-page.fleet-modern .vehicle-form-grid select:focus,
+.arac-page.fleet-modern .small-modal-body input:focus,
+.arac-page.fleet-modern .small-modal-body select:focus,
+.arac-page.fleet-modern .small-modal-body textarea:focus{
+  border-color:var(--fleet-accent)!important;background:var(--fleet-surface)!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--fleet-accent) 15%,transparent)!important;
+  transform:translateY(-1px)
+}
+.arac-page.fleet-modern .vehicle-form-grid input::placeholder,
+.arac-page.fleet-modern .small-modal-body input::placeholder,
+.arac-page.fleet-modern .small-modal-body textarea::placeholder{color:color-mix(in srgb,var(--fleet-muted) 72%,transparent)}
+.arac-page.fleet-modern .vehicle-form-actions,
+.arac-page.fleet-modern .small-modal-actions{
+  gap:10px;padding:14px 22px 18px;border-color:var(--fleet-border);
+  background:color-mix(in srgb,var(--fleet-surface) 92%,var(--fleet-surface-2) 8%);
+}
+.arac-page.fleet-modern .vehicle-form-actions button,
+.arac-page.fleet-modern .small-modal-actions button{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:108px;height:42px;border-radius:11px;
+  transition:transform .16s ease,box-shadow .2s ease,filter .2s ease,border-color .2s ease;
+}
+.arac-page.fleet-modern .vehicle-form-actions button:hover,
+.arac-page.fleet-modern .small-modal-actions button:hover{transform:translateY(-2px)}
+.arac-page.fleet-modern .vehicle-form-actions button:active,
+.arac-page.fleet-modern .small-modal-actions button:active{transform:translateY(0) scale(.97)}
+.arac-page.fleet-modern .cancel-btn{background:var(--fleet-surface-2)!important;border:1px solid var(--fleet-border)!important;color:var(--fleet-muted)!important}
+.arac-page.fleet-modern .cancel-btn:hover{color:var(--fleet-text)!important;border-color:color-mix(in srgb,var(--fleet-muted) 38%,var(--fleet-border))!important}
+.arac-page.fleet-modern .save-btn{
+  border:1px solid transparent!important;color:white!important;
+  background:linear-gradient(135deg,var(--fleet-accent),var(--fleet-accent-2))!important;
+  box-shadow:0 9px 22px color-mix(in srgb,var(--fleet-accent) 25%,transparent)!important;
+}
+.arac-page.fleet-modern .save-btn:hover{filter:brightness(1.07);box-shadow:0 13px 28px color-mix(in srgb,var(--fleet-accent) 34%,transparent)!important}
+.arac-page.fleet-modern .danger-save{background:linear-gradient(135deg,#ef4444,#be123c)!important;box-shadow:0 9px 22px rgba(239,68,68,.22)!important}
+.arac-page.fleet-modern .auto-day-box strong{
+  height:42px;border-radius:11px;border:1px solid color-mix(in srgb,var(--fleet-accent) 30%,var(--fleet-border));
+  background:color-mix(in srgb,var(--fleet-accent) 9%,var(--fleet-surface-2));color:var(--fleet-accent);
+}
+.arac-page.fleet-modern .modal-record-list{padding:0 22px 18px;background:var(--fleet-surface)}
+.arac-page.fleet-modern .modal-record-list-head{padding-top:2px;margin-bottom:10px}
+.arac-page.fleet-modern .modal-record-list-head strong{color:var(--fleet-text);font-size:12px}
+.arac-page.fleet-modern .modal-record-list-head span{color:var(--fleet-muted);padding:4px 8px;border-radius:999px;background:var(--fleet-surface-2);border:1px solid var(--fleet-border)}
+.arac-page.fleet-modern .modal-record-empty{
+  border:1px dashed color-mix(in srgb,var(--fleet-muted) 35%,var(--fleet-border));
+  background:var(--fleet-surface-2);color:var(--fleet-muted);padding:18px;border-radius:12px
+}
+.arac-page.fleet-modern .modal-record-item{
+  margin-bottom:9px;padding:12px 13px;border:1px solid var(--fleet-border);border-radius:13px;
+  background:var(--fleet-surface-2);color:var(--fleet-text);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.arac-page.fleet-modern .modal-record-item:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--fleet-accent) 26%,var(--fleet-border));box-shadow:0 8px 18px rgba(15,23,42,.07)}
+.arac-page.fleet-modern .modal-record-list.izin .modal-record-item{border-color:color-mix(in srgb,#10b981 26%,var(--fleet-border));background:color-mix(in srgb,#10b981 7%,var(--fleet-surface-2))}
+.arac-page.fleet-modern .modal-record-list.kesinti .modal-record-item{border-color:color-mix(in srgb,#ef4444 26%,var(--fleet-border));background:color-mix(in srgb,#ef4444 7%,var(--fleet-surface-2))}
+.arac-page.fleet-modern .modal-record-item strong{color:var(--fleet-text);font-weight:700}
+.arac-page.fleet-modern .modal-record-item span{color:var(--fleet-muted)}
+.arac-page.fleet-modern .modal-record-item button{
+  display:inline-flex;align-items:center;gap:5px;min-width:auto;height:31px;padding:0 10px;border-radius:9px;
+  border:1px solid color-mix(in srgb,#ef4444 28%,var(--fleet-border));
+  background:color-mix(in srgb,#ef4444 10%,var(--fleet-surface));color:#ef4444;
+  transition:transform .16s ease,background .18s ease,box-shadow .18s ease;
+}
+.arac-page.fleet-modern .modal-record-item button:hover{transform:translateY(-1px);background:color-mix(in srgb,#ef4444 16%,var(--fleet-surface));box-shadow:0 7px 16px rgba(239,68,68,.12)}
+.arac-page.fleet-modern .document-upload-section{
+  border:1px solid var(--fleet-border);border-radius:16px;
+  background:color-mix(in srgb,var(--fleet-accent) 4%,var(--fleet-surface-2));
+}
+.arac-page.fleet-modern .document-card{border-color:var(--fleet-border);background:var(--fleet-surface);color:var(--fleet-text)}
+.arac-page.fleet-modern .document-card.filled{border-color:color-mix(in srgb,var(--fleet-accent) 32%,var(--fleet-border));background:color-mix(in srgb,var(--fleet-accent) 5%,var(--fleet-surface))}
+.arac-page.fleet-modern .document-preview{background:var(--fleet-surface-2);color:var(--fleet-text)}
+.arac-page.fleet-modern .document-preview a{color:var(--fleet-accent)}
+.arac-page.fleet-modern .document-section-head h3,.arac-page.fleet-modern .document-card-head strong{color:var(--fleet-text)}
+.arac-page.fleet-modern .document-section-head strong{background:color-mix(in srgb,var(--fleet-accent) 12%,var(--fleet-surface));color:var(--fleet-accent)}
+.arac-page.fleet-modern .document-upload-btn{background:linear-gradient(135deg,var(--fleet-accent),var(--fleet-accent-2));box-shadow:0 8px 18px color-mix(in srgb,var(--fleet-accent) 20%,transparent)}
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-modal{background:rgba(2,6,15,.76)}
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-head,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-head{background:#151f31!important}
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form,
+[data-theme="dark"] .arac-page.fleet-modern .small-record-modal,
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-grid,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body,
+[data-theme="dark"] .arac-page.fleet-modern .modal-record-list{background:#111827!important}
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-grid input,
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-grid select,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body input,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body select,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body textarea{background:#0d1525!important;color:#f8fafc!important;border-color:#2a3850!important}
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-grid input:focus,
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-grid select:focus,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body input:focus,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body select:focus,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-body textarea:focus{background:#101a2c!important}
+[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-actions,
+[data-theme="dark"] .arac-page.fleet-modern .small-modal-actions{background:#0e1727!important;border-color:#26364b!important}
+[data-theme="dark"] .arac-page.fleet-modern input[type="date"]{color-scheme:dark}
+@keyframes fleetModalFade{from{opacity:0}to{opacity:1}}
+@keyframes fleetModalRise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@media(max-width:720px){
+  .arac-page.fleet-modern .vehicle-modal{padding:8px;place-items:end center}
+  .arac-page.fleet-modern .vehicle-form,.arac-page.fleet-modern .small-record-modal{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}
+  .arac-page.fleet-modern .vehicle-form-grid{grid-template-columns:1fr;padding:16px}
+  .arac-page.fleet-modern .small-modal-body{grid-template-columns:1fr;padding:16px}
+  .arac-page.fleet-modern .small-modal-body label:last-child,.arac-page.fleet-modern .textarea-label,.arac-page.fleet-modern .exit-checks,.arac-page.fleet-modern .exit-warning{grid-column:1}
+  .arac-page.fleet-modern .vehicle-form-head,.arac-page.fleet-modern .small-modal-head{padding:16px}
+  .arac-page.fleet-modern .vehicle-form-actions,.arac-page.fleet-modern .small-modal-actions{padding:12px 16px 16px}
+}
+@media(prefers-reduced-motion:reduce){.arac-page.fleet-modern .vehicle-modal,.arac-page.fleet-modern .vehicle-form,.arac-page.fleet-modern .small-record-modal{animation:none!important}}
+
+/* v27 — hard theme alignment: no light surfaces leaking into dark mode */
+:root[data-theme="dark"] .arac-page.fleet-modern{
+  background:radial-gradient(circle at 8% 0%,rgba(99,102,241,.12),transparent 28%),#0b1220!important;
+  color:#f8fafc!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(
+  .fleet-kpi,.filter-card,.fleet-utility-strip,.table-card,.table-top,.fleet-pagination,
+  .detail-panel,.detail-section,.document-upload-section,.document-card,.document-summary,
+  .vehicle-form,.small-record-modal,.vehicle-form-head,.small-modal-head,.vehicle-form-grid,
+  .small-modal-body,.vehicle-form-actions,.small-modal-actions,.modal-record-list,
+  .list-center-modal,.modern-edit-card,.modern-record-card,.modern-driver-box,.modern-info-grid>div,
+  .modern-note-box,.modern-record-empty,.checkbox-field,.exit-checks,.side-panel-backdrop .record-side-panel
+){
+  background:#111827!important;
+  border-color:#263244!important;
+  color:#f8fafc!important;
+  box-shadow:0 18px 46px rgba(0,0,0,.22)!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(.vehicle-form-head,.small-modal-head,.table-top,.modern-edit-head,.side-panel-head){
+  background:linear-gradient(180deg,#172033,#131c2d)!important;
+  border-color:#2a3850!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(.arac-hero h1,.table-top h2,.detail-head h2,.detail-section h3,.vehicle-form-head h2,.small-modal-head h2,.modal-record-list-head strong,.document-section-head h3,.document-card-head strong,.modern-record-top h3,.modern-driver-box strong,.modern-info-grid strong,.modern-edit-head h3){
+  color:#f8fafc!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(.arac-hero p,.table-top span,.detail-head>div>span,.info-row span,.vehicle-form-grid label,.small-modal-body label,.modal-record-list-head span,.modal-record-item span,.document-card-head span,.modern-driver-box span,.modern-info-grid span,.modern-note-box span,.modern-edit-body label){
+  color:#94a3b8!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(.search-box,.fleet-filter-label,.fleet-table-tools button,.hero-actions button,.row-actions button,.fleet-drawer-close,.detail-actions button,.cancel-btn,.modern-edit-actions button){
+  background:#151f31!important;
+  border-color:#2a3850!important;
+  color:#cbd5e1!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(.search-box input,.filter-card select,.fleet-pagination select,.fleet-pagination button){
+  background:#0d1525!important;
+  border-color:#2a3850!important;
+  color:#e5e7eb!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .fleet-table th{
+  background:#182234!important;color:#aeb9ca!important;border-color:#2b384c!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .fleet-table td{
+  background:#111827!important;color:#dce5ef!important;border-color:#253247!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .fleet-table tbody tr:nth-child(even) td{background:#142033!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .fleet-table tbody tr:hover td{background:#1b2940!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .fleet-table tr.selected td{background:#202a4a!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .plate{background:#182234!important;border-color:#334155!important;color:#e2e8f0!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .vehicle-modal,
+:root[data-theme="dark"] .arac-page.fleet-modern .list-center-overlay{
+  background:rgba(2,6,15,.82)!important;
+  backdrop-filter:blur(16px) saturate(120%)!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .vehicle-form,
+:root[data-theme="dark"] .arac-page.fleet-modern .small-record-modal{
+  background:#111827!important;border-color:#2b3850!important;
+  box-shadow:0 30px 100px rgba(0,0,0,.55)!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-grid,
+:root[data-theme="dark"] .arac-page.fleet-modern .small-modal-body,
+:root[data-theme="dark"] .arac-page.fleet-modern .modal-record-list,
+:root[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-actions,
+:root[data-theme="dark"] .arac-page.fleet-modern .small-modal-actions{background:#111827!important}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(
+  .vehicle-form-grid input,.vehicle-form-grid select,.small-modal-body input,.small-modal-body select,.small-modal-body textarea,
+  .modern-edit-body input,.modern-edit-body select,.modern-edit-body textarea
+){
+  background:#0d1525!important;color:#f8fafc!important;border-color:#2a3850!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern :is(
+  .vehicle-form-grid input,.vehicle-form-grid select,.small-modal-body input,.small-modal-body select,.small-modal-body textarea,
+  .modern-edit-body input,.modern-edit-body select,.modern-edit-body textarea
+):focus{
+  background:#101a2c!important;border-color:#818cf8!important;box-shadow:0 0 0 3px rgba(129,140,248,.15)!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern input::placeholder,
+:root[data-theme="dark"] .arac-page.fleet-modern textarea::placeholder{color:#667085!important}
+:root[data-theme="dark"] .arac-page.fleet-modern input[type="date"]{color-scheme:dark}
+:root[data-theme="dark"] .arac-page.fleet-modern .auto-day-box strong{
+  background:#17213a!important;border-color:#39466b!important;color:#c7d2fe!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .modal-record-empty{
+  background:#0d1525!important;border-color:#334155!important;color:#94a3b8!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .modal-record-item{
+  background:#151f31!important;border-color:#2a3850!important;color:#f8fafc!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .modal-record-list.izin .modal-record-item{
+  background:#10251f!important;border-color:#215c48!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .modal-record-list.kesinti .modal-record-item{
+  background:#2a171c!important;border-color:#66303b!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .modal-record-item button,
+:root[data-theme="dark"] .arac-page.fleet-modern .delete-soft-btn{
+  background:#351821!important;border-color:#713344!important;color:#fda4af!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .checkbox-field{background:#0d1525!important;border-color:#2a3850!important;color:#cbd5e1!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .exit-checks{background:#25161b!important;border-color:#5f2a35!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .exit-warning{background:#351821!important;border-color:#7f3447!important;color:#fecdd3!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .document-upload-section{background:#121a2a!important;border-color:#2a3850!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .document-card{background:#151f31!important;border-color:#2a3850!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .document-card.filled{background:#17213a!important;border-color:#46558a!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .document-preview{background:#0d1525!important;color:#e5e7eb!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .document-summary-row{background:#0d1525!important;border-color:#2a3850!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .save-btn{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6)!important;
+  box-shadow:0 10px 26px rgba(99,102,241,.30)!important;
+}
+:root[data-theme="dark"] .arac-page.fleet-modern .save-btn:hover{box-shadow:0 14px 34px rgba(99,102,241,.42)!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .cancel-btn{background:#151f31!important;color:#cbd5e1!important;border-color:#2a3850!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-head button,
+:root[data-theme="dark"] .arac-page.fleet-modern .small-modal-head button{background:#0d1525!important;border-color:#2a3850!important;color:#94a3b8!important}
+:root[data-theme="dark"] .arac-page.fleet-modern .vehicle-form-head button:hover,
+:root[data-theme="dark"] .arac-page.fleet-modern .small-modal-head button:hover{background:#1b2940!important;color:#fff!important;border-color:#56648a!important}
+
+/* light mode also uses the same component hierarchy, without the old stark white/black contrast */
+:root[data-theme="light"] .arac-page.fleet-modern .vehicle-form,
+:root[data-theme="light"] .arac-page.fleet-modern .small-record-modal{background:#f8fafc!important;border-color:#dde5ef!important}
+:root[data-theme="light"] .arac-page.fleet-modern .vehicle-form-head,
+:root[data-theme="light"] .arac-page.fleet-modern .small-modal-head{background:linear-gradient(180deg,#f8fafc,#f3f6fa)!important}
+:root[data-theme="light"] .arac-page.fleet-modern .vehicle-form-grid,
+:root[data-theme="light"] .arac-page.fleet-modern .small-modal-body,
+:root[data-theme="light"] .arac-page.fleet-modern .vehicle-form-actions,
+:root[data-theme="light"] .arac-page.fleet-modern .small-modal-actions,
+:root[data-theme="light"] .arac-page.fleet-modern .modal-record-list{background:#f8fafc!important}
