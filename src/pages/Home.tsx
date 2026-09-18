@@ -102,8 +102,21 @@ export default function Home({ onLogout }: HomeProps) {
   const user = getAktifKullanici();
   const userName = user?.ad || user?.kullanici || user?.kullanici_adi || user?.email || "Kullanıcı";
   const role = user?.rol || "Kullanıcı";
+  const normalizedRole = String(role).trim().toLocaleUpperCase("tr-TR");
+  const isAdmin = normalizedRole === "ADMIN" || normalizedRole === "YÖNETİCİ" || normalizedRole === "YONETICI";
+  const rawPermissions = Array.isArray(user?.yetki) ? user.yetki : Array.isArray(user?.permissions) ? user.permissions : [];
+  const allowedPages = useMemo(() => new Set(
+    rawPermissions
+      .filter((permission: any) => Array.isArray(permission?.actions) && permission.actions.includes("view"))
+      .map((permission: any) => String(permission.page || "").trim())
+      .filter(Boolean)
+  ), [user?.yetki, user?.permissions]);
+  const canViewPage = (page: string) => isAdmin || allowedPages.has(page);
+  const visibleNavSections = useMemo(() => navSections
+    .map((section) => ({ ...section, items: section.items.filter((item) => canViewPage(item.label)) }))
+    .filter((section) => section.items.length > 0), [isAdmin, allowedPages]);
   const avatar = String(userName).charAt(0).toUpperCase();
-  const allNavItems = useMemo(() => navSections.flatMap((section) => section.items.map((item) => ({ ...item, section: section.title }))), []);
+  const allNavItems = useMemo(() => visibleNavSections.flatMap((section) => section.items.map((item) => ({ ...item, section: section.title }))), [visibleNavSections]);
   const filteredCommands = useMemo(() => {
     const q = commandQuery.trim().toLocaleLowerCase("tr-TR");
     if (!q) return allNavItems;
@@ -114,6 +127,12 @@ export default function Home({ onLogout }: HomeProps) {
   useEffect(() => {
     localStorage.setItem("fts_sidebar_pinned", menuOpen ? "1" : "0");
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (canViewPage(activePage)) return;
+    const firstAllowedPage = visibleNavSections[0]?.items[0]?.label || "Aktif Seferler";
+    setActivePage(firstAllowedPage);
+  }, [activePage, visibleNavSections]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -140,6 +159,7 @@ export default function Home({ onLogout }: HomeProps) {
   }, [commandOpen]);
 
   function navigate(label: string) {
+    if (!canViewPage(label)) return;
     setActivePage(label);
     setCommandOpen(false);
   }
@@ -151,6 +171,7 @@ export default function Home({ onLogout }: HomeProps) {
   }
 
   const renderPage = () => {
+    if (!canViewPage(activePage)) return null;
     if (activePage === "Dashboard") return <Dashboard onNavigate={navigate} />;
     if (activePage === "Aktif Seferler") return <AktifSeferler />;
     if (activePage === "Tamamlanan Seferler") return <TamamlananSeferler />;
@@ -201,7 +222,7 @@ export default function Home({ onLogout }: HomeProps) {
         </div>
 
         <nav className="sidebar-nav" id="main-navigation" aria-label="Sayfalar">
-          {navSections.map((section) => (
+          {visibleNavSections.map((section) => (
             <div className="sidebar-section" key={section.title}>
               <div className="sidebar-section-title">{section.title}</div>
               {section.items.map(({ label, icon: Icon }) => (
@@ -240,7 +261,7 @@ export default function Home({ onLogout }: HomeProps) {
               <span>{theme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}</span><b>{theme === "dark" ? "Açık tema" : "Koyu tema"}</b>
             </button>
           </div>
-          <button className="sidebar-profile" aria-label="Kullanıcı profili" title="Kullanıcı profili" type="button" onClick={() => navigate("Yönetim Paneli")}>
+          <button className="sidebar-profile" aria-label="Kullanıcı profili" title={canViewPage("Yönetim Paneli") ? "Yönetim Paneli" : "Kullanıcı profili"} type="button" onClick={() => { if (canViewPage("Yönetim Paneli")) navigate("Yönetim Paneli"); }} disabled={!canViewPage("Yönetim Paneli")} style={!canViewPage("Yönetim Paneli") ? { cursor: "default", opacity: 1 } : undefined}>
             <span className="sidebar-avatar">{avatar}<i/></span>
             <span className="sidebar-profile-copy"><strong>{userName}</strong><small>{role}</small></span>
             <span className="sidebar-profile-go"><UserRoundCog size={16}/></span>
